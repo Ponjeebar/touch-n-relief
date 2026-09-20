@@ -1,0 +1,226 @@
+/* Payment receipt modal — printable / screenshot-friendly */
+.payment-receipt-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 12000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.payment-receipt-modal.payment-receipt-hidden {
+    display: none;
+}
+
+.payment-receipt-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 20, 0.55);
+}
+
+.payment-receipt-dialog {
+    position: relative;
+    width: min(100%, 420px);
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+}
+
+.payment-receipt-screen {
+    padding: 1.1rem 1.15rem 0.75rem;
+}
+
+.payment-receipt-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.payment-receipt-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.payment-receipt-logo {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+}
+
+.payment-receipt-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #124a2f;
+}
+
+.payment-receipt-subtitle {
+    margin: 0.1rem 0 0;
+    font-size: 0.78rem;
+    color: #5a6771;
+}
+
+.payment-receipt-close {
+    border: 0;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #5a6771;
+    cursor: pointer;
+}
+
+.payment-receipt-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 10px;
+    background: #f3fbf6;
+    border: 1px solid #b8dfc9;
+    font-size: 0.82rem;
+}
+
+.payment-receipt-meta-label {
+    display: block;
+    color: #4a6b57;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+
+.payment-receipt-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin: 0;
+}
+
+.payment-receipt-row {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: 0.35rem 0.75rem;
+    margin: 0;
+    align-items: start;
+}
+
+.payment-receipt-row dt {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #4a6b57;
+}
+
+.payment-receipt-row dd {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #124a2f;
+    word-break: break-word;
+    text-align: right;
+}
+
+.payment-receipt-row--amount dd {
+    font-size: 1.05rem;
+    color: #0d5c38;
+}
+
+.payment-receipt-divider {
+    height: 1px;
+    margin: 0.35rem 0;
+    background: linear-gradient(90deg, transparent, #b8dfc9, transparent);
+}
+
+.payment-receipt-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    margin: 0.85rem 0 0;
+    padding: 0.65rem 0.75rem;
+    border-radius: 10px;
+    background: #fff9eb;
+    border: 1px solid #f0dca0;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: #6b5a1f;
+}
+
+.payment-receipt-foot {
+    margin-top: 0.85rem;
+    padding-top: 0.65rem;
+    border-top: 1px dashed #d8e3dc;
+    text-align: center;
+    font-size: 0.78rem;
+    color: #5a6771;
+}
+
+.payment-receipt-foot p {
+    margin: 0;
+}
+
+.payment-receipt-actions {
+    display: flex;
+    gap: 0.55rem;
+    padding: 0.75rem 1rem 1rem;
+    border-top: 1px solid #e8efea;
+}
+
+.payment-receipt-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 42px;
+    border-radius: 10px;
+    border: 1px solid #c5d9cc;
+    background: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.payment-receipt-btn--print {
+    color: #124a2f;
+    background: #f3fbf6;
+    border-color: #b8dfc9;
+}
+
+.payment-receipt-btn--done {
+    color: #fff;
+    background: #2d6a4f;
+    border-color: #2d6a4f;
+}
+
+body.payment-receipt-open {
+    overflow: hidden;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #paymentReceiptPrintArea,
+    #paymentReceiptPrintArea * {
+        visibility: visible;
+    }
+
+    #paymentReceiptPrintArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+
+    .payment-receipt-close,
+    .payment-receipt-actions,
+    .payment-receipt-backdrop {
+        display: none !important;
+    }
+}

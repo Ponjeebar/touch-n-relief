@@ -1,0 +1,273 @@
+@import url('./dashboard.css');
+
+.ongoing-wrap {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    grid-auto-rows: min-content;
+}
+
+.ongoing-card {
+    background: #ffffff;
+    border: 1px solid #d8e7e5;
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 6px 16px rgba(31, 43, 51, 0.05);
+}
+
+.ongoing-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.ongoing-head h3 {
+    margin: 0;
+    font-size: 17px;
+}
+
+.ongoing-head p {
+    margin: 3px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.complete-btn {
+    border: 1px solid #b6e2c4;
+    background: #ddf4e6;
+    color: #1f7a4f;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.ongoing-meta-grid {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.meta-box {
+    border: 1px solid #e3eceb;
+    background: #f8fcfb;
+    border-radius: 8px;
+    padding: 6px 8px;
+}
+
+.meta-label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.meta-box strong {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+}
+
+.progress-row {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.progress-pct {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.progress-track {
+    margin-top: 4px;
+    height: 6px;
+    border-radius: 999px;
+    background: #dce9e8;
+    overflow: hidden;
+}
+
+.progress-track > span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #2f8f83 0%, #2f9d62 100%);
+    transition: width 0.35s linear;
+}
+
+.ongoing-footer {
+    margin-top: 7px;
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.ongoing-footer strong {
+    font-size: 18px;
+    color: #2f8f83;
+}
+
+.ongoing-empty {
+    margin: 0;
+    padding: 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    background: #ffffff;
+    border: 1px dashed #d8e7e5;
+    border-radius: 12px;
+}
+
+.ongoing-pagination {
+    margin-top: 4px;
+    padding: 8px 0 4px;
+    border-top: 1px solid #d7e5e4;
+}
+
+.ongoing-pagination nav {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.ongoing-pagination nav a,
+.ongoing-pagination nav span {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    text-decoration: none;
+    color: #2f4f70;
+    border: 1px solid #c4d4e2;
+    background: #f8fbff;
+    font-weight: 600;
+    transition: transform 0.18s ease, box-shadow 0.22s ease, background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease;
+}
+
+.ongoing-pagination nav span[aria-current="page"] {
+    background: #dff2e9;
+    border-color: #8fc8b2;
+    color: #045c3f;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(4, 114, 77, 0.14);
+    animation: pagePopIn 0.28s ease;
+}
+
+.ongoing-pagination nav span[aria-disabled="true"] {
+    opacity: 0.72;
+    color: #8297aa;
+    background: #f3f6f8;
+    border-color: #d5e0e8;
+}
+
+.ongoing-pagination nav a:hover {
+    transform: translateY(-1px);
+    background: #eef5ff;
+    border-color: #9fb9d0;
+    box-shadow: 0 6px 12px rgba(79, 109, 140, 0.14);
+}
+
+.ongoing-pagination nav a:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(79, 109, 140, 0.12);
+}
+
+.ongoing-pagination nav a:focus-visible {
+    outline: 2px solid rgba(79, 109, 140, 0.35);
+    outline-offset: 2px;
+}
+
+/* Laravel paginator uses Tailwind classes by default.
+   This project doesn't load Tailwind, so we normalize pagination output here. */
+.ongoing-pagination nav > div:first-child {
+    display: none; /* hide the "Previous/Next" text-only mobile layout */
+}
+
+.ongoing-pagination nav > div:nth-child(2) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ongoing-pagination nav p,
+.ongoing-pagination nav p span {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #3c5d7f;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+@keyframes pagePopIn {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.85;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.ongoing-pagination nav svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+    flex: 0 0 auto;
+}
+
+.ongoing-pagination nav a,
+.ongoing-pagination nav span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .ongoing-meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .ongoing-head {
+        flex-direction: column;
+    }
+
+    .ongoing-meta-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.ongoing-flash {
+    margin: 0 0 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+.ongoing-flash-success {
+    background: #e8f7ef;
+    border: 1px solid #b8e6cc;
+    color: #1f6b43;
+}
+
+.ongoing-flash-error {
+    background: #fdeeee;
+    border: 1px solid #f0c5c5;
+    color: #9b2c2c;
+}

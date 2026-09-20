@@ -1,0 +1,124 @@
+/* Logout confirmation modal */
+
+.lo-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    display: grid;
+    place-items: center;
+    padding: 24px 16px;
+}
+
+.lo-modal.lo-hidden {
+    display: none !important;
+}
+
+.lo-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(18, 24, 31, 0.48);
+}
+
+.lo-dialog {
+    position: relative;
+    width: min(420px, calc(100vw - 32px));
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid #e2e8ef;
+    box-shadow: 0 28px 70px rgba(31, 43, 51, 0.22);
+    padding: 24px 22px 20px;
+}
+
+.lo-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: #fff4eb;
+    color: #b45309;
+    display: grid;
+    place-items: center;
+    font-size: 1.35rem;
+    margin-bottom: 14px;
+}
+
+.lo-title {
+    margin: 0 0 8px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1f2b33;
+    letter-spacing: -0.02em;
+}
+
+.lo-text {
+    margin: 0 0 20px;
+    color: #5f6b76;
+    font-size: 0.94rem;
+    line-height: 1.55;
+}
+
+.lo-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.lo-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 0.62rem 1rem;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.lo-btn-cancel {
+    background: #f1f5f8;
+    color: #44515d;
+}
+
+.lo-btn-cancel:hover {
+    background: #e4ebf0;
+}
+
+.lo-btn-confirm {
+    background: #c45c26;
+    color: #fff;
+}
+
+.lo-btn-confirm:hover {
+    background: #a84d1f;
+}
+
+body.lo-modal-open {
+    overflow: hidden;
+}
+
+html[data-theme="dark"] .lo-dialog {
+    background: #1e2830;
+    border-color: #33404a;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="dark"] .lo-title {
+    color: #eef3f7;
+}
+
+html[data-theme="dark"] .lo-text {
+    color: #a8b4be;
+}
+
+html[data-theme="dark"] .lo-icon {
+    background: rgba(196, 92, 38, 0.18);
+    color: #f0a070;
+}
+
+html[data-theme="dark"] .lo-btn-cancel {
+    background: #2a3540;
+    color: #d5dee6;
+}
+
+html[data-theme="dark"] .lo-btn-cancel:hover {
+    background: #34414d;
+}

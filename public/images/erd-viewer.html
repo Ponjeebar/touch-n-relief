@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TOUCHnRELIEF Connected ERD</title>
+<style>
+  body { margin: 0; background: #f8fafc; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+<script>
+  fetch('database-erd-connected.svg')
+    .then(r => r.text())
+    .then(svg => { document.body.innerHTML = svg; });
+</script>
+</body>
+</html>
