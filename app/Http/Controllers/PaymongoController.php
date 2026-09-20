@@ -139,6 +139,84 @@ class PaymongoController extends Controller
             );
     }
 
+    public function staffSuccess(SpaBooking $spaBooking): RedirectResponse
+    {
+        $this->verifyPendingCheckout($spaBooking);
+        $spaBooking->refresh();
+
+        return redirect()->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
+            ->with('status', $spaBooking->payment_status === PaymentMethodCatalog::STATUS_PAID
+                ? 'PayMongo payment confirmed for booking #'.$spaBooking->id.'.'
+                : 'Booking #'.$spaBooking->id.' was created. PayMongo payment is still pending confirmation.');
+    }
+
+    public function staffCancel(SpaBooking $spaBooking): RedirectResponse
+    {
+        $this->verifyPendingCheckout($spaBooking);
+        $spaBooking->refresh();
+
+        return redirect()->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
+            ->with('status', $spaBooking->payment_status === PaymentMethodCatalog::STATUS_PAID
+                ? 'PayMongo payment confirmed for booking #'.$spaBooking->id.'.'
+                : 'PayMongo checkout was not completed. Booking #'.$spaBooking->id.' remains pending payment.');
+    }
+
+    public function staffRetry(SpaBooking $spaBooking): RedirectResponse
+    {
+        if ($spaBooking->booking_source !== SpaBooking::SOURCE_WALK_IN
+            || $spaBooking->payment_method !== PaymentMethodCatalog::METHOD_PAYMONGO
+            || $spaBooking->payment_status !== PaymentMethodCatalog::STATUS_PENDING) {
+            abort(404);
+        }
+
+        try {
+            if (blank($spaBooking->paymongo_checkout_session_id)) {
+                return redirect()->away($this->paymongo->startStaffBookingCheckout($spaBooking));
+            }
+
+            $session = $this->paymongo->retrieveCheckoutSession($spaBooking->paymongo_checkout_session_id);
+            if ($this->paymongo->isCheckoutSessionPaid($session)) {
+                $this->markBookingPaid($spaBooking, $session);
+
+                return redirect()->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
+                    ->with('status', 'PayMongo payment confirmed for booking #'.$spaBooking->id.'.');
+            }
+
+            $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
+            if (str_starts_with($checkoutUrl, 'https://')) {
+                return redirect()->away($checkoutUrl);
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('Staff PayMongo checkout could not be resumed.', [
+                'booking_id' => $spaBooking->id,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+
+        return redirect()->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
+            ->with('status', 'PayMongo checkout could not be resumed. Please contact an administrator.');
+    }
+
+    private function verifyPendingCheckout(SpaBooking $spaBooking): void
+    {
+        if ($spaBooking->payment_status === PaymentMethodCatalog::STATUS_PAID
+            || blank($spaBooking->paymongo_checkout_session_id)) {
+            return;
+        }
+
+        try {
+            $session = $this->paymongo->retrieveCheckoutSession($spaBooking->paymongo_checkout_session_id);
+            if ($this->paymongo->isCheckoutSessionPaid($session)) {
+                $this->markBookingPaid($spaBooking, $session);
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('Staff PayMongo return could not verify session.', [
+                'booking_id' => $spaBooking->id,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
     public function webhook(Request $request): JsonResponse
     {
         $payload = $request->getContent();

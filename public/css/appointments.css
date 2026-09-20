@@ -1776,8 +1776,7 @@
 }
 
 .appt-payment-type:focus-visible,
-.appt-payment-method:focus-visible,
-.appt-transaction-field input:focus-visible {
+.appt-payment-method:focus-visible {
     outline: 2px solid #0f5f45;
     outline-offset: 2px;
 }
@@ -1869,7 +1868,7 @@
     font-size: 15px;
 }
 
-.appt-transaction-panel {
+.appt-payment-info-panel {
     border: 1px solid rgba(20, 45, 56, 0.12);
     border-radius: 14px;
     background: #fff;
@@ -1878,31 +1877,6 @@
     flex-direction: column;
     gap: 10px;
     min-width: 0;
-}
-
-.appt-transaction-field {
-    margin: 0;
-}
-
-.appt-transaction-field input {
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid rgba(20, 45, 56, 0.16);
-    border-radius: 10px;
-    padding: 12px;
-    font: inherit;
-    font-size: 16px;
-    font-weight: 600;
-    color: #1f3a46;
-    background: #fff;
-    -webkit-appearance: none;
-    appearance: none;
-}
-
-.appt-transaction-field input:focus {
-    outline: none;
-    border-color: #1f3a46;
-    box-shadow: 0 0 0 3px rgba(31, 58, 70, 0.12);
 }
 
 @media (max-width: 900px) {
@@ -1976,9 +1950,6 @@
         flex-wrap: wrap;
     }
 
-    .appt-transaction-field input {
-        font-size: 16px;
-    }
 }
 
 @media (max-height: 560px) and (orientation: landscape) {

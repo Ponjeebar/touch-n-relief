@@ -248,7 +248,7 @@
                 </div>
             @endif
 
-            <form class="add-appointment-form" action="{{ $appointmentStoreUrl }}" method="POST" id="add-appointment-form" enctype="multipart/form-data">
+            <form class="add-appointment-form" action="{{ $appointmentStoreUrl }}" method="POST" id="add-appointment-form">
                 @csrf
                 <input type="hidden" name="client_type" id="add-client-type" value="{{ old('client_type') }}">
                 <input type="hidden" name="client_user_id" id="add-client-user-id" value="{{ old('client_user_id') }}">
@@ -422,32 +422,19 @@
                                     @foreach ($paymentMethods as $key => $method)
                                         <button
                                             type="button"
-                                            class="appt-payment-method{{ ! empty($method['walk_in_only']) ? ' appt-payment-method--walk-in-only hidden-section' : '' }}"
+                                            class="appt-payment-method"
                                             data-add-payment-method="{{ $key }}"
-                                            @if (! empty($method['walk_in_only'])) data-walk-in-only="true" @endif
                                         >{{ $method['label'] }}</button>
                                     @endforeach
                                 </div>
                             </div>
                         </div>
 
-                        <div class="appt-payment-right" id="add-payment-transaction-panel">
-                            <div class="appt-transaction-panel">
-                                <p class="appt-payment-label">Transaction number</p>
-                                <div class="profile-field appt-transaction-field">
-                                    <input
-                                        type="text"
-                                        id="add-payment-transaction-id"
-                                        name="payment_transaction_id"
-                                        placeholder="e.g. 2026071012345678"
-                                        value="{{ old('payment_transaction_id') }}"
-                                        maxlength="100"
-                                        autocomplete="off"
-                                        required
-                                    >
-                                </div>
-                                <p class="appt-payment-hint" id="add-payment-transaction-hint">Enter the reference or transaction number from the client's online payment.</p>
-                                <p class="appt-payment-hint hidden-section" id="add-payment-cash-hint">Cash payment at the counter — no reference number needed. A receipt will be shown after booking.</p>
+                        <div class="appt-payment-right">
+                            <div class="appt-payment-info-panel">
+                                <p class="appt-payment-label">How payment works</p>
+                                <p class="appt-payment-hint" id="add-payment-transaction-hint">Choose PayMongo to open secure checkout after creating the appointment. The payment is marked paid when PayMongo confirms it.</p>
+                                <p class="appt-payment-hint hidden-section" id="add-payment-cash-hint">Collect the amount due at the counter. The booking will be marked paid and a receipt will be shown.</p>
                                 <p class="appt-payment-error hidden-section" id="add-payment-transaction-error" role="alert"></p>
                             </div>
                         </div>
@@ -600,8 +587,12 @@
                     <input id="view-payment-type" type="text" readonly>
                 </div>
                 <div class="profile-field" id="view-payment-amount-wrap">
-                    <label>Amount paid</label>
+                    <label>Payment amount</label>
                     <input id="view-payment-amount" type="text" readonly>
+                </div>
+                <div class="profile-field" id="view-payment-status-wrap">
+                    <label>Payment status</label>
+                    <input id="view-payment-status" type="text" readonly>
                 </div>
                 <div class="profile-field" id="view-service-amount-wrap">
                     <label>Service price</label>
@@ -626,6 +617,7 @@
             </div>
 
             <div class="profile-modal-actions view-modal-actions">
+                <a class="user-action add hidden-section" id="view-retry-paymongo-link" href="#">Resume PayMongo checkout</a>
                 <button type="button" class="user-action hidden-section" id="view-complete-refund-btn">Mark refund complete</button>
                 <button type="button" class="user-action" id="view-close-btn">Close</button>
             </div>
@@ -678,13 +670,12 @@
 
         const addPaymentMethodInput = document.getElementById('add-payment-method');
         const addPaymentTypeInput = document.getElementById('add-payment-type');
-        const addPaymentTransactionInput = document.getElementById('add-payment-transaction-id');
         const addPaymentTransactionError = document.getElementById('add-payment-transaction-error');
         const addPaymentServicePrice = document.getElementById('add-payment-service-price');
         const addPaymentAmountDue = document.getElementById('add-payment-amount-due');
         const addPaymentTypeButtons = Array.from(document.querySelectorAll('[data-add-payment-type]'));
         const addPaymentMethodButtons = Array.from(document.querySelectorAll('[data-add-payment-method]'));
-        const addPaymentTransactionPanel = document.getElementById('add-payment-transaction-panel');
+        const addAppointmentSaveButton = document.getElementById('add-appointment-save-btn');
         const addPaymentTransactionHint = document.getElementById('add-payment-transaction-hint');
         const addPaymentCashHint = document.getElementById('add-payment-cash-hint');
         const CASH_COUNTER_METHOD = 'cash_counter';
@@ -695,33 +686,12 @@
             return selectedAddPaymentMethod === CASH_COUNTER_METHOD;
         }
 
-        function syncWalkInPaymentMethods() {
-            const isWalkIn = activeClientType === 'walk_in';
-            addPaymentMethodButtons.forEach((btn) => {
-                const walkInOnly = btn.getAttribute('data-walk-in-only') === 'true';
-                if (!walkInOnly) return;
-                btn.classList.toggle('hidden-section', !isWalkIn);
-                if (!isWalkIn && btn.classList.contains('is-active')) {
-                    selectedAddPaymentMethod = '';
-                    btn.classList.remove('is-active');
-                    if (addPaymentMethodInput instanceof HTMLInputElement) addPaymentMethodInput.value = '';
-                }
-            });
-            syncAddPaymentTransactionPanel();
-        }
-
         function syncAddPaymentTransactionPanel() {
             if (!addHasPaymentFields) return;
             const cash = isCashCounterSelected();
-            if (addPaymentTransactionPanel) {
-                addPaymentTransactionPanel.classList.toggle('hidden-section', cash);
-            }
             if (addPaymentTransactionHint) addPaymentTransactionHint.classList.toggle('hidden-section', cash);
             if (addPaymentCashHint) addPaymentCashHint.classList.toggle('hidden-section', !cash);
-            if (addPaymentTransactionInput instanceof HTMLInputElement) {
-                addPaymentTransactionInput.required = !cash;
-                if (cash) addPaymentTransactionInput.value = '';
-            }
+            if (addAppointmentSaveButton) addAppointmentSaveButton.textContent = cash ? 'Confirm booking' : 'Continue to PayMongo';
         }
 
         function formatAddCurrency(amount) {
@@ -780,16 +750,8 @@
             hideAddPaymentTransactionError();
         }
 
-        function syncAddPaymentClientMode(clearTransactionId = false) {
+        function syncAddPaymentClientMode() {
             if (!addHasPaymentFields) return;
-
-            syncWalkInPaymentMethods();
-
-            if (addPaymentTransactionInput instanceof HTMLInputElement) {
-                addPaymentTransactionInput.disabled = isCashCounterSelected();
-                if (clearTransactionId && !isCashCounterSelected()) addPaymentTransactionInput.value = '';
-            }
-
             syncAddPaymentTransactionPanel();
             hideAllAddPaymentErrors();
         }
@@ -802,7 +764,7 @@
             paintAddPaymentMethodButtons();
             updateAddPaymentSummary();
             hideAllAddPaymentErrors();
-            syncAddPaymentClientMode(false);
+            syncAddPaymentClientMode();
         }
 
         addPaymentTypeButtons.forEach((btn) => {
@@ -820,10 +782,6 @@
                 syncAddPaymentTransactionPanel();
                 hideAllAddPaymentErrors();
             });
-        });
-
-        addPaymentTransactionInput?.addEventListener('input', () => {
-            hideAddPaymentTransactionError();
         });
 
         function setWalkInFieldsEnabled(enabled) {
@@ -889,7 +847,7 @@
 
             hideClientSearchResults();
             scheduleAddAvailabilityRefresh();
-            syncAddPaymentClientMode(!preserveFields);
+            syncAddPaymentClientMode();
         }
 
         function openClientTypeModal() {
@@ -1243,17 +1201,6 @@
                     return;
                 }
 
-                if (!isCashCounterSelected()) {
-                    const transactionId = addPaymentTransactionInput instanceof HTMLInputElement
-                        ? addPaymentTransactionInput.value.trim()
-                        : '';
-                    if (!transactionId) {
-                        event.preventDefault();
-                        showAddPaymentTransactionError('Please enter the payment transaction number.');
-                        return;
-                    }
-                }
-
                 if (addPaymentMethodInput instanceof HTMLInputElement) addPaymentMethodInput.value = selectedAddPaymentMethod;
                 if (addPaymentTypeInput instanceof HTMLInputElement) addPaymentTypeInput.value = selectedAddPaymentType;
             }
@@ -1274,7 +1221,7 @@
             paintAddPaymentTypeButtons();
             paintAddPaymentMethodButtons();
             updateAddPaymentSummary();
-            syncAddPaymentClientMode(false);
+            syncAddPaymentClientMode();
         }
 
         const rescheduleModal = document.getElementById('reschedule-appointment-modal');
@@ -1661,6 +1608,7 @@
         const viewPaymentMethod = document.getElementById('view-payment-method');
         const viewPaymentType = document.getElementById('view-payment-type');
         const viewPaymentAmount = document.getElementById('view-payment-amount');
+        const viewPaymentStatus = document.getElementById('view-payment-status');
         const viewServiceAmount = document.getElementById('view-service-amount');
         const viewPaymentProofLink = document.getElementById('view-payment-proof-link');
         const viewPaymentProofEmpty = document.getElementById('view-payment-proof-empty');
@@ -1671,6 +1619,7 @@
         const viewRefundStatus = document.getElementById('view-refund-status');
         const viewRefundNote = document.getElementById('view-refund-note');
         const viewCompleteRefundBtn = document.getElementById('view-complete-refund-btn');
+        const viewRetryPaymongoLink = document.getElementById('view-retry-paymongo-link');
         let activeRefundUrl = '';
         let activeViewBookingId = '';
 
@@ -1683,8 +1632,10 @@
             const time = button.getAttribute('data-time') ?? '';
             const notes = button.getAttribute('data-notes') ?? '';
             const paymentMethod = button.getAttribute('data-payment-method') ?? '';
+            const paymentRetryUrl = button.getAttribute('data-payment-retry-url') ?? '';
             const paymentType = button.getAttribute('data-payment-type') ?? '';
             const paymentAmount = button.getAttribute('data-payment-amount') ?? '';
+            const paymentStatus = button.getAttribute('data-payment-status') ?? '';
             const serviceAmount = button.getAttribute('data-service-amount') ?? '';
             const paymentProof = button.getAttribute('data-payment-proof') ?? '';
             const paymentTransaction = button.getAttribute('data-payment-transaction') ?? '';
@@ -1697,6 +1648,11 @@
             activeRefundUrl = button.getAttribute('data-refund-url') ?? '';
             activeViewBookingId = button.getAttribute('data-booking-id') ?? '';
 
+            if (viewRetryPaymongoLink) {
+                viewRetryPaymongoLink.href = paymentRetryUrl || '#';
+                viewRetryPaymongoLink.classList.toggle('hidden-section', !paymentRetryUrl);
+            }
+
             if (viewClient) viewClient.value = client;
             if (viewService) viewService.value = service;
             if (viewTherapist) viewTherapist.value = therapist;
@@ -1707,6 +1663,7 @@
             if (viewPaymentMethod) viewPaymentMethod.value = paymentMethod || '—';
             if (viewPaymentType) viewPaymentType.value = paymentType || '—';
             if (viewPaymentAmount) viewPaymentAmount.value = paymentAmount || '—';
+            if (viewPaymentStatus) viewPaymentStatus.value = paymentStatus || '—';
             if (viewServiceAmount) viewServiceAmount.value = serviceAmount || '—';
             if (viewPaymentTransaction) viewPaymentTransaction.value = paymentTransaction || '—';
             if (viewPaymentTransactionWrap) {
@@ -1715,7 +1672,7 @@
 
             const hasProof = !!paymentProof;
             if (viewPaymentProofWrap) {
-                viewPaymentProofWrap.classList.toggle('hidden-section', !hasProof && !!paymentTransaction);
+                viewPaymentProofWrap.classList.toggle('hidden-section', !hasProof);
             }
             if (viewPaymentProofLink) {
                 viewPaymentProofLink.href = hasProof ? paymentProof : '#';

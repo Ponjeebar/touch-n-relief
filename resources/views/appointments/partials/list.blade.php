@@ -115,6 +115,8 @@
                         data-notes="{{ $appointment['notes'] ?? '' }}"
                         data-payment-summary="{{ $appointment['payment_summary'] ?? '' }}"
                         data-payment-method="{{ $appointment['payment_method_label'] ?? '' }}"
+                        data-payment-status="{{ $appointment['payment_status_label'] ?? '' }}"
+                        data-payment-retry-url="{{ ! empty($appointment['can_retry_paymongo']) && $bookingId ? route('appointments.paymongo.retry', $bookingId) : '' }}"
                         data-payment-type="{{ $appointment['payment_type_label'] ?? '' }}"
                         data-payment-amount="{{ $appointment['payment_amount'] ?? '' }}"
                         data-service-amount="{{ $appointment['service_amount'] ?? '' }}"

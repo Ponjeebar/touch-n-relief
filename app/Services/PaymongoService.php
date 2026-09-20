@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SpaBooking;
+use App\Support\PaymentMethodCatalog;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -52,6 +53,42 @@ class PaymongoService
         }
 
         return $data;
+    }
+
+    public function startStaffBookingCheckout(SpaBooking $booking): string
+    {
+        $session = $this->createCheckoutSession([
+            'billing' => [
+                'name' => (string) ($booking->client_name ?: $booking->user?->name),
+                'email' => (string) $booking->user?->email,
+            ],
+            'line_items' => [[
+                'name' => $booking->service_name.' - '.PaymentMethodCatalog::typeLabelFor($booking->payment_type),
+                'amount' => (int) round((float) $booking->payment_amount * 100),
+                'currency' => 'PHP',
+                'quantity' => 1,
+            ]],
+            'payment_method_types' => $this->paymentMethodTypes(),
+            'success_url' => route('appointments.paymongo.success', $booking),
+            'cancel_url' => route('appointments.paymongo.cancel', $booking),
+            'reference_number' => (string) $booking->id,
+            'metadata' => [
+                'booking_id' => (string) $booking->id,
+                'user_id' => (string) $booking->user_id,
+                'payment_type' => (string) $booking->payment_type,
+            ],
+            'description' => 'Touch N Relief booking #'.$booking->id,
+        ]);
+
+        $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
+        $sessionId = (string) ($session['id'] ?? '');
+        if ($checkoutUrl === '' || $sessionId === '') {
+            throw new RuntimeException('PayMongo did not return a checkout link and session ID.');
+        }
+
+        $booking->forceFill(['paymongo_checkout_session_id' => $sessionId])->save();
+
+        return $checkoutUrl;
     }
 
     /**

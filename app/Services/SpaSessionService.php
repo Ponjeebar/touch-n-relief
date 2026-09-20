@@ -641,6 +641,9 @@ class SpaSessionService
             'payment_amount_raw' => $paymentAmount,
             'service_amount' => $serviceAmount > 0 ? '₱'.number_format($serviceAmount, 2) : '—',
             'payment_status' => (string) ($booking->payment_status ?? ''),
+            'can_retry_paymongo' => $booking->booking_source === SpaBooking::SOURCE_WALK_IN
+                && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
+                && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING,
             'payment_proof_url' => $booking->payment_proof_path ? public_storage_url($booking->payment_proof_path) : '',
             'payment_transaction_id' => (string) ($booking->payment_transaction_id ?? ''),
             'payment_status_label' => PaymentMethodCatalog::statusLabelFor($booking->payment_status),

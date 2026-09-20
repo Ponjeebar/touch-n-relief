@@ -76,7 +76,7 @@ class PaymentMethodCatalog
                 'initials' => 'LB',
             ],
             self::METHOD_CASH_COUNTER => [
-                'label' => 'Cash (Over the Counter)',
+                'label' => 'Pay at counter (cash)',
                 'qr' => '',
                 'brand' => '#2d6a4f',
                 'initials' => '₱',
@@ -92,12 +92,10 @@ class PaymentMethodCatalog
      */
     public static function staffMethods(): array
     {
-        return array_filter(
-            self::methods(),
-            fn (array $method, string $key): bool => $key !== self::METHOD_PAYMONGO
-                && empty($method['online_only']),
-            ARRAY_FILTER_USE_BOTH,
-        );
+        return array_intersect_key(self::methods(), array_flip([
+            self::METHOD_PAYMONGO,
+            self::METHOD_CASH_COUNTER,
+        ]));
     }
 
     /**

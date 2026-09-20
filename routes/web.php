@@ -59,6 +59,9 @@ Route::middleware(['auth', 'staff.activity'])->group(function () {
     Route::get('/appointments/availability', [StaffAppointmentController::class, 'availability'])->name('appointments.availability');
     Route::get('/appointments/clients/search', [StaffAppointmentController::class, 'searchClients'])->name('appointments.clients.search');
     Route::post('/appointments', [StaffAppointmentController::class, 'store'])->name('appointments.store');
+    Route::get('/appointments/paymongo/success/{spaBooking}', [PaymongoController::class, 'staffSuccess'])->name('appointments.paymongo.success');
+    Route::get('/appointments/paymongo/cancel/{spaBooking}', [PaymongoController::class, 'staffCancel'])->name('appointments.paymongo.cancel');
+    Route::get('/appointments/paymongo/retry/{spaBooking}', [PaymongoController::class, 'staffRetry'])->name('appointments.paymongo.retry');
     Route::patch('/appointments/{spaBooking}/reschedule', [StaffAppointmentController::class, 'reschedule'])->name('appointments.reschedule');
     Route::get('/appointments/{spaBooking}/reschedule/availability', [StaffAppointmentController::class, 'rescheduleAvailability'])->name('appointments.reschedule.availability');
     Route::patch('/appointments/{spaBooking}/cancel', [StaffAppointmentController::class, 'cancel'])->name('appointments.cancel');

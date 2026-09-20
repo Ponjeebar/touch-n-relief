@@ -14,6 +14,7 @@ use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
 use App\Services\SpaServiceCatalog;
+use App\Services\PaymongoService;
 use App\Services\WalkInClientService;
 use App\Services\TherapistAvailabilityService;
 use App\Services\TherapistCatalog;
@@ -24,6 +25,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rule;
@@ -39,6 +42,7 @@ class StaffAppointmentController extends Controller
         private readonly BookingRescheduleService $reschedules,
         private readonly BookingCancellationService $cancellations,
         private readonly BookingRefundService $refunds,
+        private readonly PaymongoService $paymongo,
     ) {}
 
     public function availability(Request $request): JsonResponse
@@ -194,40 +198,18 @@ class StaffAppointmentController extends Controller
         ];
 
         if ($hasPaymentFields) {
-            $hasTransactionIdColumn = Schema::hasColumn('spa_bookings', 'payment_transaction_id');
-            $isWalkIn = ($request->input('client_type') === 'walk_in');
-
             $rules['payment_method'] = ['required', 'string', 'in:'.implode(',', PaymentMethodCatalog::staffMethodKeys())];
             $rules['payment_type'] = ['required', 'string', 'in:'.implode(',', PaymentMethodCatalog::typeKeys())];
-
-            if ($hasTransactionIdColumn) {
-                $isCashCounter = PaymentMethodCatalog::isCashCounter($request->input('payment_method'));
-
-                if ($isCashCounter && ! $isWalkIn) {
-                    throw ValidationException::withMessages([
-                        'payment_method' => 'Cash over the counter is only available for walk-in clients.',
-                    ]);
-                }
-
-                $rules['payment_transaction_id'] = [
-                    Rule::requiredIf(fn (): bool => ! PaymentMethodCatalog::isCashCounter($request->input('payment_method'))),
-                    'nullable',
-                    'string',
-                    'max:100',
-                ];
-                $rules['payment_proof'] = ['nullable', 'image', 'max:5120'];
-                $messages['payment_transaction_id.required'] = 'Enter the payment transaction number.';
-            } else {
-                $rules['payment_proof'] = ['required', 'image', 'max:5120'];
-                $messages['payment_proof.required'] = 'Upload proof of payment.';
-                $messages['payment_proof.image'] = 'Payment proof must be an image file.';
-            }
-
             $messages['payment_method.required'] = 'Select a payment method.';
             $messages['payment_type.required'] = 'Select down payment or full payment.';
         }
 
-        $validated = $request->validate($rules, $messages);
+        $validated = Validator::make($request->all(), $rules, $messages)->validateWithBag('appointment');
+
+        if ($hasPaymentFields && $validated['payment_method'] === PaymentMethodCatalog::METHOD_PAYMONGO && ! $this->paymongo->isConfigured()) {
+            return back()->withErrors(['payment_method' => 'PayMongo checkout is unavailable. Choose payment at the counter or contact an administrator.'], 'appointment')
+                ->withInput()->with('open_add_appointment', true);
+        }
 
         if ($validated['client_type'] === 'walk_in' && trim((string) ($validated['client_phone'] ?? '')) === '') {
             throw ValidationException::withMessages([
@@ -323,10 +305,6 @@ class StaffAppointmentController extends Controller
                 $paymentAmount = $hasPaymentFields
                     ? PaymentMethodCatalog::calculateAmount($serviceAmount, (string) ($validated['payment_type'] ?? PaymentMethodCatalog::TYPE_DOWNPAYMENT))
                     : 0.0;
-                $paymentProofPath = $hasPaymentFields && $request->hasFile('payment_proof')
-                    ? $request->file('payment_proof')?->store('payment-proofs', 'public')
-                    : null;
-
                 $bookingAttributes = [
                     'user_id' => $client->id,
                     'client_name' => trim($validated['client_name']),
@@ -343,16 +321,15 @@ class StaffAppointmentController extends Controller
                 if (Schema::hasColumn('spa_bookings', 'payment_method')) {
                     $paymentMethod = (string) $validated['payment_method'];
                     $isCashCounter = PaymentMethodCatalog::isCashCounter($paymentMethod);
-                    $transactionId = trim((string) ($validated['payment_transaction_id'] ?? ''));
-
-                    if ($isCashCounter && $transactionId === '') {
+                    $transactionId = '';
+                    if ($isCashCounter) {
                         $transactionId = 'COT-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
                     }
 
                     $bookingAttributes['payment_method'] = $paymentMethod;
                     $bookingAttributes['payment_type'] = $validated['payment_type'];
                     $bookingAttributes['payment_amount'] = $paymentAmount;
-                    $bookingAttributes['payment_proof_path'] = $paymentProofPath;
+                    $bookingAttributes['payment_proof_path'] = null;
                     $bookingAttributes['payment_status'] = $isCashCounter
                         ? PaymentMethodCatalog::STATUS_PAID
                         : PaymentMethodCatalog::STATUS_PENDING;
@@ -405,6 +382,21 @@ class StaffAppointmentController extends Controller
 
         $dateFormatted = Carbon::parse($validated['booking_date'])->format('M j, Y');
         $clientLabel = trim($validated['client_name']);
+
+        if ($createdBooking instanceof SpaBooking && $hasPaymentFields
+            && $validated['payment_method'] === PaymentMethodCatalog::METHOD_PAYMONGO) {
+            try {
+                return redirect()->away($this->paymongo->startStaffBookingCheckout($createdBooking));
+            } catch (\Throwable $exception) {
+                Log::warning('Staff PayMongo checkout session failed.', [
+                    'booking_id' => $createdBooking->id,
+                    'message' => $exception->getMessage(),
+                ]);
+
+                return redirect()->route('appointments.index', ['date' => $validated['booking_date']])
+                    ->with('status', 'Booking #'.$createdBooking->id.' was created with payment pending. Open it to retry PayMongo checkout.');
+            }
+        }
 
         $redirect = redirect()
             ->route('appointments.index', ['date' => $validated['booking_date']])
