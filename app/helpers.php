@@ -10,7 +10,7 @@ if (! function_exists('app_public_base_path')) {
      */
     function app_public_base_path(): string
     {
-        $configured = trim(str_replace('\\', '/', (string) env('APP_PUBLIC_PATH', '')), '/');
+        $configured = trim(str_replace('\\', '/', (string) config('app.public_path_url', '')), '/');
 
         if ($configured !== '') {
             return '/'.$configured;

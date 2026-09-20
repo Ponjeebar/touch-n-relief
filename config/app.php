@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Optional URL path when public/ is served below the domain root.
+    'public_path_url' => env('APP_PUBLIC_PATH', ''),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

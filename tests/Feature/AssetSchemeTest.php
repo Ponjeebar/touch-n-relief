@@ -7,6 +7,13 @@ use Tests\TestCase;
 
 class AssetSchemeTest extends TestCase
 {
+    public function test_configured_public_path_remains_available_through_laravel_config(): void
+    {
+        config()->set('app.public_path_url', 'nested/public');
+
+        $this->assertSame('/nested/public', app_public_base_path());
+    }
+
     public function test_assets_use_https_when_a_trusted_proxy_forwards_an_https_request(): void
     {
         Route::middleware('web')->get('/test-asset-url', fn (): string => asset('css/landing.css'));
