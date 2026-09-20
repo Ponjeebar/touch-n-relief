@@ -170,43 +170,6 @@ class UserActivityService
         ];
     }
 
-    public function hasCompletedVisit(User $user): bool
-    {
-        return $this->completedVisitsFor($user)->isNotEmpty();
-    }
-
-    /**
-     * Visits used for "Suggested for You" (completed sessions + past appointments).
-     */
-    public function completedVisitsFor(User $user): Collection
-    {
-        $visits = $this->completedTransactionRowsFor($user);
-
-        SpaBooking::query()
-            ->active()
-            ->where('user_id', $user->id)
-            ->where(function ($query): void {
-                $query->whereNotNull('completed_at')
-                    ->orWhereDate('booking_date', '<=', now()->toDateString());
-            })
-            ->orderByDesc('booking_date')
-            ->get()
-            ->each(function (SpaBooking $booking) use ($visits): void {
-                if ($booking->completed_at === null && ! $this->sessions->isCompleted($booking)) {
-                    return;
-                }
-
-                $visits->push((object) [
-                    'service_name' => $booking->service_name,
-                    'date' => $booking->booking_date->format('Y-m-d'),
-                    'time' => $booking->time_slot,
-                    'therapist_name' => $booking->therapist_name,
-                ]);
-            });
-
-        return $visits->sortByDesc(fn ($row) => $row->date.' '.$row->time)->values();
-    }
-
     /**
      * @return Collection<int, object>
      */

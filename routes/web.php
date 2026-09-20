@@ -56,7 +56,6 @@ Route::middleware(['auth', 'staff.activity'])->group(function () {
     Route::get('/appointments', [DashboardController::class, 'appointments'])->name('appointments.index');
     Route::get('/appointments/availability', [StaffAppointmentController::class, 'availability'])->name('appointments.availability');
     Route::get('/appointments/clients/search', [StaffAppointmentController::class, 'searchClients'])->name('appointments.clients.search');
-    Route::get('/appointments/clients/suggestions', [StaffAppointmentController::class, 'clientSuggestions'])->name('appointments.clients.suggestions');
     Route::post('/appointments', [StaffAppointmentController::class, 'store'])->name('appointments.store');
     Route::patch('/appointments/{spaBooking}/reschedule', [StaffAppointmentController::class, 'reschedule'])->name('appointments.reschedule');
     Route::get('/appointments/{spaBooking}/reschedule/availability', [StaffAppointmentController::class, 'rescheduleAvailability'])->name('appointments.reschedule.availability');

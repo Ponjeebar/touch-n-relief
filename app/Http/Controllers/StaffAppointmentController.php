@@ -13,7 +13,6 @@ use App\Services\BookingCancellationService;
 use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
-use App\Services\BookingSuggestionService;
 use App\Services\SpaServiceCatalog;
 use App\Services\WalkInClientService;
 use App\Services\TherapistAvailabilityService;
@@ -40,7 +39,6 @@ class StaffAppointmentController extends Controller
         private readonly BookingRescheduleService $reschedules,
         private readonly BookingCancellationService $cancellations,
         private readonly BookingRefundService $refunds,
-        private readonly BookingSuggestionService $suggestions,
     ) {}
 
     public function availability(Request $request): JsonResponse
@@ -138,42 +136,6 @@ class StaffAppointmentController extends Controller
             ]);
         } catch (\Throwable) {
             return response()->json(['clients' => []], 500);
-        }
-    }
-
-    public function clientSuggestions(Request $request): JsonResponse
-    {
-        $this->ensureStaff($request);
-
-        if (! Schema::hasTable('users') || ! Schema::hasTable('spa_bookings')) {
-            return response()->json(['history' => $this->emptyClientSuggestionHistory()]);
-        }
-
-        $validated = $request->validate([
-            'client_user_id' => ['required', 'integer', 'exists:users,id'],
-        ]);
-
-        try {
-            $client = User::query()
-                ->when(Schema::hasColumn('users', 'role'), fn ($builder) => $builder->where('role', User::ROLE_USER))
-                ->registeredClient()
-                ->find((int) $validated['client_user_id']);
-
-            if (! $client instanceof User) {
-                return response()->json(['history' => $this->emptyClientSuggestionHistory()]);
-            }
-
-            $this->ensureCatalogSeeded();
-
-            return response()->json([
-                'history' => $this->suggestions->historyFor(
-                    $client,
-                    $this->catalogServicesForSuggestions(),
-                    $this->catalogTherapistsForSuggestions(),
-                ),
-            ]);
-        } catch (\Throwable) {
-            return response()->json(['history' => $this->emptyClientSuggestionHistory()], 500);
         }
     }
 
@@ -281,7 +243,7 @@ class StaffAppointmentController extends Controller
 
         if ($validated['client_type'] === 'registered' && empty($validated['client_user_id'])) {
             throw ValidationException::withMessages([
-                'client_name' => 'Select an existing client from the suggestions list.',
+                'client_name' => 'Select an existing client from the matching list.',
             ]);
         }
 
@@ -972,62 +934,4 @@ class StaffAppointmentController extends Controller
         return array_values(array_slice($results, 0, 10));
     }
 
-    /**
-     * @return array{
-     *     has_completed_transaction: bool,
-     *     total_visits: int,
-     *     last_visit: ?string,
-     *     last_visit_ago: ?string,
-     *     top_service: ?string,
-     *     top_therapist: ?string,
-     *     most_frequent: array<int, array{name: string, count: int}>,
-     *     recommended: array<int, string>
-     * }
-     */
-    private function emptyClientSuggestionHistory(): array
-    {
-        return [
-            'has_completed_transaction' => false,
-            'total_visits' => 0,
-            'last_visit' => null,
-            'last_visit_ago' => null,
-            'top_service' => null,
-            'top_therapist' => null,
-            'most_frequent' => [],
-            'recommended' => [],
-        ];
-    }
-
-    /**
-     * @return array<int, array{name: string}>
-     */
-    private function catalogServicesForSuggestions(): array
-    {
-        if (! Schema::hasTable('spa_services')) {
-            return [];
-        }
-
-        return SpaService::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['name'])
-            ->map(fn (SpaService $service): array => ['name' => (string) $service->name])
-            ->all();
-    }
-
-    /**
-     * @return array<int, array{name: string}>
-     */
-    private function catalogTherapistsForSuggestions(): array
-    {
-        if (! Schema::hasTable('therapists')) {
-            return [];
-        }
-
-        return Therapist::query()
-            ->orderBy('name')
-            ->get(['name'])
-            ->map(fn (Therapist $therapist): array => ['name' => (string) $therapist->name])
-            ->all();
-    }
 }

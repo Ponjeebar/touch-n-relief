@@ -49,112 +49,6 @@
             @endif
 
             <div class="booking-layout">
-            @if (empty($history['has_completed_transaction']))
-                <section class="booking-panel booking-suggestions-hint" aria-label="Personalized suggestions">
-                    <div class="booking-suggestions-header booking-suggestions-header-muted">
-                        <div class="booking-suggestions-top">
-                            <span class="booking-suggestions-icon booking-suggestions-icon-muted" aria-hidden="true">
-                                <i class="bi bi-magic"></i>
-                            </span>
-                            <div class="booking-suggestions-title-copy">
-                                <h2>Suggested for You</h2>
-                                <p class="booking-suggestions-meta">Unlocks after your first visit — favorites and fresh picks appear here.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            @endif
-            @if (!empty($history['has_completed_transaction']))
-                <section class="booking-panel booking-suggestions-panel" id="booking-suggestions" aria-label="Suggested services based on your history">
-                    <div class="booking-suggestions-header">
-                        <div class="booking-suggestions-top">
-                            <span class="booking-suggestions-icon" aria-hidden="true">
-                                <i class="bi bi-stars"></i>
-                            </span>
-                            <div class="booking-suggestions-title-copy">
-                                <p class="booking-suggestions-welcome">Welcome back!</p>
-                                <h2>Suggested for You</h2>
-                                <p class="booking-suggestions-meta">
-                                    <span class="booking-suggestions-stat-pill">
-                                        <i class="bi bi-calendar-check" aria-hidden="true"></i>
-                                        {{ $history['total_visits'] }} {{ $history['total_visits'] === 1 ? 'visit' : 'visits' }}
-                                    </span>
-                                    @if (!empty($history['last_visit']))
-                                        <span class="booking-suggestions-stat-pill booking-suggestions-stat-pill-last">
-                                            <i class="bi bi-clock-history" aria-hidden="true"></i>
-                                            <span class="booking-suggestions-stat-text">
-                                                Last visit <strong>{{ $history['last_visit'] }}</strong>
-                                                @if (!empty($history['last_visit_ago']))
-                                                    <span class="booking-suggestions-stat-sub">({{ $history['last_visit_ago'] }})</span>
-                                                @endif
-                                            </span>
-                                        </span>
-                                    @endif
-                                    <span class="booking-suggestions-meta-hint">Tap a pick to auto-select below</span>
-                                </p>
-                            </div>
-                            <span class="booking-suggestions-badge">Smart picks</span>
-                        </div>
-                    </div>
-                    <div class="booking-suggestions-body">
-                        @if (!empty($history['most_frequent']))
-                            <div class="booking-suggestion-section booking-suggestion-section-frequent">
-                                <div class="booking-suggestion-section-head">
-                                    <span class="booking-suggestion-section-icon" aria-hidden="true">
-                                        <i class="bi bi-heart-fill"></i>
-                                    </span>
-                                    <div class="booking-suggestion-section-copy">
-                                        <p class="booking-suggestion-section-eyebrow">Your favorites</p>
-                                        <h3 class="booking-suggestion-section-title">Most booked by you</h3>
-                                    </div>
-                                </div>
-                                <div class="booking-suggestion-chips">
-                                    @foreach ($history['most_frequent'] as $item)
-                                        <button
-                                            type="button"
-                                            class="booking-suggestion-chip booking-suggestion-chip-frequent"
-                                            data-pick-service="{{ $item['name'] }}"
-                                            aria-pressed="false"
-                                        >
-                                            <span class="booking-suggestion-chip-name">{{ $item['name'] }}</span>
-                                            <span class="booking-suggestion-count">{{ $item['count'] }}×</span>
-                                            <i class="bi bi-arrow-right-short booking-suggestion-chip-arrow" aria-hidden="true"></i>
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-                        @if (!empty($history['recommended']))
-                            <div class="booking-suggestion-section booking-suggestion-section-new">
-                                <div class="booking-suggestion-section-head">
-                                    <span class="booking-suggestion-section-icon" aria-hidden="true">
-                                        <i class="bi bi-lightning-charge-fill"></i>
-                                    </span>
-                                    <div class="booking-suggestion-section-copy">
-                                        <p class="booking-suggestion-section-eyebrow">Fresh pick</p>
-                                        <h3 class="booking-suggestion-section-title">Try something new</h3>
-                                    </div>
-                                </div>
-                                <div class="booking-suggestion-chips">
-                                    @foreach ($history['recommended'] as $serviceName)
-                                        <button
-                                            type="button"
-                                            class="booking-suggestion-chip booking-suggestion-chip-new"
-                                            data-pick-service="{{ $serviceName }}"
-                                            aria-pressed="false"
-                                        >
-                                            <span class="booking-suggestion-chip-name">{{ $serviceName }}</span>
-                                            <span class="booking-suggestion-chip-tag">New</span>
-                                            <i class="bi bi-arrow-right-short booking-suggestion-chip-arrow" aria-hidden="true"></i>
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                </section>
-            @endif
-
             <div class="booking-grid" id="booking-grid">
                 <section class="booking-panel booking-panel-schedule" id="booking-panel-schedule">
                     <h2>1. Your Schedule</h2>
@@ -480,8 +374,6 @@
             var notesInput = document.getElementById('notes');
             var panelService = document.getElementById('booking-panel-service');
             var panelTherapist = document.getElementById('booking-panel-therapist');
-            var panelSchedule = document.getElementById('booking-panel-schedule');
-            var bookingGrid = document.getElementById('booking-grid');
 
             var modal = document.getElementById('bkConfirmModal');
             var sumService = document.getElementById('bkSumService');
@@ -1137,40 +1029,6 @@
                 syncBookingSteps();
                 syncTherapistRecommendations();
                 renderSlots();
-                var selected = serviceInputs.find(function (input) { return input.checked; });
-                syncSuggestionChipActive(selected ? selected.value : '');
-            }
-
-            function scrollToBookingArea(targetPanel) {
-                var target = targetPanel || bookingGrid || panelSchedule;
-                if (!target) return;
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-
-            function pickService(name) {
-                if (!name) return;
-                if (!dateInput || !dateInput.value) {
-                    showBookingToast('Select a date first.');
-                    scrollToBookingArea(panelSchedule);
-                    return;
-                }
-                var target = serviceInputs.find(function (input) { return input.value === name; });
-                if (!target || target.disabled) {
-                    scrollToBookingArea(panelService || bookingGrid);
-                    return;
-                }
-                target.checked = true;
-                onServiceSelectionChange();
-                syncSuggestionChipActive(name);
-                scrollToBookingArea(panelService || bookingGrid);
-            }
-
-            function syncSuggestionChipActive(selectedName) {
-                document.querySelectorAll('[data-pick-service]').forEach(function (btn) {
-                    var isActive = btn.getAttribute('data-pick-service') === selectedName;
-                    btn.classList.toggle('is-active', isActive);
-                    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-                });
             }
 
             document.querySelectorAll('.service-item').forEach(function (label) {
@@ -1201,12 +1059,6 @@
 
             serviceInputs.forEach(function (input) {
                 input.addEventListener('change', onServiceSelectionChange);
-            });
-
-            document.querySelectorAll('[data-pick-service]').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    pickService(btn.getAttribute('data-pick-service'));
-                });
             });
 
             document.querySelectorAll('.therapist-item').forEach(function (label) {

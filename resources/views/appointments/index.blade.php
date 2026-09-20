@@ -329,7 +329,7 @@
                                 <input id="add-registered-name" type="text" class="client-search-input" placeholder="Type at least 2 letters to search..." value="{{ old('client_type') === 'registered' ? old('client_name') : '' }}" autocomplete="off" spellcheck="false">
                             </div>
                             <input type="hidden" id="add-registered-name-hidden" name="client_name" value="{{ old('client_type') === 'registered' ? old('client_name') : '' }}" disabled>
-                            <div class="client-search-results hidden-section" id="add-client-search-results" role="listbox" aria-label="Existing client suggestions"></div>
+                            <div class="client-search-results hidden-section" id="add-client-search-results" role="listbox" aria-label="Matching clients"></div>
                             <p class="field-hint client-search-hint" id="add-registered-hint">Select a name from the list to fill in the client details.</p>
                         </div>
                         <div class="profile-field client-detail-field">
@@ -349,7 +349,6 @@
                     </div>
                 </div>
 
-                <div id="add-client-suggestions" class="add-appt-suggestions hidden-section" aria-live="polite" aria-label="Suggested services for selected client"></div>
 
                 <div class="add-booking-section">
                     <p class="add-booking-section-label">Appointment details</p>
@@ -659,10 +658,8 @@
         const addRegisteredPhone = document.getElementById('add-registered-phone');
         const addRegisteredHint = document.getElementById('add-registered-hint');
         const addClientSearchResults = document.getElementById('add-client-search-results');
-        const addClientSuggestions = document.getElementById('add-client-suggestions');
         const staffAvailabilityUrl = @json($staffAvailabilityUrl ?? '');
         const clientSearchUrl = @json($clientSearchUrl ?? route('appointments.clients.search'));
-        const clientSuggestionsUrl = @json($clientSuggestionsUrl ?? route('appointments.clients.suggestions'));
         const addServiceSelect = document.getElementById('add-service');
         const addDateInput = document.getElementById('add-date');
         const addTherapistSelect = document.getElementById('add-therapist');
@@ -677,7 +674,6 @@
         let addSlotsLoading = false;
         let clientSearchTimer = null;
         let clientSearchRequest = null;
-        let clientSuggestionsRequest = null;
         let activeClientType = '';
 
         const addPaymentMethodInput = document.getElementById('add-payment-method');
@@ -855,176 +851,6 @@
                 addRegisteredHint.textContent = 'Select a name from the list to fill in the client details.';
                 addRegisteredHint.classList.remove('is-success');
             }
-            hideClientSuggestions();
-        }
-
-        function hideClientSuggestions() {
-            if (clientSuggestionsRequest) {
-                clientSuggestionsRequest.abort();
-                clientSuggestionsRequest = null;
-            }
-            if (!addClientSuggestions) return;
-            addClientSuggestions.innerHTML = '';
-            addClientSuggestions.classList.add('hidden-section');
-        }
-
-        function escapeHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        }
-
-        function syncSuggestedServiceChipStates() {
-            const selected = addServiceSelect instanceof HTMLSelectElement ? addServiceSelect.value : '';
-            document.querySelectorAll('#add-client-suggestions [data-pick-service]').forEach((button) => {
-                if (!(button instanceof HTMLButtonElement)) return;
-                const isActive = button.dataset.pickService === selected;
-                button.classList.toggle('is-active', isActive);
-                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-            });
-        }
-
-        function pickSuggestedService(serviceName) {
-            if (!(addServiceSelect instanceof HTMLSelectElement) || !serviceName) return;
-            addServiceSelect.value = serviceName;
-            syncSuggestedServiceChipStates();
-            scheduleAddAvailabilityRefresh();
-        }
-
-        function renderClientSuggestions(history, clientName = '') {
-            if (!addClientSuggestions) return;
-
-            const safeName = escapeHtml(clientName);
-            const hasHistory = !!(history && history.has_completed_transaction);
-
-            if (!hasHistory) {
-                addClientSuggestions.innerHTML = `
-                    <div class="add-appt-suggestions-card add-appt-suggestions-card--hint">
-                        <div class="add-appt-suggestions-head">
-                            <span class="add-appt-suggestions-icon add-appt-suggestions-icon--muted" aria-hidden="true"><i class="bi bi-stars"></i></span>
-                            <div>
-                                <p class="add-appt-suggestions-eyebrow">Suggested for this client</p>
-                                <h4 class="add-appt-suggestions-title">${safeName ? safeName + ' — no history yet' : 'No visit history yet'}</h4>
-                                <p class="add-appt-suggestions-meta">Suggestions unlock after this client's first completed visit (walk-in or online).</p>
-                            </div>
-                        </div>
-                    </div>`;
-                addClientSuggestions.classList.remove('hidden-section');
-                return;
-            }
-
-            const visitLabel = history.total_visits === 1 ? 'visit' : 'visits';
-            const lastVisitBlock = history.last_visit
-                ? `<span class="add-appt-suggestions-stat">Last visit: <strong>${escapeHtml(history.last_visit)}</strong>${history.last_visit_ago ? ` <span>(${escapeHtml(history.last_visit_ago)})</span>` : ''}</span>`
-                : '';
-
-            const frequent = Array.isArray(history.most_frequent) ? history.most_frequent : [];
-            const recommended = Array.isArray(history.recommended) ? history.recommended : [];
-
-            const frequentHtml = frequent.length
-                ? `<div class="add-appt-suggestion-section add-appt-suggestion-section--frequent">
-                        <div class="add-appt-suggestion-section-head">
-                            <span class="add-appt-suggestion-section-icon" aria-hidden="true"><i class="bi bi-heart-fill"></i></span>
-                            <div>
-                                <p class="add-appt-suggestion-section-eyebrow">Client favorites</p>
-                                <h5 class="add-appt-suggestion-section-title">Most booked services</h5>
-                            </div>
-                        </div>
-                        <div class="add-appt-suggestion-chips">
-                            ${frequent.map((item) => `
-                                <button type="button" class="add-appt-suggestion-chip add-appt-suggestion-chip--frequent" data-pick-service="${escapeHtml(item.name)}" aria-pressed="false">
-                                    <span>${escapeHtml(item.name)}</span>
-                                    <span class="add-appt-suggestion-count">${escapeHtml(String(item.count))}×</span>
-                                </button>
-                            `).join('')}
-                        </div>
-                   </div>`
-                : '';
-
-            const recommendedHtml = recommended.length
-                ? `<div class="add-appt-suggestion-section add-appt-suggestion-section--new">
-                        <div class="add-appt-suggestion-section-head">
-                            <span class="add-appt-suggestion-section-icon" aria-hidden="true"><i class="bi bi-lightning-charge-fill"></i></span>
-                            <div>
-                                <p class="add-appt-suggestion-section-eyebrow">Fresh pick</p>
-                                <h5 class="add-appt-suggestion-section-title">Try something new</h5>
-                            </div>
-                        </div>
-                        <div class="add-appt-suggestion-chips">
-                            ${recommended.map((serviceName) => `
-                                <button type="button" class="add-appt-suggestion-chip add-appt-suggestion-chip--new" data-pick-service="${escapeHtml(serviceName)}" aria-pressed="false">
-                                    <span>${escapeHtml(serviceName)}</span>
-                                    <span class="add-appt-suggestion-tag">New</span>
-                                </button>
-                            `).join('')}
-                        </div>
-                   </div>`
-                : '';
-
-            addClientSuggestions.innerHTML = `
-                <div class="add-appt-suggestions-card">
-                    <div class="add-appt-suggestions-head">
-                        <span class="add-appt-suggestions-icon" aria-hidden="true"><i class="bi bi-stars"></i></span>
-                        <div>
-                            <p class="add-appt-suggestions-eyebrow">Suggested for this client</p>
-                            <h4 class="add-appt-suggestions-title">Welcome back${safeName ? ', ' + safeName : ''}!</h4>
-                            <div class="add-appt-suggestions-stats">
-                                <span class="add-appt-suggestions-stat"><i class="bi bi-calendar-check" aria-hidden="true"></i> ${escapeHtml(String(history.total_visits))} ${visitLabel}</span>
-                                ${lastVisitBlock}
-                            </div>
-                            <p class="add-appt-suggestions-meta">Tap a service to auto-select it below — based on walk-in and online appointment history.</p>
-                        </div>
-                        <span class="add-appt-suggestions-badge">Smart picks</span>
-                    </div>
-                    <div class="add-appt-suggestions-body">
-                        ${frequentHtml}
-                        ${recommendedHtml}
-                    </div>
-                </div>`;
-
-            addClientSuggestions.querySelectorAll('[data-pick-service]').forEach((button) => {
-                button.addEventListener('click', () => {
-                    if (button instanceof HTMLElement) {
-                        pickSuggestedService(button.dataset.pickService ?? '');
-                    }
-                });
-            });
-
-            addClientSuggestions.classList.remove('hidden-section');
-            syncSuggestedServiceChipStates();
-        }
-
-        async function loadClientSuggestions(userId, clientName = '') {
-            hideClientSuggestions();
-
-            if (!clientSuggestionsUrl || !userId) return;
-
-            if (clientSuggestionsRequest) clientSuggestionsRequest.abort();
-            clientSuggestionsRequest = new AbortController();
-
-            if (addClientSuggestions) {
-                addClientSuggestions.innerHTML = '<p class="add-appt-suggestions-loading">Loading service suggestions…</p>';
-                addClientSuggestions.classList.remove('hidden-section');
-            }
-
-            try {
-                const url = new URL(clientSuggestionsUrl, window.location.origin);
-                url.searchParams.set('client_user_id', String(userId));
-                const res = await fetch(url.toString(), {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-                    signal: clientSuggestionsRequest.signal,
-                });
-                if (!res.ok) throw new Error('suggestions failed');
-                const payload = await res.json();
-                renderClientSuggestions(payload.history ?? {}, clientName);
-            } catch (error) {
-                if (error?.name === 'AbortError') return;
-                hideClientSuggestions();
-            } finally {
-                clientSuggestionsRequest = null;
-            }
         }
 
         function hideClientSearchResults() {
@@ -1039,10 +865,6 @@
             const isWalkIn = type === 'walk_in';
             addWalkInPanel?.classList.toggle('hidden-section', !isWalkIn);
             addRegisteredPanel?.classList.toggle('hidden-section', isWalkIn);
-
-            if (isWalkIn) {
-                hideClientSuggestions();
-            }
 
             setWalkInFieldsEnabled(isWalkIn);
             setRegisteredFieldsEnabled(!isWalkIn);
@@ -1179,12 +1001,6 @@
 
             hideClientSearchResults();
             scheduleAddAvailabilityRefresh();
-
-            if (userId) {
-                loadClientSuggestions(userId, name);
-            } else {
-                hideClientSuggestions();
-            }
         }
 
         function isSelectedTherapistOffDuty(payload, therapistName) {
@@ -1380,7 +1196,6 @@
         });
 
         addServiceSelect?.addEventListener('change', () => {
-            syncSuggestedServiceChipStates();
             scheduleAddAvailabilityRefresh();
             updateAddPaymentSummary();
         });
@@ -1414,7 +1229,7 @@
             if (activeClientType === 'registered' && !(addClientUserIdInput instanceof HTMLInputElement && addClientUserIdInput.value.trim())) {
                 event.preventDefault();
                 if (addRegisteredHint) {
-                    addRegisteredHint.textContent = 'Please select an existing client from the suggestions list.';
+                    addRegisteredHint.textContent = 'Please select an existing client from the matching list.';
                     addRegisteredHint.classList.remove('is-success');
                 }
                 return;
@@ -1450,12 +1265,6 @@
                 paintAddPaymentTypeButtons();
                 paintAddPaymentMethodButtons();
                 updateAddPaymentSummary();
-            }
-            if (initialClientType === 'registered' && addClientUserIdInput instanceof HTMLInputElement && addClientUserIdInput.value.trim()) {
-                loadClientSuggestions(
-                    addClientUserIdInput.value.trim(),
-                    addRegisteredName instanceof HTMLInputElement ? addRegisteredName.value : '',
-                );
             }
         } else if (shouldOpenAddAppointment) {
             openClientTypeModal();
@@ -2659,4 +2468,3 @@
     </script>
 </body>
 </html>
-

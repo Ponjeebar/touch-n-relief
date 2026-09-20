@@ -914,7 +914,6 @@ class DashboardController extends Controller
             'staffAvailabilityUrl' => route('appointments.availability'),
             'appointmentStoreUrl' => route('appointments.store'),
             'clientSearchUrl' => route('appointments.clients.search'),
-            'clientSuggestionsUrl' => route('appointments.clients.suggestions'),
             'minimumBirthday' => now()->subYears(15)->toDateString(),
             'slotMap' => $slots->slotMapByService(),
             'allSlots' => $slots->allSlotLabels(),

@@ -10,7 +10,6 @@ use App\Services\ActivityLogger;
 use App\Services\BookingCancellationService;
 use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
-use App\Services\BookingSuggestionService;
 use App\Services\PaymongoService;
 use App\Services\TherapistAvailabilityService;
 use App\Services\SpaServiceCatalog;
@@ -27,7 +26,6 @@ use Illuminate\View\View;
 class BookingController extends Controller
 {
     public function __construct(
-        private readonly BookingSuggestionService $suggestions,
         private readonly BookingCancellationService $cancellations,
         private readonly BookingRescheduleService $reschedules,
         private readonly BookingSlotService $slots,
@@ -88,8 +86,6 @@ class BookingController extends Controller
             return strcasecmp($therapist['name'], $requestedTherapist) === 0;
         });
 
-        $history = $this->suggestions->historyFor($request->user(), $services, $therapists);
-
         // Only pre-select when the landing page passes ?service= or ?therapist= (not generic "Book Now").
         $selectedServiceName = $selectedService['name'] ?? null;
         $selectedTherapistName = $selectedTherapist['name'] ?? null;
@@ -103,7 +99,6 @@ class BookingController extends Controller
             'selectedServiceName' => $selectedServiceName,
             'selectedTherapistName' => $selectedTherapistName,
             'fromLandingTherapist' => $fromLandingTherapist,
-            'history' => $history,
             'slotMap' => $slotMap,
             'allSlots' => $this->slots->allSlotLabels(),
             'therapistNames' => collect($therapists)->pluck('name')->values()->all(),
