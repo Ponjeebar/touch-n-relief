@@ -14,6 +14,24 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_sign_in_errors_return_to_login_after_visiting_forgot_password(): void
+    {
+        $user = User::factory()->create(['username' => 'spa_guest', 'password' => 'CorrectPassword123!']);
+
+        $this->from(route('password.request'))
+            ->post(route('login.attempt'), ['login' => $user->username, 'password' => 'WrongPassword123!'])
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('login');
+
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertDontSee('class="container  sign-in-forgot-active"', false);
+
+        $this->from(route('password.request'))
+            ->post(route('login.attempt'), ['login' => '', 'password' => ''])
+            ->assertRedirect(route('login'));
+    }
+
     public function test_reset_link_request_and_password_change(): void
     {
         Notification::fake();

@@ -45,7 +45,7 @@
     });
 
     forgotCloseBtn?.addEventListener('click', function () {
-        container.classList.remove('sign-in-forgot-active');
+        window.location.assign(forgotCloseBtn.getAttribute('data-login-url') || '/login');
     });
 
     var registerForm = document.querySelector('[data-auth-register-form="true"]');

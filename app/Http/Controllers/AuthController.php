@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -115,10 +116,18 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
+        $validator = Validator::make($request->all(), [
             'login' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('login')
+                ->withErrors($validator)
+                ->onlyInput('login');
+        }
+
+        $credentials = $validator->validated();
 
         $identifier = trim($credentials['login']);
         $password = $credentials['password'];
@@ -127,19 +136,19 @@ class AuthController extends Controller
         $user = $this->findUserForLogin($identifier);
 
         if ($user instanceof User && $user->isWalkIn()) {
-            return back()->withErrors([
+            return redirect()->route('login')->withErrors([
                 'login' => 'This walk-in account is not finished yet. Open Sign Up, enter the same name and phone number used at the spa, and complete registration to set your password.',
             ])->onlyInput('login')->with('open_register_tab', true);
         }
 
         if ($user instanceof User && $user->isArchived()) {
-            return back()->withErrors([
+            return redirect()->route('login')->withErrors([
                 'login' => 'This account has been archived. Please contact the spa administrator.',
             ])->onlyInput('login');
         }
 
         if ($user === null || ! Hash::check($password, $user->getAuthPassword())) {
-            return back()->withErrors([
+            return redirect()->route('login')->withErrors([
                 'login' => 'Invalid username, name, email, or password.',
             ])->onlyInput('login');
         }

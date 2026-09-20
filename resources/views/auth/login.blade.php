@@ -1,7 +1,7 @@
 @php
     $brandName = 'TOUCHnRELIEF';
     $showRegister = request()->boolean('register') || $errors->getBag('register')->any() || session('open_register_tab');
-    $showForgot = request()->routeIs('password.request') || request()->boolean('forgot') || $errors->has('email');
+    $showForgot = request()->routeIs('password.request') || request()->boolean('forgot');
     $returnTo = (string) session('url.intended', request()->query('return_to', ''));
 @endphp
 <!DOCTYPE html>
@@ -221,7 +221,7 @@
                     <p class="field-msg auth-forgot-success">{{ session('status') }}</p>
                 @endif
                 <button type="submit">Send Reset Link</button>
-                <button type="button" class="link auth-forgot-back" data-auth-forgot-close="true">Back to Sign In</button>
+                <button type="button" class="link auth-forgot-back" data-auth-forgot-close="true" data-login-url="{{ route('login') }}">Back to Sign In</button>
             </form>
         </div>
 
