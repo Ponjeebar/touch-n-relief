@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerNotificationController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingSettingsController;
 use App\Http\Controllers\OnboardingController;
@@ -19,6 +20,7 @@ Route::get('/media/{path}', [StorageMediaController::class, 'show'])
 
 Route::get('/', [BookingController::class, 'landing'])->name('landing');
 Route::get('/landing/availability', [BookingController::class, 'landingAvailability'])->name('landing.availability');
+Route::post('/chatbot/message', [ChatbotController::class, 'reply'])->middleware('throttle:30,1')->name('chatbot.reply');
 
 Route::post('/webhooks/paymongo', [PaymongoController::class, 'webhook'])->name('paymongo.webhook');
 

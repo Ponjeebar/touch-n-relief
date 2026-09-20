@@ -766,6 +766,7 @@
             .profile-txn-row>:nth-child(6){display:none}
         }
     </style>
+    @include('partials.chatbot-assets')
 </head>
 <body>
     <header class="landing-header nav-solid">
@@ -1376,4 +1377,3 @@
 @include('partials.logout-confirm-modal')
 </body>
 </html>
-

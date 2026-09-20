@@ -237,3 +237,4 @@
 @auth
     @include('partials.logout-confirm-modal')
 @endauth
+@include('partials.chatbot-assets')

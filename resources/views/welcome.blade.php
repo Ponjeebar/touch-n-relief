@@ -20,6 +20,7 @@
             <link rel="stylesheet" href="{{ asset('css/registration-onboarding.css') }}">
         @endif
     @endauth
+        @include('partials.chatbot-assets')
     </head>
 <body id="top">
     @include('partials.landing-nav', ['navMode' => 'full'])
