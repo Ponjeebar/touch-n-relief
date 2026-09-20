@@ -22,10 +22,10 @@
     padding: 12px 0 16px;
     display: grid;
     gap: 12px;
-    grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(260px, 320px);
+    grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
     grid-template-areas:
-        "profile contact meds"
-        "txn    txn    txn";
+        "profile contact"
+        "txn    txn";
     align-items: stretch;
 }
 
@@ -45,11 +45,6 @@
 .cr-user-profile,
 .cr-contact {
     grid-area: contact;
-    width: 100%;
-    min-width: 0;
-}
-.cr-medications {
-    grid-area: meds;
     width: 100%;
     min-width: 0;
 }
@@ -240,40 +235,6 @@
     color: #1f2b33;
     line-height: 1.4;
     word-break: break-word;
-}
-
-.cr-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: grid;
-    gap: 12px;
-}
-.cr-list li {
-    display: grid;
-    grid-template-columns: 22px 1fr;
-    gap: 12px;
-    align-items: start;
-    font-size: 15px;
-    line-height: 1.45;
-    font-weight: 600;
-    color: #1f2b33;
-}
-.cr-list i { color: #1aa3a8; font-size: 18px; }
-
-.cr-list .cr-list-empty {
-    display: block;
-    border: 1px dashed #d8e5ea;
-    background: #f8fbfd;
-    border-radius: 12px;
-    padding: 12px 14px;
-}
-
-.cr-list .cr-list-empty .cr-note-empty {
-    display: block;
-    margin: 0;
-    color: #5f7280;
-    font-weight: 600;
 }
 
 .cr-vitals-grid {
@@ -1005,7 +966,6 @@
         grid-template-columns: minmax(240px, 280px) 1fr;
         grid-template-areas:
             "profile contact"
-            "profile meds"
             "txn txn";
     }
 }
@@ -1016,7 +976,6 @@
         grid-template-areas:
             "profile"
             "contact"
-            "meds"
             "txn";
     }
     .cr-contact-fields {
@@ -1049,4 +1008,3 @@
     background: #e8f4f5;
     color: #0c7a83;
 }
-

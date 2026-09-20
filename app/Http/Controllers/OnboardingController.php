@@ -30,8 +30,6 @@ class OnboardingController extends Controller
                 User::PRESSURE_MEDIUM,
                 User::PRESSURE_HIGH,
             ])],
-            'medications' => ['nullable', 'array', 'max:30'],
-            'medications.*' => ['nullable', 'string', 'max:255'],
         ];
 
         if ($user->sex === User::SEX_FEMALE) {
@@ -47,8 +45,6 @@ class OnboardingController extends Controller
             : null;
         $user->profile_completed_at = now();
         $user->save();
-
-        $this->syncMedications($user, $request->input('medications', []));
 
         Auth::login($user->refresh());
 
@@ -90,26 +86,5 @@ class OnboardingController extends Controller
 
         return $targetHost === $requestHost
             && ($targetPort === 0 || $targetPort === $requestPort);
-    }
-
-    /**
-     * @param  mixed  $raw
-     */
-    private function syncMedications(User $user, $raw): void
-    {
-        $names = collect(is_array($raw) ? $raw : [])
-            ->map(fn ($name) => trim((string) $name))
-            ->filter()
-            ->unique()
-            ->values();
-
-        $user->medications()->delete();
-
-        foreach ($names as $index => $name) {
-            $user->medications()->create([
-                'name' => $name,
-                'sort_order' => $index,
-            ]);
-        }
     }
 }

@@ -1845,30 +1845,14 @@ class DashboardController extends Controller
             'pressure_preference' => $linkedUser?->pressurePreferenceLabel() ?? '—',
         ];
 
-        $medications = $this->medicationsForCustomer($customer, $linkedUser);
-
         $transactions = $this->clientTransactionsFor($customer, $linkedUser);
 
         return view('client-records.show', compact(
             'customer',
             'client',
             'userProfile',
-            'medications',
             'transactions',
         ));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function medicationsForCustomer(Customer $customer, ?User $linkedUser): array
-    {
-        if ($linkedUser !== null) {
-            $stored = $linkedUser->medications()->pluck('name')->all();
-            return $stored;
-        }
-
-        return [];
     }
 
     /**

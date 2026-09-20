@@ -1,13 +1,5 @@
 @php
     $profilePhotoUrl = public_storage_url($user->profile_photo_path);
-    $medicationRows = old('medications', $medicationRows ?? ['']);
-    if (! is_array($medicationRows)) {
-        $medicationRows = [''];
-    }
-    $medicationRows = array_values($medicationRows);
-    if ($medicationRows === []) {
-        $medicationRows = [''];
-    }
     $transactions = $transactions ?? [];
 @endphp
 <!DOCTYPE html>
@@ -538,71 +530,6 @@
             font-weight:600;
             color:#5f7482;
         }
-        .profile-med-editor{display:grid;gap:.65rem}
-        .profile-med-row{
-            display:grid;
-            grid-template-columns:22px 1fr auto;
-            gap:.55rem;
-            align-items:center;
-        }
-        .profile-med-row i{color:#1aa3a8;font-size:1.05rem}
-        .profile-med-row input{
-            width:100%;
-            padding:.72rem .85rem;
-            border-radius:10px;
-            border:1px solid #b9c9d4;
-            outline:none;
-            background:#fff;
-            color:#16252d;
-            font-size:.95rem;
-            font-family:inherit;
-        }
-        .profile-med-row input:focus{
-            border-color:#2d84af;
-            box-shadow:0 0 0 3px rgba(45,132,175,.16);
-        }
-        .profile-med-remove{
-            border:1px solid #e5c5c5;
-            background:#fff7f7;
-            color:#9a3030;
-            border-radius:10px;
-            width:38px;
-            height:38px;
-            cursor:pointer;
-            display:grid;
-            place-items:center;
-            font-size:1.1rem;
-            line-height:1;
-        }
-        .profile-med-remove:hover{background:#ffecec}
-        #medications-section:not(.is-editing) .profile-med-remove{
-            display:none;
-        }
-        .profile-med-add{
-            margin-top:.35rem;
-            border:1px dashed #b9c9d4;
-            background:#f8fbfc;
-            color:#2d5f7a;
-            border-radius:10px;
-            padding:.65rem .9rem;
-            font-size:.9rem;
-            font-weight:700;
-            cursor:pointer;
-            font-family:inherit;
-            display:inline-flex;
-            align-items:center;
-            gap:.45rem;
-        }
-        .profile-med-add:hover{background:#eef6fa;border-color:#8eb4c7}
-        #medications-section:not(.is-editing) .profile-med-add{
-            display:none;
-        }
-        .profile-med-hint{
-            margin:.5rem 0 0;
-            font-size:.85rem;
-            color:#5f7482;
-            line-height:1.45;
-        }
         .profile-wellness{
             background:linear-gradient(165deg,#f8fcfd 0%,#f2f8fa 55%,#eef6f8 100%);
             border-color:#c5dce6;
@@ -1010,39 +937,6 @@
                             </div>
                         </section>
 
-                        <section class="profile-section profile-section-in-form" id="medications-section" aria-labelledby="profile-medications-title">
-                            <div class="profile-section-head">
-                                <h2 id="profile-medications-title">Current medications</h2>
-                                <span id="profile-med-count">{{ count(array_filter($medicationRows, fn ($m) => trim((string) $m) !== '')) }} listed</span>
-                            </div>
-                            <div class="profile-med-editor" id="profile-med-editor">
-                                @foreach ($medicationRows as $index => $medication)
-                                    <div class="profile-med-row" data-med-row>
-                                        <i class="bi bi-capsule" aria-hidden="true"></i>
-                                        <input
-                                            type="text"
-                                            name="medications[]"
-                                            value="{{ $medication }}"
-                                            placeholder="e.g. Ibuprofen (Advil)"
-                                            aria-label="Medication {{ $index + 1 }}"
-                                            maxlength="255"
-                                        >
-                                        <button type="button" class="profile-med-remove" data-med-remove aria-label="Remove medication">&times;</button>
-                                    </div>
-                                @endforeach
-                            </div>
-                            <button type="button" class="profile-med-add" id="profile-med-add">
-                                <i class="bi bi-plus-circle" aria-hidden="true"></i>
-                                Add medication
-                            </button>
-                            <p class="profile-med-hint">Add or remove medications, then click Save changes to update your list.</p>
-                            <div class="profile-local-actions" id="medications-actions">
-                                <button type="button" class="btn btn-light section-edit-btn" id="medications-edit">Edit</button>
-                                <button type="button" class="btn btn-light section-cancel-btn" id="medications-cancel">Cancel</button>
-                                <button type="submit" class="btn btn-light section-save-btn" id="medications-save">Save changes</button>
-                            </div>
-                        </section>
-
                     </form>
 
                     <div class="profile-sections">
@@ -1088,9 +982,6 @@
             if (fallback) fallback.style.display = 'none';
         });
 
-        var medEditor = document.getElementById('profile-med-editor');
-        var medAdd = document.getElementById('profile-med-add');
-        var medCount = document.getElementById('profile-med-count');
         var birthdayInput = document.getElementById('birthday');
         var ageInput = document.getElementById('age');
         var basicInfoSection = document.getElementById('basic-info-section');
@@ -1105,14 +996,9 @@
         var wellnessActions = document.getElementById('wellness-actions');
         var wellnessEditBtn = document.getElementById('wellness-edit');
         var wellnessCancelBtn = document.getElementById('wellness-cancel');
-        var medicationsSection = document.getElementById('medications-section');
-        var medicationsActions = document.getElementById('medications-actions');
-        var medicationsEditBtn = document.getElementById('medications-edit');
-        var medicationsCancelBtn = document.getElementById('medications-cancel');
 
         var basicInfoSnapshot = null;
         var wellnessSnapshot = null;
-        var medicationsSnapshot = null;
 
         function syncPregnancyField() {
             if (!pregnancyField) return;
@@ -1194,19 +1080,6 @@
             }
         }
 
-        function setMedicationsEditing(isEditing) {
-            if (!medicationsSection || !medicationsActions) return;
-            medicationsActions.classList.toggle('is-editing', isEditing);
-            medicationsSection.classList.toggle('is-editing', isEditing);
-            medEditor?.querySelectorAll('[data-med-row] input').forEach(function (input) {
-                input.readOnly = !isEditing;
-            });
-            medEditor?.querySelectorAll('[data-med-remove]').forEach(function (btn) {
-                btn.disabled = !isEditing;
-            });
-            if (medAdd) medAdd.disabled = !isEditing;
-        }
-
         function updateAgeFromBirthday() {
             if (!birthdayInput || !ageInput) return;
             if (!birthdayInput.value) {
@@ -1228,31 +1101,6 @@
             ageInput.value = age >= 0 ? String(age) : '';
         }
 
-        function updateMedCount() {
-            if (!medEditor || !medCount) return;
-            var n = medEditor.querySelectorAll('[data-med-row] input').length;
-            var filled = 0;
-            medEditor.querySelectorAll('[data-med-row] input').forEach(function (inp) {
-                if (inp.value.trim() !== '') filled++;
-            });
-            medCount.textContent = filled + ' listed';
-        }
-
-        function bindMedRow(row) {
-            row.querySelector('[data-med-remove]')?.addEventListener('click', function () {
-                var rows = medEditor.querySelectorAll('[data-med-row]');
-                if (rows.length <= 1) {
-                    row.querySelector('input').value = '';
-                    updateMedCount();
-                    return;
-                }
-                row.remove();
-                updateMedCount();
-            });
-            row.querySelector('input')?.addEventListener('input', updateMedCount);
-        }
-
-        medEditor?.querySelectorAll('[data-med-row]').forEach(bindMedRow);
         birthdayInput?.addEventListener('change', updateAgeFromBirthday);
         birthdayInput?.addEventListener('input', updateAgeFromBirthday);
         updateAgeFromBirthday();
@@ -1312,56 +1160,10 @@
             }
             setWellnessEditing(false);
         });
-        medicationsEditBtn?.addEventListener('click', function () {
-            medicationsSnapshot = Array.from(medEditor?.querySelectorAll('[data-med-row] input') || []).map(function (input) {
-                return input.value;
-            });
-            setMedicationsEditing(true);
-        });
-        medicationsCancelBtn?.addEventListener('click', function () {
-            if (medEditor && Array.isArray(medicationsSnapshot)) {
-                medEditor.innerHTML = '';
-                if (medicationsSnapshot.length === 0) {
-                    medicationsSnapshot = [''];
-                }
-                medicationsSnapshot.forEach(function (value) {
-                    var row = document.createElement('div');
-                    row.className = 'profile-med-row';
-                    row.setAttribute('data-med-row', '');
-                    row.innerHTML =
-                        '<i class="bi bi-capsule" aria-hidden="true"></i>' +
-                        '<input type="text" name="medications[]" value="" placeholder="e.g. Ibuprofen (Advil)" maxlength="255">' +
-                        '<button type="button" class="profile-med-remove" data-med-remove aria-label="Remove medication">&times;</button>';
-                    var input = row.querySelector('input');
-                    if (input) input.value = value;
-                    medEditor.appendChild(row);
-                    bindMedRow(row);
-                });
-                updateMedCount();
-            }
-            setMedicationsEditing(false);
-        });
-
         setBasicInfoEditing(false);
         setPasswordEditing(false);
         setWellnessEditing(false);
-        setMedicationsEditing(false);
         syncPregnancyField();
-
-        medAdd?.addEventListener('click', function () {
-            if (!medEditor || medAdd.disabled) return;
-            var row = document.createElement('div');
-            row.className = 'profile-med-row';
-            row.setAttribute('data-med-row', '');
-            row.innerHTML =
-                '<i class="bi bi-capsule" aria-hidden="true"></i>' +
-                '<input type="text" name="medications[]" value="" placeholder="e.g. Ibuprofen (Advil)" maxlength="255">' +
-                '<button type="button" class="profile-med-remove" data-med-remove aria-label="Remove medication">&times;</button>';
-            medEditor.appendChild(row);
-            bindMedRow(row);
-            row.querySelector('input')?.focus();
-            updateMedCount();
-        });
 
         var statusToast = document.getElementById('profile-status-toast');
         var statusToastClose = document.getElementById('profile-status-toast-close');

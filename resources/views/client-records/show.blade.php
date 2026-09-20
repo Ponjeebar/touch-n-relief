@@ -146,21 +146,6 @@
                         </div>
                     </article>
 
-                    <article class="cr-card cr-medications">
-                        <div class="cr-card-head">
-                            <h3>Current medications</h3>
-                        </div>
-                        <ul class="cr-list">
-                            @forelse ($medications as $med)
-                                <li><i class="bi bi-capsule" aria-hidden="true"></i><span>{{ $med }}</span></li>
-                            @empty
-                                <li class="cr-list-empty">
-                                    <span class="cr-note-empty">No current medications recorded for this client.</span>
-                                </li>
-                            @endforelse
-                        </ul>
-                    </article>
-
                     @include('client-records.partials.transaction-history', ['transactions' => $transactions])
                 </section>
 
@@ -179,4 +164,3 @@
     </script>
 </body>
 </html>
-

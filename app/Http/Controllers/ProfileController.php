@@ -37,7 +37,6 @@ class ProfileController extends Controller
 
         return view('profile', [
             'user' => $user,
-            'medicationRows' => $this->medicationRowsFor($user),
             'transactions' => $this->activity->transactionsForUser($user),
             'customerBirthday' => $birthday?->format('M d, Y') ?? null,
             'customerAge' => $birthday?->age,
@@ -65,8 +64,6 @@ class ProfileController extends Controller
             'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'current_password' => ['nullable', 'string', 'required_with:password'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'medications' => ['nullable', 'array', 'max:30'],
-            'medications.*' => ['nullable', 'string', 'max:255'],
             'sex' => ['nullable', Rule::in(User::sexOptions())],
             'therapist_gender_preference' => ['nullable', Rule::in([
                 User::THERAPIST_PREF_MALE,
@@ -166,8 +163,6 @@ class ProfileController extends Controller
             }
         }
 
-        $this->syncMedications($user, $request->input('medications', []));
-
         Auth::login($user->refresh());
 
         ActivityLogger::log(
@@ -179,37 +174,6 @@ class ProfileController extends Controller
         );
 
         return back()->with('status', 'Profile updated successfully.');
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function medicationRowsFor(User $user): array
-    {
-        $stored = $user->medications()->pluck('name')->all();
-
-        return $stored !== [] ? $stored : [''];
-    }
-
-    /**
-     * @param  mixed  $raw
-     */
-    private function syncMedications(User $user, $raw): void
-    {
-        $names = collect(is_array($raw) ? $raw : [])
-            ->map(fn ($name) => trim((string) $name))
-            ->filter()
-            ->unique()
-            ->values();
-
-        $user->medications()->delete();
-
-        foreach ($names as $index => $name) {
-            $user->medications()->create([
-                'name' => $name,
-                'sort_order' => $index,
-            ]);
-        }
     }
 
 }

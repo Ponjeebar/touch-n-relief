@@ -7,8 +7,6 @@
     var dots = Array.from(modal.querySelectorAll('[data-ob-dot]'));
     var backBtn = document.getElementById('ob-back-btn');
     var nextBtn = document.getElementById('ob-next-btn');
-    var medEditor = document.getElementById('ob-med-editor');
-    var medAdd = document.getElementById('ob-med-add');
     var current = 0;
 
     function showStep(index) {
@@ -94,26 +92,6 @@
                     return;
                 }
             }
-        });
-    }
-
-    if (medAdd && medEditor) {
-        medAdd.addEventListener('click', function () {
-            var row = document.createElement('div');
-            row.className = 'ob-med-row';
-            row.innerHTML =
-                '<input type="text" name="medications[]" value="" placeholder="e.g. Ibuprofen (Advil)" maxlength="255">' +
-                '<button type="button" class="ob-med-remove" data-ob-med-remove aria-label="Remove">&times;</button>';
-            medEditor.appendChild(row);
-            row.querySelector('input')?.focus();
-            row.querySelector('[data-ob-med-remove]')?.addEventListener('click', function () {
-                row.remove();
-            });
-        });
-        medEditor.querySelectorAll('[data-ob-med-remove]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                btn.closest('.ob-med-row')?.remove();
-            });
         });
     }
 

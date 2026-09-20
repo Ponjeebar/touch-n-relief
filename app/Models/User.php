@@ -127,14 +127,6 @@ class User extends Authenticatable
         return $this->hasOne(Registration::class);
     }
 
-    /**
-     * @return HasMany<UserMedication, User>
-     */
-    public function medications(): HasMany
-    {
-        return $this->hasMany(UserMedication::class)->orderBy('sort_order')->orderBy('id');
-    }
-
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;

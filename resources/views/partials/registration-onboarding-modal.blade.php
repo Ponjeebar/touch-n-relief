@@ -4,7 +4,7 @@
         return;
     }
     $showPregnancyStep = $u->sex === \App\Models\User::SEX_FEMALE;
-    $onboardingStepCount = $showPregnancyStep ? 4 : 3;
+    $onboardingStepCount = $showPregnancyStep ? 3 : 2;
 @endphp
 @once
     <link rel="stylesheet" href="{{ asset('css/registration-onboarding.css') }}">
@@ -38,18 +38,6 @@
             <input type="hidden" name="return_to" value="{{ url()->full() }}">
             <div class="ob-body">
                 <div class="ob-step is-active" data-ob-step>
-                    <h3 class="ob-step-title">Current medications</h3>
-                    <p class="ob-step-hint">List any medications you are taking (optional). You can skip if none.</p>
-                    <div class="ob-med-editor" id="ob-med-editor">
-                        <div class="ob-med-row">
-                            <input type="text" name="medications[]" value="" placeholder="e.g. Ibuprofen (Advil)" maxlength="255">
-                            <button type="button" class="ob-med-remove" data-ob-med-remove aria-label="Remove">&times;</button>
-                        </div>
-                    </div>
-                    <button type="button" class="ob-med-add" id="ob-med-add">+ Add medication</button>
-                </div>
-
-                <div class="ob-step" data-ob-step>
                     <h3 class="ob-step-title">Therapist gender preference</h3>
                     <p class="ob-step-hint">Do you have a therapist gender preference?</p>
                     <div class="ob-options">
