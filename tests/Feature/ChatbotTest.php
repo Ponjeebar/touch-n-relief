@@ -56,4 +56,40 @@ class ChatbotTest extends TestCase
         $this->postJson(route('chatbot.reply'), ['message' => str_repeat('a', 501)])
             ->assertUnprocessable()->assertJsonValidationErrors('message');
     }
+
+    public function test_chatbot_is_hidden_on_auth_pages_but_present_on_the_public_landing_page(): void
+    {
+        $this->get(route('login'))->assertOk()->assertDontSee('chatbot.js');
+        $this->get(route('login', ['register' => 1]))->assertOk()->assertDontSee('chatbot.js');
+        $this->get(route('password.request'))->assertOk()->assertDontSee('chatbot.js');
+        $this->get(route('landing'))->assertOk()->assertSee('data-chatbot-role="guest"', false);
+    }
+
+    public function test_staff_get_role_specific_chat_prompts_and_answers(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $receptionist = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+
+        $this->actingAs($admin)->get(route('appointments.index'))
+            ->assertOk()->assertSee('data-chatbot-role="admin"', false);
+        $this->actingAs($admin)->postJson(route('chatbot.reply'), ['message' => 'Reports'])
+            ->assertOk()->assertJsonPath('actions.0.url', route('reporting.index'));
+        $this->actingAs($admin)->postJson(route('chatbot.reply'), ['message' => "Today's appointments"])
+            ->assertOk()->assertJsonPath('actions.0.url', route('appointments.index'));
+
+        $this->actingAs($receptionist)->get(route('appointments.index'))
+            ->assertOk()->assertSee('data-chatbot-role="receptionist"', false);
+        $this->actingAs($receptionist)->postJson(route('chatbot.reply'), ['message' => 'Ongoing sessions'])
+            ->assertOk()->assertJsonPath('actions.0.url', route('ongoing-sessions.index'));
+        $this->actingAs($receptionist)->postJson(route('chatbot.reply'), ['message' => 'booking #123'])
+            ->assertOk()->assertJsonPath('actions.0.url', route('appointments.index'));
+    }
+
+    public function test_customer_pages_use_customer_chat_prompts(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+
+        $this->actingAs($customer)->get(route('booking.index'))
+            ->assertOk()->assertSee('data-chatbot-role="customer"', false);
+    }
 }

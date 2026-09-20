@@ -21,13 +21,22 @@ class ChatbotService
     public function answer(string $message, ?User $user): array
     {
         $question = mb_strtolower(trim($message));
+        $staff = $user !== null && ($user->isAdmin() || $user->isReceptionist());
 
         if (in_array($question, ['hello', 'hi', 'hey', 'help', 'menu'], true)) {
+            if ($staff) {
+                return $this->roleHelp($user);
+            }
+
             return $this->respond(
                 'Hi! I can help with services, prices, hours, location, booking, and account questions.'
                 .($user ? ' You can also ask about your appointments or account.' : ' Sign in to ask about your own appointments.'),
                 $user ? [$this->action('Book an appointment', 'booking.index')] : $this->guestActions(),
             );
+        }
+
+        if ($staff && ($staffReply = $this->staffHelp($question, $user)) !== null) {
+            return $staffReply;
         }
 
         if ($this->has($question, ['resched', 'change my date', 'change my time', 'move my appointment'])) {
@@ -108,6 +117,10 @@ class ChatbotService
                 .($user ? 'Your booking and payment status will appear in your account.' : 'You need an account to finish booking.'),
                 $user ? [$this->action('Book now', 'booking.index')] : $this->guestActions(),
             );
+        }
+
+        if ($staff) {
+            return $this->roleHelp($user);
         }
 
         return $this->respond(
@@ -227,6 +240,54 @@ class ChatbotService
 
         return $this->respond('Your customer account lets you book sessions and review or manage your own appointments and profile.',
             [$this->action('My profile', 'profile.edit'), $this->action('Book now', 'booking.index')]);
+    }
+
+    private function staffHelp(string $question, User $user): ?array
+    {
+        if ($this->has($question, ['today', "today's", 'todays'])
+            && $this->has($question, ['appointment', 'booking'])) {
+            $count = Schema::hasTable('spa_bookings')
+                ? SpaBooking::query()->whereDate('booking_date', now()->toDateString())->whereNull('cancelled_at')->count()
+                : null;
+
+            return $this->respond(
+                $count === null
+                    ? 'Appointment records are temporarily unavailable. Open the appointments page to try again.'
+                    : 'There are '.$count.' appointments scheduled today. Open the appointments page to review clients and statuses.',
+                [$this->action('View appointments', 'appointments.index')],
+            );
+        }
+
+        if ($this->has($question, ['client record', 'client list'])) {
+            return $this->respond('Open client records to review registered clients and their appointment history.',
+                [$this->action('Client records', 'client-records.index')]);
+        }
+
+        if ($this->has($question, ['manage service', 'edit service', 'update service'])) {
+            return $this->respond('Open services to review and update the treatments offered by the spa.',
+                [$this->action('Manage services', 'services.index')]);
+        }
+
+        if ($this->has($question, ['ongoing session', 'current session'])) {
+            return $this->respond('Open ongoing sessions to review sessions that are in progress.',
+                [$this->action('Ongoing sessions', 'ongoing-sessions.index')]);
+        }
+
+        if ($user->isAdmin() && $this->has($question, ['report', 'analytics'])) {
+            return $this->respond('Open reporting to review the spa’s activity and results.',
+                [$this->action('Reporting', 'reporting.index')]);
+        }
+
+        if ($this->has($question, [
+            'my appointment', 'my booking', 'upcoming appointment', 'upcoming booking',
+            'appointment status', 'booking status', 'manage appointment',
+            'cancel appointment', 'cancel booking', 'reschedule appointment', 'reschedule booking',
+        ]) || preg_match('/(?:booking|appointment)\s*#?\s*\d+/u', $question) === 1) {
+            return $this->respond('Staff can review and manage bookings on the appointments page.',
+                [$this->action('View appointments', 'appointments.index')]);
+        }
+
+        return null;
     }
 
     private function bookingSummary(SpaBooking $booking): string

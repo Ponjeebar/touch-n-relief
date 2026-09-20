@@ -3,12 +3,17 @@
     if (!script) return;
 
     document.addEventListener('DOMContentLoaded', () => {
+        const role = ['guest', 'customer', 'admin', 'receptionist'].includes(script.dataset.chatbotRole)
+            ? script.dataset.chatbotRole : 'guest';
+        const staff = role === 'admin' || role === 'receptionist';
         const root = document.createElement('div');
         root.className = 'tnr-chat';
         root.innerHTML = '<button type="button" class="tnr-chat-launcher" aria-label="Open help chat" aria-expanded="false"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8 9 9 0 0 1-3.4-.7L4 20l1.2-4.3A8 8 0 1 1 20 11.5Z"/><path d="M8.5 11.5h7"/></svg><span>Chat with us</span></button><section class="tnr-chat-panel" role="dialog" aria-label="Help chat" hidden><header class="tnr-chat-header"><div><strong>Touch N Relief</strong><span>Help with services and bookings</span></div><button type="button" class="tnr-chat-close" aria-label="Close help chat">×</button></header><div class="tnr-chat-messages" role="log" aria-live="polite" aria-relevant="additions text"></div><div class="tnr-chat-prompts" aria-label="Suggested questions"></div><form class="tnr-chat-form"><label class="tnr-chat-label" for="tnr-chat-input">Ask a question</label><div class="tnr-chat-compose"><input id="tnr-chat-input" type="text" maxlength="500" autocomplete="off" placeholder="Type your question…" required><button type="submit">Send</button></div></form></section>';
         document.body.append(root);
 
         const launcher = root.querySelector('.tnr-chat-launcher');
+        const launcherLabel = launcher.querySelector('span');
+        const headerSubtitle = root.querySelector('.tnr-chat-header span');
         const panel = root.querySelector('.tnr-chat-panel');
         const close = root.querySelector('.tnr-chat-close');
         const messages = root.querySelector('.tnr-chat-messages');
@@ -73,14 +78,35 @@
             }
         }
 
-        ['Services and prices', 'Business hours', 'Location', 'How do I book?', 'My appointments'].forEach((question) => {
+        const suggestedQuestions = role === 'admin'
+            ? ["Today's appointments", 'Manage services', 'Client records', 'Reports']
+            : role === 'receptionist'
+                ? ["Today's appointments", 'Manage services', 'Client records', 'Ongoing sessions']
+                : role === 'customer'
+                    ? ['My appointments', 'Reschedule my booking', 'Services and prices', 'Business hours']
+                    : ['Services and prices', 'Business hours', 'Location', 'How do I book?'];
+        if (staff) {
+            launcherLabel.textContent = 'Staff help';
+            headerSubtitle.textContent = role === 'admin' ? 'Administrator assistance' : 'Receptionist assistance';
+        } else if (role === 'customer') {
+            headerSubtitle.textContent = 'Help with your bookings';
+        }
+
+        suggestedQuestions.forEach((question) => {
             const button = document.createElement('button');
             button.type = 'button';
             button.textContent = question;
             button.addEventListener('click', () => ask(question));
             prompts.append(button);
         });
-        addMessage('Hello! Ask me about our services, prices, hours, bookings, or your account.', true);
+        const welcome = role === 'admin'
+            ? 'I can help you find appointments, reports, services, and client records.'
+            : role === 'receptionist'
+                ? 'I can help you find appointments, services, client records, and ongoing sessions.'
+                : role === 'customer'
+                    ? 'Hello! Ask about your appointments, booking changes, services, or your account.'
+                    : 'Hello! Ask about services, prices, hours, location, or how to book.';
+        addMessage(welcome, true);
         launcher.addEventListener('click', () => {
             panel.hidden = !panel.hidden;
             launcher.setAttribute('aria-expanded', String(!panel.hidden));
