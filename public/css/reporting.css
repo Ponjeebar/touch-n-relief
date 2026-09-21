@@ -630,6 +630,24 @@
     }
 }
 
+@media (min-width: 1300px) and (max-width: 1599px) {
+    .rep-toolbar {
+        display: grid;
+        grid-template-columns: auto repeat(3, max-content);
+        align-items: center;
+        justify-content: space-between;
+        column-gap: 14px;
+        width: 100%;
+    }
+
+    .rep-export-btn,
+    .rep-print-btn,
+    .rep-backup-btn {
+        min-height: 46px;
+        justify-content: center;
+    }
+}
+
 @media (max-width: 1100px) {
     .rep-grid {
         grid-template-columns: 1fr;
