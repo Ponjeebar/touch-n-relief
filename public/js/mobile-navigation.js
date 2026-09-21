@@ -42,6 +42,21 @@
     function init() {
         setupMenu('.sidebar', '.staff-nav-toggle', 'is-mobile-nav-open', '(max-width: 700px)');
         setupMenu('.landing-header', '.mobile-nav-toggle', 'is-mobile-nav-open', '(max-width: 900px)');
+
+        var staffMenuButton = document.querySelector('[data-staff-mobile-menu]');
+        var staffToggle = document.querySelector('.staff-nav-toggle');
+        staffMenuButton?.addEventListener('click', function () {
+            staffToggle?.click();
+            staffMenuButton.setAttribute('aria-expanded', staffToggle?.getAttribute('aria-expanded') || 'false');
+            if (staffToggle?.getAttribute('aria-expanded') === 'true') {
+                document.querySelector('.sidebar')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            }
+        });
+        if (staffToggle && staffMenuButton) {
+            new MutationObserver(function () {
+                staffMenuButton.setAttribute('aria-expanded', staffToggle.getAttribute('aria-expanded') || 'false');
+            }).observe(staffToggle, { attributes: true, attributeFilter: ['aria-expanded'] });
+        }
     }
 
     if (document.readyState === 'loading') {

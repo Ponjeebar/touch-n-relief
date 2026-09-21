@@ -2509,3 +2509,127 @@ body.modal-open {
         min-width: 0;
     }
 }
+
+.staff-mobile-shortcuts,
+.mobile-dashboard-actions,
+.mobile-appointment-create {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    body {
+        padding-bottom: calc(74px + env(safe-area-inset-bottom));
+    }
+
+    .staff-mobile-shortcuts {
+        position: fixed;
+        z-index: 80;
+        inset: auto 0 0;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 2px;
+        padding: 6px max(6px, env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-right));
+        border-top: 1px solid #d6e4e3;
+        background: #fff;
+        box-shadow: 0 -5px 20px rgba(31, 43, 51, .1);
+    }
+
+    .staff-mobile-shortcuts a,
+    .staff-mobile-shortcuts button {
+        display: flex;
+        min-width: 0;
+        min-height: 55px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        padding: 4px 2px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: #415560;
+        font: inherit;
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1.2;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .staff-mobile-shortcuts i { font-size: 20px; line-height: 1; }
+    .staff-mobile-shortcuts [aria-current="page"],
+    .staff-mobile-shortcuts button[aria-expanded="true"] {
+        background: #e4f2eb;
+        color: #04724d;
+    }
+    .staff-mobile-shortcuts a:focus-visible,
+    .staff-mobile-shortcuts button:focus-visible {
+        outline: 2px solid #04724d;
+        outline-offset: -2px;
+    }
+
+    .mobile-dashboard-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .mobile-dashboard-actions a {
+        display: flex;
+        min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 5px;
+        border: 1px solid #b8d8cb;
+        border-radius: 10px;
+        background: #eef8f2;
+        color: #075c42;
+        font-size: 11px;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+    }
+    .mobile-dashboard-actions i { font-size: 16px; }
+    .mobile-dashboard-actions a:focus-visible {
+        outline: 2px solid #04724d;
+        outline-offset: 2px;
+    }
+
+    .mobile-appointment-create {
+        display: flex;
+        width: 100%;
+        min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        border: 0;
+        border-radius: 10px;
+        background: #04724d;
+        color: #fff;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .dashboard .metric-grid.dashboard-block,
+    .dashboard .metric-grid.receptionist-metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .dashboard .metric-grid.dashboard-block .metric-card:first-child {
+        grid-column: 1 / -1;
+    }
+    .dashboard .metric-card { min-width: 0; padding: 12px; }
+    .dashboard .metric-label { font-size: 12px; }
+    .dashboard .metric-value { margin-top: 8px; overflow-wrap: anywhere; }
+    .dashboard .metric-sub { margin-top: 8px; font-size: 12px; }
+}
+
+@media (max-width: 380px) {
+    .mobile-dashboard-actions { grid-template-columns: 1fr; }
+    .mobile-dashboard-actions a { justify-content: flex-start; padding-inline: 12px; }
+}

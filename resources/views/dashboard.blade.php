@@ -117,6 +117,12 @@
                     </div>
                 @endif
 
+                <nav class="mobile-dashboard-actions" aria-label="Dashboard quick actions">
+                    <a href="{{ route('appointments.index') }}"><i class="bi bi-calendar-plus" aria-hidden="true"></i>Appointments</a>
+                    <a href="{{ route('client-records.index') }}"><i class="bi bi-folder2-open" aria-hidden="true"></i>Client records</a>
+                    <a href="{{ route('reporting.index') }}"><i class="bi bi-bar-chart-line" aria-hidden="true"></i>Reports</a>
+                </nav>
+
                 <section class="analytics">
                     <div class="metric-grid dashboard-block">
                         <article class="metric-card">

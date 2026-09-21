@@ -170,6 +170,23 @@
     </li>
     @endif
 </ul>
+<nav class="staff-mobile-shortcuts" aria-label="Staff mobile shortcuts">
+    <a href="{{ $admin ? route('dashboard') : route('receptionist.dashboard') }}" @if($homeActive) aria-current="page" @endif>
+        <i class="bi bi-house-door" aria-hidden="true"></i><span>Home</span>
+    </a>
+    <a href="{{ route('appointments.index') }}" @if($active === 'appointments') aria-current="page" @endif>
+        <i class="bi bi-calendar2-check" aria-hidden="true"></i><span>Bookings</span>
+    </a>
+    <a href="{{ route('ongoing-sessions.index') }}" @if($active === 'ongoing') aria-current="page" @endif>
+        <i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Sessions</span>
+    </a>
+    <a href="{{ route('client-records.index') }}" @if($active === 'client-records') aria-current="page" @endif>
+        <i class="bi bi-folder2-open" aria-hidden="true"></i><span>Clients</span>
+    </a>
+    <button type="button" data-staff-mobile-menu aria-label="Open all staff pages" aria-expanded="false">
+        <i class="bi bi-grid" aria-hidden="true"></i><span>More</span>
+    </button>
+</nav>
 @once
     <script src="{{ asset('js/mobile-navigation.js') }}" defer></script>
 @endonce

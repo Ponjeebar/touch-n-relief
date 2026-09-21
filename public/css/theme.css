@@ -63,6 +63,28 @@ html[data-theme="dark"] .sidebar {
     box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.06);
 }
 
+html[data-theme="dark"] .staff-mobile-shortcuts {
+    background: #1a2330;
+    border-color: #334155;
+}
+
+html[data-theme="dark"] .staff-mobile-shortcuts a,
+html[data-theme="dark"] .staff-mobile-shortcuts button {
+    color: #b8c9d4;
+}
+
+html[data-theme="dark"] .staff-mobile-shortcuts [aria-current="page"],
+html[data-theme="dark"] .staff-mobile-shortcuts button[aria-expanded="true"] {
+    background: #164638;
+    color: #8ce6c2;
+}
+
+html[data-theme="dark"] .mobile-dashboard-actions a {
+    background: #1d3c34;
+    border-color: #376c59;
+    color: #b8f0d3;
+}
+
 html[data-theme="dark"] .logout {
     background: rgba(30, 40, 52, 0.95);
     color: var(--primary);

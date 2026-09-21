@@ -123,6 +123,12 @@
 
                 @include('partials.status-toast')
 
+                @if ($isStaff ?? false)
+                    <button class="mobile-appointment-create" type="button" data-mobile-add-appointment>
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> Add appointment
+                    </button>
+                @endif
+
                 <section class="analytics">
                     <div class="metric-grid metric-grid-appointments">
                         <article class="metric-card">
@@ -1125,6 +1131,7 @@
             event.preventDefault();
             openClientTypeModal();
         });
+        document.querySelector('[data-mobile-add-appointment]')?.addEventListener('click', openClientTypeModal);
 
         document.querySelectorAll('[data-pick-client-type]').forEach((button) => {
             button.addEventListener('click', () => {
