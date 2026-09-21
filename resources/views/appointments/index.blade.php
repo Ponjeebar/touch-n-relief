@@ -159,10 +159,12 @@
                                         <button class="pill confirmed pill-filter" type="button" data-pill-confirmed="true" data-status-filter="confirmed">{{ $stats['confirmed'] ?? 0 }} Confirmed</button>
                                         <button class="pill completed pill-filter" type="button" data-pill-completed="true" data-status-filter="completed">{{ $stats['completed'] ?? 0 }} Completed</button>
                                         <button class="pill cancelled pill-filter" type="button" data-pill-cancelled="true" data-status-filter="cancelled">{{ $stats['cancelled'] ?? 0 }} Cancelled</button>
+                                        <button class="pill no-show pill-filter" type="button" data-pill-no-show="true" data-status-filter="no-show">{{ $stats['no_show'] ?? 0 }} No Show</button>
                                     </span>
                                     <span class="appointments-sub" data-pill-group-past="true" @if(($isPastDay ?? false) !== true) style="display:none" @endif>
                                         <button class="pill completed pill-filter" type="button" data-pill-completed="true" data-status-filter="completed">{{ $stats['completed'] ?? 0 }} Completed</button>
                                         <button class="pill cancelled pill-filter" type="button" data-pill-cancelled="true" data-status-filter="cancelled">{{ $stats['cancelled'] ?? 0 }} Cancelled</button>
+                                        <button class="pill no-show pill-filter" type="button" data-pill-no-show="true" data-status-filter="no-show">{{ $stats['no_show'] ?? 0 }} No Show</button>
                                     </span>
                                 </div>
                                 <div class="appointments-actions">
@@ -2009,7 +2011,7 @@
 
         const initialParams = new URLSearchParams(window.location.search);
         const initialStatusFilter = (initialParams.get('status_filter') ?? '').toLowerCase();
-        if (['confirmed', 'pending', 'rescheduled', 'completed', 'cancelled'].includes(initialStatusFilter)) {
+        if (['confirmed', 'pending', 'rescheduled', 'completed', 'cancelled', 'no-show'].includes(initialStatusFilter)) {
             currentStatusFilter = initialStatusFilter;
         }
 
@@ -2142,6 +2144,7 @@
             const pending = meta?.getAttribute('data-pending') ?? null;
             const rescheduled = meta?.getAttribute('data-rescheduled') ?? null;
             const cancelled = meta?.getAttribute('data-cancelled') ?? null;
+            const noShow = meta?.getAttribute('data-no-show') ?? null;
             const completed = meta?.getAttribute('data-completed') ?? null;
             const isPastDay = meta?.getAttribute('data-is-past-day') === '1';
 
@@ -2170,6 +2173,11 @@
             if (cancelled !== null) {
                 document.querySelectorAll('[data-pill-cancelled="true"]').forEach((el) => {
                     el.textContent = `${cancelled} Cancelled`;
+                });
+            }
+            if (noShow !== null) {
+                document.querySelectorAll('[data-pill-no-show="true"]').forEach((el) => {
+                    el.textContent = `${noShow} No Show`;
                 });
             }
             if (completed !== null) {

@@ -26,7 +26,7 @@ class BookingRescheduleService
      */
     public function canStaffReschedule(SpaBooking $booking): bool
     {
-        if ($booking->cancelled_at !== null || $booking->session_status === SpaBooking::STATUS_CANCELLED) {
+        if ($booking->cancelled_at !== null || in_array($booking->session_status, [SpaBooking::STATUS_CANCELLED, SpaBooking::STATUS_NO_SHOW], true)) {
             return false;
         }
 

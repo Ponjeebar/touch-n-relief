@@ -6,6 +6,7 @@
         data-rescheduled="{{ $stats['rescheduled'] ?? 0 }}"
         data-completed="{{ $stats['completed'] ?? 0 }}"
         data-cancelled="{{ $stats['cancelled'] ?? 0 }}"
+        data-no-show="{{ $stats['no_show'] ?? 0 }}"
         data-in-session="{{ $stats['in_session'] ?? 0 }}"
         data-is-past-day="{{ ($isPastDay ?? false) ? 1 : 0 }}"
         hidden
@@ -18,6 +19,7 @@
             $isPending = ($appointment['status'] ?? '') === 'Pending';
             $isRescheduled = ($appointment['status'] ?? '') === 'Rescheduled';
             $isInSession = ($appointment['status'] ?? '') === 'In Session';
+            $isNoShow = ($appointment['status'] ?? '') === 'No Show';
             $isActiveBooking = $isConfirmed || $isPending || $isRescheduled;
             $bookingId = $appointment['booking_id'] ?? null;
         @endphp
@@ -68,7 +70,7 @@
                 </div>
             </div>
 
-            @if ($isActiveBooking || $isCompleted || $isCancelled || $isInSession)
+            @if ($isActiveBooking || $isCompleted || $isCancelled || $isInSession || $isNoShow)
                 <div class="appt-actions" role="group" aria-label="Actions for {{ $appointment['client'] }}">
                     @if ($isActiveBooking && $bookingId)
                         <form method="POST" action="{{ route('appointments.start', $bookingId) }}" class="appt-start-form">
@@ -99,6 +101,15 @@
                         >
                             <i class="bi bi-calendar2-week" aria-hidden="true"></i>
                         </button>
+                    @endif
+                    @if (($isStaff ?? false) && ! empty($appointment['can_mark_no_show']) && $bookingId)
+                        <form method="POST" action="{{ route('appointments.no-show', $bookingId) }}" class="appt-start-form" onsubmit="return confirm('Mark this customer as a no-show? Three no-shows will ban the account.');">
+                            @csrf
+                            @method('PATCH')
+                            <button class="appt-icon-btn no-show" type="submit" title="Mark no-show" aria-label="Mark {{ $appointment['client'] }} as a no-show">
+                                <i class="bi bi-person-x" aria-hidden="true"></i>
+                            </button>
+                        </form>
                     @endif
                     <button
                         class="appt-icon-btn view"

@@ -66,6 +66,7 @@ Route::middleware(['auth', 'staff.activity'])->group(function () {
     Route::patch('/appointments/{spaBooking}/reschedule', [StaffAppointmentController::class, 'reschedule'])->name('appointments.reschedule');
     Route::get('/appointments/{spaBooking}/reschedule/availability', [StaffAppointmentController::class, 'rescheduleAvailability'])->name('appointments.reschedule.availability');
     Route::patch('/appointments/{spaBooking}/cancel', [StaffAppointmentController::class, 'cancel'])->name('appointments.cancel');
+    Route::patch('/appointments/{spaBooking}/no-show', [StaffAppointmentController::class, 'markNoShow'])->name('appointments.no-show');
     Route::patch('/appointments/{spaBooking}/refund', [StaffAppointmentController::class, 'completeRefund'])->name('appointments.refund.complete');
     Route::patch('/appointments/{spaBooking}/start', [DashboardController::class, 'startSession'])->name('appointments.start');
     Route::get('/services', [DashboardController::class, 'services'])->name('services.index');

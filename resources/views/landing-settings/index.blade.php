@@ -140,6 +140,27 @@
                                     </div>
                                 </article>
 
+                                <article class="ls-section">
+                                    <header class="ls-section-head">
+                                        <span class="ls-section-icon hours" aria-hidden="true"><i class="bi bi-calendar-x"></i></span>
+                                        <div>
+                                            <h2 class="ls-section-title">Booking Cancellation Policy</h2>
+                                            <p class="ls-section-desc">Choose how many hours before an appointment customers must cancel. The cancel button becomes unavailable inside this period.</p>
+                                        </div>
+                                    </header>
+                                    <div class="ls-fields">
+                                        <div class="ls-field">
+                                            <label for="cancellation_cutoff_hours">Cancellation cutoff (hours)</label>
+                                            <div class="ls-input-wrap">
+                                                <i class="bi bi-clock" aria-hidden="true"></i>
+                                                <input id="cancellation_cutoff_hours" name="cancellation_cutoff_hours" type="number" value="{{ old('cancellation_cutoff_hours', $cancellationCutoffHours) }}" required min="0" max="8760" step="1" inputmode="numeric">
+                                            </div>
+                                            <p class="ls-field-help">Example: 24 disables cancellation during the final 24 hours. Enter 0 to allow cancellation until the appointment begins.</p>
+                                            @error('cancellation_cutoff_hours')<span class="field-error">{{ $message }}</span>@enderror
+                                        </div>
+                                    </div>
+                                </article>
+
                                 <div class="ls-actions">
                                     <button type="submit" class="ls-btn ls-btn-primary">
                                         <i class="bi bi-check2-circle" aria-hidden="true"></i>

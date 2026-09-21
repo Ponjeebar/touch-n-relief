@@ -726,7 +726,7 @@ class DashboardController extends Controller
         $dateSort = $request->string('date_sort')->lower()->value() === 'desc' ? 'desc' : 'asc';
         $statusSort = $request->string('status_sort')->lower()->value() === 'desc' ? 'desc' : 'asc';
         $statusFilter = $request->string('status_filter')->lower()->value();
-        $statusFilter = in_array($statusFilter, ['confirmed', 'pending', 'rescheduled', 'completed', 'cancelled', 'in-session'], true) ? $statusFilter : '';
+        $statusFilter = in_array($statusFilter, ['confirmed', 'pending', 'rescheduled', 'completed', 'cancelled', 'no-show', 'in-session'], true) ? $statusFilter : '';
         $search = trim($request->string('search')->toString());
         $nextDateSort = $dateSort === 'asc' ? 'desc' : 'asc';
         $nextStatusSort = $statusSort === 'asc' ? 'desc' : 'asc';
@@ -782,15 +782,17 @@ class DashboardController extends Controller
             'Confirmed' => 3,
             'Completed' => 4,
             'Cancelled' => 5,
+            'No Show' => 6,
         ];
 
         $statusRankDesc = [
             'Cancelled' => 0,
-            'Completed' => 1,
-            'Confirmed' => 2,
-            'Rescheduled' => 3,
-            'Pending' => 4,
-            'In Session' => 5,
+            'No Show' => 1,
+            'Completed' => 2,
+            'Confirmed' => 3,
+            'Rescheduled' => 4,
+            'Pending' => 5,
+            'In Session' => 6,
         ];
 
         $appointments = $appointments
@@ -825,12 +827,14 @@ class DashboardController extends Controller
             'in_session' => (int) ($statusCounts->get('in-session', 0)),
             'completed' => (int) ($statusCounts->get('completed', 0)),
             'cancelled' => (int) ($statusCounts->get('cancelled', 0)),
+            'no_show' => (int) ($statusCounts->get('no show', 0)),
         ];
 
         if ($statusFilter !== '') {
             $statusFilterLabel = match ($statusFilter) {
                 'in-session' => 'In Session',
                 'rescheduled' => 'Rescheduled',
+                'no-show' => 'No Show',
                 default => ucfirst($statusFilter),
             };
             $appointments = $appointments

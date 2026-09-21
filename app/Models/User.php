@@ -73,6 +73,7 @@ class User extends Authenticatable
         'password',
         'role',
         'is_walk_in',
+        'banned_at',
     ];
 
     /**
@@ -99,6 +100,7 @@ class User extends Authenticatable
             'is_pregnant' => 'boolean',
             'password' => 'hashed',
             'archived_at' => 'datetime',
+            'banned_at' => 'datetime',
         ];
 
         if (WalkInSchema::hasWalkInColumn()) {
@@ -140,6 +142,11 @@ class User extends Authenticatable
     public function isUser(): bool
     {
         return $this->role === self::ROLE_USER;
+    }
+
+    public function isBanned(): bool
+    {
+        return $this->banned_at !== null;
     }
 
     public static function isWalkInEmail(?string $email): bool

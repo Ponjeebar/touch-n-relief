@@ -147,6 +147,13 @@ class AuthController extends Controller
             ])->onlyInput('login', 'remember');
         }
 
+
+        if ($user instanceof User && $user->isBanned()) {
+            return redirect()->route('login')->withErrors([
+                'login' => 'This account has been banned after three no-show appointments. Please contact the spa administrator.',
+            ])->onlyInput('login', 'remember');
+        }
+
         if ($user === null || ! Hash::check($password, $user->getAuthPassword())) {
             return redirect()->route('login')->withErrors([
                 'login' => 'Invalid username, name, email, or password.',

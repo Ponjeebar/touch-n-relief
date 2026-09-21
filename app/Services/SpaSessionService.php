@@ -16,6 +16,10 @@ class SpaSessionService
 {
     public function resolveStatus(SpaBooking $booking, ?Carbon $now = null): string
     {
+        if ($booking->session_status === SpaBooking::STATUS_NO_SHOW) {
+            return SpaBooking::STATUS_NO_SHOW;
+        }
+
         if ($booking->cancelled_at !== null || $booking->session_status === SpaBooking::STATUS_CANCELLED) {
             return SpaBooking::STATUS_CANCELLED;
         }
@@ -30,10 +34,6 @@ class SpaSessionService
             }
 
             return SpaBooking::STATUS_IN_SESSION;
-        }
-
-        if ($this->hasExpired($booking, $now)) {
-            return SpaBooking::STATUS_COMPLETED;
         }
 
         return SpaBooking::STATUS_CONFIRMED;
@@ -67,6 +67,7 @@ class SpaSessionService
             SpaBooking::STATUS_CANCELLED => 'Cancelled booking',
             SpaBooking::STATUS_COMPLETED => 'Completed session',
             SpaBooking::STATUS_IN_SESSION => 'In session',
+            SpaBooking::STATUS_NO_SHOW => 'No show',
             default => 'Confirmed booking',
         };
     }
@@ -77,6 +78,7 @@ class SpaSessionService
             SpaBooking::STATUS_CANCELLED => 'Cancelled',
             SpaBooking::STATUS_COMPLETED => 'Completed',
             SpaBooking::STATUS_IN_SESSION => 'In Session',
+            SpaBooking::STATUS_NO_SHOW => 'No Show',
             default => 'Confirmed',
         };
     }
@@ -513,6 +515,11 @@ class SpaSessionService
             'can_start' => $this->canStart($booking),
             'can_reschedule' => app(BookingRescheduleService::class)->canStaffReschedule($booking),
             'can_cancel' => app(BookingCancellationService::class)->canStaffCancel($booking),
+            'can_mark_no_show' => $booking->session_status !== SpaBooking::STATUS_NO_SHOW
+                && $booking->cancelled_at === null
+                && $booking->completed_at === null
+                && $booking->session_started_at === null
+                && ($now ?? now())->gte($start->copy()->addMinutes(10)),
             'client_user_id' => (int) $booking->user_id,
             ...$this->paymentMeta($booking),
         ];

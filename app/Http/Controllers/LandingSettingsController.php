@@ -14,6 +14,7 @@ class LandingSettingsController extends Controller
     {
         return view('landing-settings.index', [
             'footer' => $settings->footer(),
+            'cancellationCutoffHours' => $settings->cancellationCutoffHours(),
         ]);
     }
 
@@ -26,9 +27,11 @@ class LandingSettingsController extends Controller
             'hours_weekday' => ['required', 'string', 'max:120'],
             'hours_weekend' => ['required', 'string', 'max:120'],
             'hours_holidays' => ['required', 'string', 'max:120'],
+            'cancellation_cutoff_hours' => ['required', 'integer', 'min:0', 'max:8760'],
         ]);
 
         $settings->updateFooter($validated);
+        $settings->updateCancellationCutoffHours((int) $validated['cancellation_cutoff_hours']);
 
         ActivityLogger::log(
             'landing.footer_updated',

@@ -22,6 +22,18 @@ class SiteSettingsService
 
     public const KEY_THERAPIST_DEFAULT_WORKING_DAYS = 'therapist_default_working_days';
 
+    public const KEY_CANCELLATION_CUTOFF_HOURS = 'booking_cancellation_cutoff_hours';
+
+    public function cancellationCutoffHours(): int
+    {
+        return max(0, min(8760, (int) SiteSetting::valueFor(self::KEY_CANCELLATION_CUTOFF_HOURS, '24')));
+    }
+
+    public function updateCancellationCutoffHours(int $hours): void
+    {
+        SiteSetting::put(self::KEY_CANCELLATION_CUTOFF_HOURS, (string) max(0, min(8760, $hours)));
+    }
+
     /**
      * @return array<string, string>
      */
@@ -125,6 +137,10 @@ class SiteSettingsService
                 self::KEY_THERAPIST_DEFAULT_WORKING_DAYS,
                 json_encode($scheduleDefaults['default_working_days']),
             );
+        }
+
+        if (SiteSetting::valueFor(self::KEY_CANCELLATION_CUTOFF_HOURS) === null) {
+            SiteSetting::put(self::KEY_CANCELLATION_CUTOFF_HOURS, '24');
         }
     }
 

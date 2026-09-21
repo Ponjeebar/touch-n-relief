@@ -166,6 +166,13 @@
     color: #c0392b;
 }
 
+.ls-field-help {
+    margin: 6px 0 0;
+    color: var(--muted, #667085);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
 .ls-actions {
     display: flex;
     flex-wrap: wrap;

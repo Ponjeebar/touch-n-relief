@@ -276,6 +276,12 @@
     color: var(--accent-rose);
 }
 
+.pill.no-show {
+    background: #fff4e5;
+    border-color: #f0d4aa;
+    color: #9a5b08;
+}
+
 .pill.completed {
     background: rgba(79, 109, 140, 0.12);
     border-color: rgba(79, 109, 140, 0.22);
@@ -508,6 +514,12 @@
     color: var(--accent-rose);
 }
 
+.appt-status.no-show {
+    background: #fff4e5;
+    border-color: #f0d4aa;
+    color: #9a5b08;
+}
+
 .appt-status.completed {
     background: rgba(79, 109, 140, 0.12);
     border-color: rgba(79, 109, 140, 0.22);
@@ -601,6 +613,12 @@
     background: rgba(201, 90, 123, 0.10);
     border-color: rgba(201, 90, 123, 0.22);
     color: var(--accent-rose);
+}
+
+.appt-icon-btn.no-show {
+    background: rgba(190, 112, 17, 0.1);
+    border-color: rgba(190, 112, 17, 0.24);
+    color: #9a5b08;
 }
 
 .appt-icon-btn.reschedule {

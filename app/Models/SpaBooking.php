@@ -17,6 +17,8 @@ class SpaBooking extends Model
 
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const STATUS_NO_SHOW = 'no_show';
+
     public const DISPLAY_PENDING = 'Pending';
 
     public const DISPLAY_RESCHEDULED = 'Rescheduled';

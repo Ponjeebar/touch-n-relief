@@ -26,7 +26,7 @@ class BookingCancellationService
 
     public function canCancel(SpaBooking $booking): bool
     {
-        if ($booking->cancelled_at !== null || $booking->session_status === SpaBooking::STATUS_CANCELLED) {
+        if ($booking->cancelled_at !== null || in_array($booking->session_status, [SpaBooking::STATUS_CANCELLED, SpaBooking::STATUS_NO_SHOW], true)) {
             return false;
         }
 
@@ -44,7 +44,9 @@ class BookingCancellationService
             return false;
         }
 
-        return now()->lt($appointment);
+        return now()->lt($appointment->copy()->subHours(
+            app(SiteSettingsService::class)->cancellationCutoffHours()
+        ));
     }
 
     /**
@@ -52,7 +54,7 @@ class BookingCancellationService
      */
     public function canStaffCancel(SpaBooking $booking): bool
     {
-        if ($booking->cancelled_at !== null || $booking->session_status === SpaBooking::STATUS_CANCELLED) {
+        if ($booking->cancelled_at !== null || in_array($booking->session_status, [SpaBooking::STATUS_CANCELLED, SpaBooking::STATUS_NO_SHOW], true)) {
             return false;
         }
 
@@ -98,7 +100,7 @@ class BookingCancellationService
     {
         if (! $this->canCancel($booking)) {
             throw ValidationException::withMessages([
-                'booking' => 'This booking can no longer be cancelled because your session has already started.',
+                'booking' => 'This booking can no longer be cancelled because it is inside the cancellation cutoff period.',
             ]);
         }
 

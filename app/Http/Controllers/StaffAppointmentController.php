@@ -652,6 +652,58 @@ class StaffAppointmentController extends Controller
             ->with('status', $message);
     }
 
+    public function markNoShow(Request $request, SpaBooking $spaBooking): RedirectResponse
+    {
+        $staff = $this->ensureStaff($request);
+        $spaBooking->loadMissing('user');
+        $appointmentAt = $this->cancellations->appointmentAt($spaBooking);
+
+        if ($spaBooking->cancelled_at !== null
+            || $spaBooking->completed_at !== null
+            || $spaBooking->session_started_at !== null
+            || $spaBooking->session_status === SpaBooking::STATUS_NO_SHOW
+            || $appointmentAt === null
+            || now()->lt($appointmentAt->copy()->addMinutes(10))) {
+            return back()->with('error', 'This appointment cannot be marked as a no-show yet.');
+        }
+
+        $result = DB::transaction(function () use ($spaBooking): array {
+            $booking = SpaBooking::query()->with('user')->lockForUpdate()->findOrFail($spaBooking->id);
+            $booking->forceFill(['session_status' => SpaBooking::STATUS_NO_SHOW])->save();
+
+            $noShowCount = SpaBooking::query()
+                ->where('user_id', $booking->user_id)
+                ->where('session_status', SpaBooking::STATUS_NO_SHOW)
+                ->count();
+
+            $banned = false;
+            if ($noShowCount >= 3 && $booking->user instanceof User && $booking->user->isUser()) {
+                $booking->user->forceFill(['banned_at' => $booking->user->banned_at ?? now()])->save();
+                $banned = true;
+            }
+
+            return ['count' => $noShowCount, 'banned' => $banned, 'booking' => $booking];
+        });
+
+        ActivityLogger::log(
+            'appointment.no_show',
+            sprintf('Marked booking #%d as no-show.', $spaBooking->id),
+            ['booking_id' => $spaBooking->id, 'no_show_count' => $result['count'], 'customer_banned' => $result['banned']],
+            subject: $spaBooking,
+            user: $staff,
+            request: $request,
+        );
+
+        $message = 'Appointment marked as no-show ('.$result['count'].' of 3).';
+        if ($result['banned']) {
+            $message .= ' The customer account is now banned.';
+        }
+
+        return redirect()
+            ->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
+            ->with('status', $message);
+    }
+
     public function completeRefund(Request $request, SpaBooking $spaBooking): JsonResponse|RedirectResponse
     {
         $staff = $this->ensureStaff($request);
