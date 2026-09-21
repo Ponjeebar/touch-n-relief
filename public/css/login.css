@@ -780,8 +780,14 @@ body.auth-page #container.active .toggle-left {
     }
 
     body.auth-page #container form {
+        width: 100%;
+        min-width: 0;
         height: auto;
         min-height: 680px;
+        padding: 24px 28px;
+    }
+
+    body.auth-page #container .sign-up form {
         padding: 24px 28px;
     }
 
