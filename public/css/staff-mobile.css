@@ -27,6 +27,21 @@
     .topbar .profile-menu-trigger { min-width: 0; max-width: 100%; }
     .topbar .profile-name { min-width: 0; max-width: 28vw; }
 
+    .topbar-settings .settings-dropdown {
+        position: fixed;
+        inset: var(--settings-mobile-top, 140px) 10px auto;
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        z-index: 1202;
+        padding: 8px;
+    }
+    .topbar-settings .settings-dropdown-item {
+        min-height: 44px;
+        justify-content: flex-start;
+        font-size: 14px;
+    }
+
     /* Keep notifications inside the phone viewport instead of off the left edge. */
     .dashboard-notifications,
     .topbar-notifications .dashboard-notifications {

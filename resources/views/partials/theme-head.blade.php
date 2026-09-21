@@ -115,13 +115,23 @@
         function closeSettingsDropdown() {
             if (!settingsDropdown) return;
             settingsDropdown.classList.add('settings-dropdown-hidden');
+            settingsDropdown.style.removeProperty('--settings-mobile-top');
             settingsTrigger?.setAttribute('aria-expanded', 'false');
             settingsWrap?.classList.remove('is-menu-open');
+        }
+
+        function positionSettingsDropdown() {
+            if (!settingsDropdown || !settingsTrigger || !window.matchMedia('(max-width: 700px)').matches) return;
+            var triggerRect = settingsTrigger.getBoundingClientRect();
+            var desiredTop = triggerRect.bottom + 8;
+            var maximumTop = Math.max(10, window.innerHeight - settingsDropdown.offsetHeight - 10);
+            settingsDropdown.style.setProperty('--settings-mobile-top', Math.min(desiredTop, maximumTop) + 'px');
         }
 
         function openSettingsDropdown() {
             if (!settingsDropdown) return;
             settingsDropdown.classList.remove('settings-dropdown-hidden');
+            positionSettingsDropdown();
             settingsTrigger?.setAttribute('aria-expanded', 'true');
             settingsWrap?.classList.add('is-menu-open');
         }
@@ -171,6 +181,10 @@
             e.preventDefault();
             e.stopPropagation();
             window.tnrToggleTheme();
+        });
+
+        window.addEventListener('resize', function () {
+            if (isSettingsOpen()) positionSettingsDropdown();
         });
 
         document.addEventListener('click', function (e) {
