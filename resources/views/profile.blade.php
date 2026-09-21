@@ -707,6 +707,7 @@
             </div>
         </div>
     </header>
+    @include('partials.customer-mobile-nav')
     <script src="{{ asset('js/mobile-navigation.js') }}" defer></script>
 
     <main class="profile-page">

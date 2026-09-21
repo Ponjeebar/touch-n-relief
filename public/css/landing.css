@@ -2,6 +2,65 @@
     box-sizing: border-box;
 }
 
+.customer-mobile-shortcuts { display: none; }
+
+@media (max-width: 900px) {
+    body:has(.customer-mobile-shortcuts) {
+        padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    }
+    .customer-mobile-shortcuts {
+        position: fixed;
+        z-index: 19;
+        inset: auto 0 0;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 3px;
+        padding: 6px max(8px, env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
+        border-top: 1px solid #d6e4e3;
+        background: #fff;
+        box-shadow: 0 -5px 20px rgba(31, 43, 51, .1);
+    }
+    .customer-mobile-shortcuts a,
+    .customer-mobile-shortcuts button {
+        display: flex;
+        min-width: 0;
+        min-height: 55px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 4px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: #425760;
+        font: 600 11px/1.2 "Inter", sans-serif;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .customer-mobile-shortcuts i { font-size: 21px; line-height: 1; }
+    .customer-mobile-shortcuts a[aria-current="page"] {
+        background: #e3f2eb;
+        color: #04724d;
+    }
+    .customer-mobile-shortcuts a:focus-visible,
+    .customer-mobile-shortcuts button:focus-visible {
+        outline: 2px solid #04724d;
+        outline-offset: -2px;
+    }
+    html[data-theme="dark"] .customer-mobile-shortcuts {
+        background: #1a2330;
+        border-color: #334155;
+    }
+    html[data-theme="dark"] .customer-mobile-shortcuts a,
+    html[data-theme="dark"] .customer-mobile-shortcuts button { color: #b8c9d4; }
+    html[data-theme="dark"] .customer-mobile-shortcuts a[aria-current="page"] {
+        background: #164638;
+        color: #8ce6c2;
+    }
+}
+
 html {
     scroll-behavior: smooth;
 }

@@ -33,3 +33,22 @@ html[data-theme="dark"] .tnr-chat-prompts { border-color: #44594b; }
 html[data-theme="dark"] .tnr-chat-prompts button, html[data-theme="dark"] .tnr-chat-compose input { background: #17211c; border-color: #64816b; color: #fff; }
 html[data-theme="dark"] .tnr-chat-actions a { color: #a8e4ba; }
 @media (max-width: 480px) { .tnr-chat { right: 12px; bottom: 12px; } .tnr-chat-panel { bottom: 60px; height: min(540px, calc(100dvh - 90px)); } }
+@media (max-width: 900px) {
+    body:has(.customer-mobile-shortcuts) .tnr-chat {
+        bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+    body:has(.customer-mobile-shortcuts) .tnr-chat-panel {
+        height: min(540px, calc(100dvh - 175px - env(safe-area-inset-bottom)));
+    }
+}
+@media (max-width: 700px) {
+    .tnr-chat-staff { right: 8px; bottom: 0; }
+    .tnr-chat-staff .tnr-chat-launcher { display: none; }
+    .tnr-chat-staff .tnr-chat-panel {
+        position: fixed;
+        right: 8px;
+        bottom: calc(76px + env(safe-area-inset-bottom));
+        width: min(380px, calc(100vw - 16px));
+        height: min(540px, calc(100dvh - 100px - env(safe-area-inset-bottom)));
+    }
+}

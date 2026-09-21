@@ -183,6 +183,9 @@
     <a href="{{ route('client-records.index') }}" @if($active === 'client-records') aria-current="page" @endif>
         <i class="bi bi-folder2-open" aria-hidden="true"></i><span>Clients</span>
     </a>
+    <button type="button" data-staff-chat-open aria-label="Open help chat" aria-expanded="false">
+        <i class="bi bi-chat-dots" aria-hidden="true"></i><span>Help</span>
+    </button>
     <button type="button" data-staff-mobile-menu aria-label="Open all staff pages" aria-expanded="false">
         <i class="bi bi-grid" aria-hidden="true"></i><span>More</span>
     </button>
