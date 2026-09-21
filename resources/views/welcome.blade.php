@@ -13,7 +13,7 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <link rel="stylesheet" href="{{ asset('css/profile-app-modal.css') }}">
         @if (session('booking_confirmed'))
-            <link rel="stylesheet" href="{{ asset('css/booking.css') }}">
+            <link rel="stylesheet" href="{{ asset('css/booking.css') }}?v={{ filemtime(public_path('css/booking.css')) }}">
             <link rel="stylesheet" href="{{ asset('css/payment-receipt.css') }}">
         @endif
         @if (auth()->user()->needsProfileOnboarding())

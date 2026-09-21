@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/reporting.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/reporting.css') }}?v={{ filemtime(public_path('css/reporting.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
     @include('partials.staff-mobile-style')
 </head>
