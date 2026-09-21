@@ -7,7 +7,11 @@
     $operationsActive = in_array($active, ['ongoing', 'completed', 'appointments', 'therapist-monitoring', 'client-records'], true);
     $usersActive = in_array($active, ['users', 'users-receptionists', 'users-customers'], true);
 @endphp
-<ul class="nav-list">
+<button type="button" class="staff-nav-toggle" aria-controls="staff-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
+    <i class="bi bi-list" aria-hidden="true"></i>
+    <span>Menu</span>
+</button>
+<ul class="nav-list" id="staff-mobile-navigation">
     @if ($admin || $receptionist)
         <li>
             <a
@@ -166,3 +170,6 @@
     </li>
     @endif
 </ul>
+@once
+    <script src="{{ asset('js/mobile-navigation.js') }}" defer></script>
+@endonce

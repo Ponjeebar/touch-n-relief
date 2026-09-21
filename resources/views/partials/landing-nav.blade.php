@@ -9,7 +9,11 @@
                 <img src="{{ asset('images/dashboard/logo.png') }}" alt="Buenos Touche logo" class="brand-logo">
                 <div class="brand">TouchNRelief</div>
             </a>
-            <nav class="nav-links">
+            <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
+                <span class="mobile-nav-icon" aria-hidden="true"></span>
+                <span>Menu</span>
+            </button>
+            <nav class="nav-links" id="public-mobile-navigation">
                 @if ($navMode === 'full')
                     <a href="{{ $onLanding ? '#services' : route('landing').'#services' }}">Services</a>
                     <a href="{{ $onLanding ? '#therapists' : route('landing').'#therapists' }}">Therapists</a>
@@ -86,3 +90,6 @@
         </div>
     </div>
 </header>
+@once
+    <script src="{{ asset('js/mobile-navigation.js') }}" defer></script>
+@endonce

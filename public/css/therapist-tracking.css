@@ -1216,6 +1216,19 @@
 }
 
 @media (max-width: 700px) {
+    .tt-main,
+    .tt-grid,
+    .tt-cards {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tt-hero,
+    .tt-grid,
+    .tt-cards,
+    .tt-card {
+        min-width: 0;
+    }
+
     .tt-metrics {
         grid-template-columns: 1fr;
     }
@@ -1224,4 +1237,3 @@
         grid-template-columns: 1fr;
     }
 }
-

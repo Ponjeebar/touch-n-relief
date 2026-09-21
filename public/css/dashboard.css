@@ -315,6 +315,10 @@ body {
     padding: 12px 8px 0;
 }
 
+.staff-nav-toggle {
+    display: none;
+}
+
 .logout {
     display: none !important;
 }
@@ -2420,5 +2424,88 @@ body.modal-open {
 
     .session-item {
         padding: 10px;
+    }
+}
+
+@media (max-width: 700px) {
+    .sidebar,
+    .sidebar:hover,
+    .sidebar:focus-within {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .sidebar .brand {
+        margin-right: 110px;
+        margin-bottom: 0;
+        align-items: center;
+    }
+
+    .staff-nav-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 40px;
+        padding: 7px 12px;
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .staff-nav-toggle:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+    }
+
+    .sidebar .nav-list,
+    .sidebar .sidebar-footer {
+        display: none;
+    }
+
+    .sidebar.is-mobile-nav-open .nav-list {
+        display: grid;
+        margin-top: 16px;
+        max-height: min(65dvh, 520px);
+        overflow-y: auto;
+    }
+
+    .sidebar.is-mobile-nav-open .sidebar-footer {
+        display: block;
+    }
+
+    .sidebar .nav-text,
+    .sidebar:not(:hover):not(:focus-within) .nav-text {
+        display: block;
+        opacity: 1;
+        max-width: 100%;
+        transform: none;
+    }
+
+    .sidebar:not(:hover):not(:focus-within) .nav-link {
+        justify-content: flex-start;
+        gap: 12px;
+    }
+
+    .sidebar .nav-group-details[open] .nav-sublist {
+        display: grid;
+    }
+
+    .sidebar .nav-chevron {
+        opacity: 1;
+        max-width: 16px;
+    }
+
+    .main,
+    .topbar,
+    .right {
+        min-width: 0;
     }
 }

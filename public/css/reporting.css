@@ -584,8 +584,31 @@
 }
 
 @media (max-width: 520px) {
+    .main,
+    .rep-grid,
+    .rep-metrics {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .topbar,
+    .welcome,
+    .rep-toolbar,
+    .rep-period,
+    .rep-grid,
+    .rep-metrics,
+    .rep-right,
+    .rep-card {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .rep-toolbar,
+    .rep-period {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
     .rep-legend {
         grid-template-columns: 1fr;
     }
 }
-

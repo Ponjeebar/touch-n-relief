@@ -726,6 +726,8 @@ body.auth-page #container.active .toggle-left {
     .form-container.sign-up {
         width: 100%;
         position: relative;
+        height: auto;
+        min-height: 680px;
         left: 0;
         transform: none !important;
         opacity: 1 !important;
@@ -743,7 +745,13 @@ body.auth-page #container.active .toggle-left {
     }
 
     body.auth-page #container form {
-        padding: 0 28px;
+        height: auto;
+        min-height: 680px;
+        padding: 24px 28px;
+    }
+
+    .auth-page-header .nav-links {
+        display: none;
     }
 
     .sign-up {
@@ -794,4 +802,7 @@ body.auth-page #container.active .toggle-left {
 .mobile-toggle button.link:hover {
     text-decoration: underline;
     color: var(--auth-primary-hover);
+}
+.auth-page-header .mobile-nav-toggle {
+    display: none;
 }
