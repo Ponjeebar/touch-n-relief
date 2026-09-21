@@ -602,13 +602,31 @@
     .topbar {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "welcome welcome"
+            "toolbar account";
         align-items: center;
+        column-gap: 16px;
+        row-gap: 14px;
+    }
+
+    .topbar > .welcome {
+        grid-area: welcome;
     }
 
     .rep-toolbar {
-        grid-column: 1 / -1;
-        grid-row: 2;
+        grid-area: toolbar;
+        min-width: 0;
         justify-content: flex-start;
+    }
+
+    .topbar > .right {
+        grid-area: account;
+        width: auto;
+        min-width: max-content;
+        justify-content: flex-end;
+        align-self: center;
+        gap: 8px;
     }
 }
 
