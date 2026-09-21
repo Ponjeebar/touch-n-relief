@@ -73,7 +73,7 @@
                     </div>
                 @endif
 
-                <article class="data-card">
+                <article class="data-card cr-list-card">
                     <div class="card-head users-head">
                         <div class="cr-list-head">
                             <h3>Customers</h3>
@@ -86,6 +86,10 @@
                         </div>
                         <div class="cr-list-tools">
                         </div>
+                    </div>
+                    <div class="cr-mobile-search search">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input id="client-records-mobile-search" type="search" placeholder="Search client name..." aria-label="Search client name">
                     </div>
                     <div class="user-list" id="client-records-list">
                         @forelse ($customers as $customer)
@@ -176,15 +180,21 @@
     </form>
 
     <script>
-        const search = document.getElementById('client-records-search');
+        const searches = [
+            document.getElementById('client-records-search'),
+            document.getElementById('client-records-mobile-search'),
+        ].filter(Boolean);
         const list = document.getElementById('client-records-list');
         const rows = list ? Array.from(list.querySelectorAll('[data-search]')) : [];
 
-        search?.addEventListener('input', () => {
-            const q = (search.value || '').trim().toLowerCase();
-            rows.forEach((row) => {
-                const hay = row.getAttribute('data-search') || '';
-                row.style.display = hay.includes(q) ? '' : 'none';
+        searches.forEach((search) => {
+            search.addEventListener('input', () => {
+                const q = (search.value || '').trim().toLowerCase();
+                searches.forEach((other) => { if (other !== search) other.value = search.value; });
+                rows.forEach((row) => {
+                    const hay = row.getAttribute('data-search') || '';
+                    row.style.display = hay.includes(q) ? '' : 'none';
+                });
             });
         });
 

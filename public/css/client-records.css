@@ -822,6 +822,10 @@
     flex-wrap: wrap;
 }
 
+.cr-mobile-search {
+    display: none;
+}
+
 .cr-filter-badge {
     display: inline-flex;
     align-items: center;
