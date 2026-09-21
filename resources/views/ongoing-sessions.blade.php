@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ asset('css/ongoing-sessions.css') }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
+    @include('partials.staff-mobile-style')
 </head>
 <body>
     <div class="app-shell">

@@ -1,2 +1,2 @@
-<link rel="stylesheet" href="{{ asset('css/chatbot.css') }}">
-<script defer src="{{ asset('js/chatbot.js') }}" data-chatbot-url="{{ route('chatbot.reply') }}" data-chatbot-csrf="{{ csrf_token() }}" data-chatbot-role="{{ auth()->guest() ? 'guest' : (auth()->user()->isAdmin() ? 'admin' : (auth()->user()->isReceptionist() ? 'receptionist' : 'customer')) }}"></script>
+<link rel="stylesheet" href="{{ asset('css/chatbot.css') }}?v={{ filemtime(public_path('css/chatbot.css')) }}">
+<script defer src="{{ asset('js/chatbot.js') }}?v={{ filemtime(public_path('js/chatbot.js')) }}" data-chatbot-url="{{ route('chatbot.reply') }}" data-chatbot-csrf="{{ csrf_token() }}" data-chatbot-role="{{ auth()->guest() ? 'guest' : (auth()->user()->isAdmin() ? 'admin' : (auth()->user()->isReceptionist() ? 'receptionist' : 'customer')) }}"></script>

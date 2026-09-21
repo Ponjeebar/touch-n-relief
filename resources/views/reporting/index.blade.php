@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
     <link rel="stylesheet" href="{{ asset('css/reporting.css') }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
+    @include('partials.staff-mobile-style')
 </head>
 <body>
     <div class="app-shell">
@@ -670,4 +671,3 @@
     </script>
 </body>
 </html>
-

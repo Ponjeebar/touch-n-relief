@@ -1,0 +1,79 @@
+/* Staff phone layout. Loaded after page styles so desktop rules stay intact. */
+@media (max-width: 700px) {
+    html, body { max-width: 100%; overflow-x: clip; }
+    .app-shell, .dashboard, .main, .analytics,
+    .appointments-grid, .appointments-card, .appointments-side,
+    .data-card, .chart-grid, .table-grid {
+        min-width: 0;
+        max-width: 100%;
+    }
+    .app-shell, .dashboard, .main { width: 100%; }
+    .main { overflow-x: clip; padding: 12px; gap: 12px; }
+
+    .topbar {
+        position: relative;
+        top: auto;
+        width: 100%;
+        min-width: 0;
+        padding: 12px;
+        gap: 10px;
+    }
+    .topbar .welcome { min-width: 0; width: 100%; }
+    .topbar .welcome h1 { font-size: clamp(20px, 6vw, 25px); line-height: 1.15; }
+    .topbar .welcome .subtitle { font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+    .topbar .right { min-width: 0; width: 100%; justify-content: space-between; gap: 8px; }
+    .topbar .actions { flex: none; gap: 6px; }
+    .topbar .profile-wrap { min-width: 0; max-width: 62%; }
+    .topbar .profile-menu-trigger { min-width: 0; max-width: 100%; }
+    .topbar .profile-name { min-width: 0; max-width: 28vw; }
+
+    /* Keep notifications inside the phone viewport instead of off the left edge. */
+    .dashboard-notifications,
+    .topbar-notifications .dashboard-notifications {
+        position: fixed;
+        inset: 12px 10px auto;
+        width: auto;
+        max-width: none;
+        max-height: calc(100dvh - 90px - env(safe-area-inset-bottom));
+        z-index: 1201;
+    }
+    .dashboard-notifications::before { display: none; }
+
+    .staff-mobile-shortcuts {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        z-index: 800;
+    }
+    .staff-mobile-shortcuts a,
+    .staff-mobile-shortcuts button { min-width: 0; white-space: nowrap; }
+    .tnr-chat-staff .tnr-chat-launcher { display: none !important; }
+    .tnr-chat-staff .tnr-chat-panel {
+        position: fixed;
+        inset: auto 8px calc(76px + env(safe-area-inset-bottom)) 8px;
+        width: auto;
+        max-height: calc(100dvh - 100px - env(safe-area-inset-bottom));
+    }
+
+    /* Appointments: one content column, with actions that wrap within it. */
+    .appointments-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .appointments-card, .appointments-side, .side-card { width: 100%; min-width: 0; }
+    .appointments-card, .side-card { padding: 12px; }
+    .appointments-head { align-items: stretch; gap: 10px; }
+    .appointments-title, .appointments-sub { max-width: 100%; min-width: 0; }
+    .appointments-actions { width: 100%; justify-content: flex-start; gap: 8px; }
+    .appointments-actions .appt-add-btn { max-width: 100%; min-width: 0; }
+    .metric-grid.metric-grid-appointments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .month-switch { max-width: 100%; min-width: 0; }
+    .month-label { min-width: 0; }
+    .calendar, .cal-row { min-width: 0; max-width: 100%; }
+    .cal-row span { min-width: 0; padding: 8px 0; font-size: 10px; }
+
+    .profile-modal-content { max-width: 100vw; }
+}
+
+@media (max-width: 380px) {
+    .staff-mobile-shortcuts a,
+    .staff-mobile-shortcuts button { font-size: 9px; }
+    .staff-mobile-shortcuts i { font-size: 18px; }
+    .topbar .profile-name { max-width: 24vw; }
+    .appointments-actions .appt-add-btn { width: 100%; justify-content: center; }
+}

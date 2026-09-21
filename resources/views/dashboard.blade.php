@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
+    @include('partials.staff-mobile-style')
 </head>
 <body data-staff-feed-poll-url="{{ route('staff-feed.poll') }}">
     <div class="app-shell">

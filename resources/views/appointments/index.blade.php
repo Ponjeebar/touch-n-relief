@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{{ asset('css/payment-receipt.css') }}">
     <link rel="stylesheet" href="{{ asset('css/password-toggle.css') }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
+    @include('partials.staff-mobile-style')
 </head>
 <body data-staff-feed-poll-url="{{ route('staff-feed.poll') }}">
     <div class="app-shell">

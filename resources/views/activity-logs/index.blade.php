@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
     <link rel="stylesheet" href="{{ asset('css/activity-log.css') }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
+    @include('partials.staff-mobile-style')
 </head>
 <body
     data-activity-log-page
