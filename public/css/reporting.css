@@ -39,6 +39,10 @@
     justify-content: flex-end;
 }
 
+.rep-toolbar > * {
+    flex-shrink: 0;
+}
+
 .rep-export-btn,
 .rep-print-btn {
     display: inline-flex;
@@ -76,6 +80,10 @@
 }
 
 .rep-print-heading {
+    display: none;
+}
+
+.rep-print-summary {
     display: none;
 }
 
@@ -119,6 +127,7 @@
     align-self: center;
     align-items: center;
     flex-wrap: wrap;
+    flex-shrink: 0;
 }
 
 .rep-period-divider {
@@ -140,6 +149,8 @@
     border: 1px solid #eef3f5;
     background: #fbfdfe;
     min-width: 132px;
+    width: 132px;
+    flex: 0 0 132px;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%234f6d8c'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -575,7 +586,7 @@
     }
 
     .rep-period-select {
-        min-width: 116px;
+        min-width: 132px;
     }
 
     .topbar > .right {
@@ -734,6 +745,102 @@
         color: #586f7c;
     }
 
+    .rep-print-summary {
+        display: block;
+        margin-bottom: 10px;
+        color: #1f2b33;
+    }
+
+    .rep-print-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        margin-bottom: 8px;
+    }
+
+    .rep-print-stats > div {
+        display: grid;
+        gap: 3px;
+        padding: 8px 10px;
+        border: 1px solid #cfe0da;
+        border-left: 4px solid #04724d;
+        background: #f6fbf8 !important;
+    }
+
+    .rep-print-stats span {
+        font-size: 9px;
+        font-weight: 700;
+        color: #586f7c;
+    }
+
+    .rep-print-stats strong {
+        font-size: 17px;
+        color: #12382b;
+    }
+
+    .rep-print-details {
+        display: grid;
+        grid-template-columns: 0.8fr 1.1fr 1.1fr;
+        gap: 7px;
+    }
+
+    .rep-print-details article {
+        break-inside: avoid;
+        padding: 7px 9px;
+        border: 1px solid #d6e4e3;
+        background: #ffffff !important;
+    }
+
+    .rep-print-details h2 {
+        margin: 0 0 5px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid #dfe9e6;
+        font-size: 10px;
+        color: #04724d;
+    }
+
+    .rep-print-details dl {
+        display: grid;
+        gap: 4px;
+        margin: 0;
+    }
+
+    .rep-print-details dl div {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 8.5px;
+    }
+
+    .rep-print-details dt {
+        color: #586f7c;
+    }
+
+    .rep-print-details dd {
+        margin: 0;
+        font-weight: 700;
+        text-align: right;
+    }
+
+    .rep-print-details table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8px;
+    }
+
+    .rep-print-details th,
+    .rep-print-details td {
+        padding: 2px 3px;
+        border-bottom: 1px solid #edf2f0;
+        text-align: left;
+    }
+
+    .rep-print-details th:last-child,
+    .rep-print-details td:last-child {
+        text-align: right;
+        font-weight: 700;
+    }
+
     .rep-grid {
         grid-template-columns: 1.55fr 1fr !important;
         gap: 8px;
@@ -741,10 +848,7 @@
     }
 
     .rep-metrics {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        grid-template-areas:
-            "daily yearly hours"
-            "trend trend trend" !important;
+        display: block !important;
         gap: 8px;
     }
 
@@ -760,6 +864,11 @@
         background: #ffffff !important;
         color: #1f2b33 !important;
         border-color: #d6e4e3 !important;
+    }
+
+    .rep-metrics > .rep-metric,
+    .rep-mini {
+        display: none !important;
     }
 
     .rep-metric-primary {

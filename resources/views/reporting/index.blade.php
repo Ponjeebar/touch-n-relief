@@ -83,6 +83,37 @@
                     <small id="repPrintTimestamp">Printed {{ now()->format('M j, Y g:i A') }}</small>
                 </div>
 
+                <section class="rep-print-summary" aria-label="Printable report summary">
+                    <div class="rep-print-stats">
+                        <div><span id="repPrintPrimaryLabel">Sales</span><strong id="repPrintPrimaryValue">—</strong></div>
+                        <div><span id="repPrintSecondaryLabel">New users</span><strong id="repPrintSecondaryValue">—</strong></div>
+                        <div><span id="repPrintHoursLabel">Service hours</span><strong id="repPrintHoursValue">—</strong></div>
+                    </div>
+                    <div class="rep-print-details">
+                        <article>
+                            <h2>Highlights</h2>
+                            <dl>
+                                <div><dt id="repPrintPeakLabel">Best period</dt><dd id="repPrintBestDay">—</dd></div>
+                                <div><dt>Best service</dt><dd id="repPrintBestService">—</dd></div>
+                            </dl>
+                        </article>
+                        <article>
+                            <h2>Service revenue</h2>
+                            <table>
+                                <thead><tr><th>Service</th><th>Amount</th></tr></thead>
+                                <tbody id="repPrintServiceRows"><tr><td colspan="2">No service revenue</td></tr></tbody>
+                            </table>
+                        </article>
+                        <article>
+                            <h2>Therapist service hours</h2>
+                            <table>
+                                <thead><tr><th>Therapist</th><th>Hours</th></tr></thead>
+                                <tbody id="repPrintTherapistRows"><tr><td colspan="2">No therapist hours</td></tr></tbody>
+                            </table>
+                        </article>
+                    </div>
+                </section>
+
                 <section class="rep-grid">
                     <section class="rep-metrics">
                         <article class="rep-metric rep-metric-primary rep-metric-daily">
@@ -214,19 +245,71 @@
         let currentPeriodValue = @json($periodValue ?? null);
         let availableYears = @json($availableYears ?? []);
 
-        printReportButton?.addEventListener('click', () => {
+        function copyPrintText(targetId, sourceId) {
+            const target = document.getElementById(targetId);
+            const source = document.getElementById(sourceId);
+            if (target && source) target.textContent = source.textContent.trim();
+        }
+
+        function fillPrintRows(targetId, rows, emptyText) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+            target.replaceChildren();
+            if (!rows.length) {
+                const row = target.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 2;
+                cell.textContent = emptyText;
+                return;
+            }
+            rows.forEach(([label, value]) => {
+                const row = target.insertRow();
+                row.insertCell().textContent = label;
+                row.insertCell().textContent = value;
+            });
+        }
+
+        function syncPrintableReport() {
             const printSubtitle = document.getElementById('repPrintSubtitle');
             const pageSubtitle = document.getElementById('repPageSubtitle');
             const printTimestamp = document.getElementById('repPrintTimestamp');
             if (printSubtitle && pageSubtitle) printSubtitle.textContent = pageSubtitle.textContent.trim();
+            copyPrintText('repPrintPrimaryLabel', 'repPrimaryLabel');
+            copyPrintText('repPrintPrimaryValue', 'repPrimaryValue');
+            copyPrintText('repPrintSecondaryLabel', 'repSecondaryLabel');
+            copyPrintText('repPrintSecondaryValue', 'repSecondaryValue');
+            copyPrintText('repPrintHoursLabel', 'repHoursLabel');
+            copyPrintText('repPrintHoursValue', 'repHoursValue');
+            copyPrintText('repPrintPeakLabel', 'insightPeakLabel');
+            copyPrintText('repPrintBestDay', 'bestDay');
+            copyPrintText('repPrintBestService', 'bestService');
+
+            const serviceRows = Array.from(document.querySelectorAll('#serviceLegend .rep-legend-row')).map((row) => {
+                const name = row.querySelector('.name');
+                const price = row.querySelector('.price')?.textContent.trim() || '—';
+                return [(name?.textContent || '').replace(price, '').trim() || 'Service', price];
+            });
+            fillPrintRows('repPrintServiceRows', serviceRows, 'No service revenue');
+
+            const therapistRows = Array.from(document.querySelectorAll('#repHoursList .rep-hours-row')).map((row) => [
+                row.querySelector('span')?.textContent.trim() || 'Therapist',
+                row.querySelector('strong')?.textContent.trim() || '0.0 hrs',
+            ]);
+            fillPrintRows('repPrintTherapistRows', therapistRows, 'No therapist hours');
+
             if (printTimestamp) {
                 printTimestamp.textContent = `Printed ${new Intl.DateTimeFormat(undefined, {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                 }).format(new Date())}`;
             }
+        }
+
+        printReportButton?.addEventListener('click', () => {
+            syncPrintableReport();
             window.print();
         });
+        window.addEventListener('beforeprint', syncPrintableReport);
 
         const weekdayOptions = [
             ['monday', 'Monday'],
