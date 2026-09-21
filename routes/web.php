@@ -46,6 +46,7 @@ Route::middleware(['auth', 'staff.activity'])->group(function () {
     Route::patch('/bookings/{spaBooking}/reschedule', [BookingController::class, 'reschedule'])->name('booking.reschedule');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
     Route::post('/onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
 
     Route::get('/customer-notifications/poll', [CustomerNotificationController::class, 'poll'])->name('customer-notifications.poll');

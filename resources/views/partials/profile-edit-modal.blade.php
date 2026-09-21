@@ -51,11 +51,8 @@
 
             <div class="mp-body">
                 <div class="mp-panel" id="mp-panel-edit">
-                    <form id="mp-profile-form" method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">
+                    <form id="mp-profile-photo-form" class="mp-avatar-block" method="POST" action="{{ route('profile.photo.update') }}" enctype="multipart/form-data">
                         @csrf
-                        @method('PUT')
-
-                        <div class="mp-avatar-block">
                             <div class="mp-avatar-wrap">
                                 <div class="mp-avatar-lg" aria-hidden="true">
                                     @if ($profilePhotoUrl)
@@ -75,7 +72,12 @@
                                     <i class="bi bi-pencil-fill" aria-hidden="true"></i>
                                 </button>
                             </div>
-                        </div>
+                            <button type="submit" class="mp-photo-save">Save photo</button>
+                    </form>
+
+                    <form id="mp-profile-form" method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
 
                         <div class="mp-grid">
                             <div class="mp-field">

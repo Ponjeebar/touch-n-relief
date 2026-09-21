@@ -51,6 +51,25 @@ class ProfileController extends Controller
         return $this->activity->transactionsForUser($user);
     }
 
+    public function updatePhoto(Request $request): RedirectResponse
+    {
+        $request->validateWithBag('profile', [
+            'profile_photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $user = $request->user();
+        $oldPath = $user->profile_photo_path;
+        $newPath = $request->file('profile_photo')->store('profile-photos', 'public');
+        $user->profile_photo_path = $newPath;
+        $user->save();
+
+        if ($oldPath && $oldPath !== $newPath) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        return back()->with('status', 'Profile photo saved successfully.');
+    }
+
     public function update(Request $request): RedirectResponse
     {
         $user = $request->user();

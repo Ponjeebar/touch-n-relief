@@ -85,6 +85,8 @@
             var f = photoInput.files && photoInput.files[0];
             if (!f || !photoPreview) return;
 
+            document.getElementById('mp-profile-photo-form')?.classList.add('has-photo-change');
+
             var url = URL.createObjectURL(f);
             photoPreview.src = url;
             photoPreview.classList.remove('mp-hidden-preview');

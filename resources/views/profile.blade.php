@@ -124,6 +124,7 @@
         .profile-avatar-shell{
             position:relative;
             display:inline-flex;
+            flex-direction:column;
             align-items:center;
             justify-content:center;
         }
@@ -195,35 +196,27 @@
         .profile-avatar-edit:hover{background:#08679f}
         .profile-avatar-input{display:none}
         .profile-photo-save{
-            position:absolute;
-            right:-10px;
-            bottom:6px;
-            width:36px;
-            height:36px;
-            border-radius:50%;
-            border:2px solid #fff;
+            margin-top:10px;
+            padding:8px 14px;
+            border-radius:8px;
+            border:0;
             background:#1f9d58;
             color:#fff;
-            font-size:1rem;
-            font-weight:800;
-            display:grid;
-            place-items:center;
+            font-size:.85rem;
+            font-weight:700;
+            display:none;
             cursor:pointer;
-            box-shadow:0 8px 18px rgba(0,0,0,.28);
-            opacity:0;
-            pointer-events:none;
-            z-index:3;
-            transition:opacity .18s ease, transform .18s ease, filter .15s ease;
-            transform:translateY(2px);
         }
         .profile-photo-save:hover{
             filter:brightness(1.06);
         }
         .profile-avatar-shell.has-photo-change .profile-photo-save,
         .profile-photo-save:focus-visible{
-            opacity:1;
-            pointer-events:auto;
-            transform:translateY(0);
+            display:block;
+        }
+        .profile-avatar-shell.has-photo-change .profile-avatar-edit{bottom:54px}
+        @media (hover:none){
+            .profile-avatar-edit{opacity:1;pointer-events:auto;transform:none}
         }
         .profile-title{
             margin:0 0 .35rem;
@@ -675,10 +668,6 @@
                 left:-6px;
                 bottom:6px;
             }
-            .profile-photo-save{
-                right:-8px;
-                bottom:4px;
-            }
             .profile-meta{padding-top:14px}
             .profile-meta{
                 min-height:92px;
@@ -730,7 +719,8 @@
                 <div class="profile-cover"></div>
                 <div class="profile-head">
                     <div class="profile-id">
-                        <div class="profile-avatar-shell">
+                        <form class="profile-avatar-shell" id="profile-photo-form" method="POST" action="{{ route('profile.photo.update') }}" enctype="multipart/form-data">
+                            @csrf
                             <div class="profile-avatar">
                                 @if ($profilePhotoUrl)
                                     <img
@@ -745,8 +735,9 @@
                                 @endif
                             </div>
                             <button type="button" class="profile-avatar-edit" id="profile-avatar-edit-btn" aria-label="Change profile photo" title="Change profile photo">&#9998;</button>
-                            <button type="submit" class="profile-photo-save" form="edit-profile-form" aria-label="Save profile updates" title="Save changes">&#10003;</button>
-                        </div>
+                            <input id="profile_photo" class="profile-avatar-input" type="file" name="profile_photo" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                            <button type="submit" class="profile-photo-save">Save photo</button>
+                        </form>
                         <div class="profile-meta">
                             <h1 class="profile-title">{{ $user->name }}</h1>
                         </div>
@@ -775,7 +766,6 @@
                     <form id="edit-profile-form" method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
-                        <input id="profile_photo" class="profile-avatar-input" type="file" name="profile_photo" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
                         <div class="profile-grid" id="basic-info-section">
                             <div class="profile-field">
                                 <label for="name">Name</label>
@@ -981,6 +971,7 @@
         photoInput?.addEventListener('change', function () {
             var f = photoInput.files && photoInput.files[0];
             if (!f || !preview) return;
+            document.getElementById('profile-photo-form')?.classList.add('has-photo-change');
             var url = URL.createObjectURL(f);
             preview.src = url;
             preview.style.display = 'block';
