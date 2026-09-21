@@ -12,7 +12,7 @@
     <title>{{ __('Sign in') }} — {{ $brandName }}</title>
     @include('partials.theme-head')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="{{ asset('css/login.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
 </head>
 <body class="auth-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
@@ -30,7 +30,7 @@
             <form method="POST" action="{{ route('register') }}" id="register-form" data-auth-register-form="true">
                 @csrf
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
-                <h1>Create Account</h1>
+                <h1 tabindex="-1">Create Account</h1>
                 <input
                     type="text"
                     name="name"
@@ -163,7 +163,7 @@
         <div class="form-container sign-in">
             <form method="POST" action="{{ route('login.attempt') }}" novalidate class="auth-login-panel">
                 @csrf
-                <h1>Sign In</h1>
+                <h1 tabindex="-1">Sign In</h1>
                 <input
                     type="text"
                     name="login"
@@ -259,6 +259,6 @@
         </div>
     </div>
 
-    <script src="{{ asset('js/auth-toggle.js') }}"></script>
+    <script src="{{ asset('js/auth-toggle.js') }}?v={{ filemtime(public_path('js/auth-toggle.js')) }}"></script>
 </body>
 </html>
