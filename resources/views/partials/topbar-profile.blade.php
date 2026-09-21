@@ -14,6 +14,7 @@
         aria-expanded="false"
         aria-haspopup="menu"
         aria-controls="tnr-profile-dropdown"
+        aria-label="Open account menu for {{ $label }}"
     >
         <div class="avatar" aria-hidden="true">
             @if ($profilePhotoUrl)

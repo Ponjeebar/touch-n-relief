@@ -31,6 +31,10 @@
     align-items: center;
 }
 
+.topbar .profile-name {
+    display: none;
+}
+
 .rep-toolbar {
     display: flex;
     align-items: center;
