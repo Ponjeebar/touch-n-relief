@@ -192,7 +192,13 @@
                 @error('password')
                     <p class="field-msg">{{ $message }}</p>
                 @enderror
-                <a href="{{ route('password.request') }}" data-auth-forgot-open="true">Forgot Password?</a>
+                <div class="auth-login-options">
+                    <label class="auth-remember-option">
+                        <input type="checkbox" name="remember" value="1" @checked(old('remember'))>
+                        <span>Remember me</span>
+                    </label>
+                    <a href="{{ route('password.request') }}" data-auth-forgot-open="true">Forgot Password?</a>
+                </div>
                 <button type="submit">Sign In</button>
                 <div class="mobile-toggle">
                     <span>No account yet?</span>

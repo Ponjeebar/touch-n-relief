@@ -124,7 +124,7 @@ class AuthController extends Controller
         if ($validator->fails()) {
             return redirect()->route('login')
                 ->withErrors($validator)
-                ->onlyInput('login');
+                ->onlyInput('login', 'remember');
         }
 
         $credentials = $validator->validated();
@@ -138,19 +138,19 @@ class AuthController extends Controller
         if ($user instanceof User && $user->isWalkIn()) {
             return redirect()->route('login')->withErrors([
                 'login' => 'This walk-in account is not finished yet. Open Sign Up, enter the same name and phone number used at the spa, and complete registration to set your password.',
-            ])->onlyInput('login')->with('open_register_tab', true);
+            ])->onlyInput('login', 'remember')->with('open_register_tab', true);
         }
 
         if ($user instanceof User && $user->isArchived()) {
             return redirect()->route('login')->withErrors([
                 'login' => 'This account has been archived. Please contact the spa administrator.',
-            ])->onlyInput('login');
+            ])->onlyInput('login', 'remember');
         }
 
         if ($user === null || ! Hash::check($password, $user->getAuthPassword())) {
             return redirect()->route('login')->withErrors([
                 'login' => 'Invalid username, name, email, or password.',
-            ])->onlyInput('login');
+            ])->onlyInput('login', 'remember');
         }
 
         Auth::login($user, $remember);
