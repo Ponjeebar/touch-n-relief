@@ -291,6 +291,10 @@
                                 <li>Return here automatically after payment</li>
                             </ol>
                         </div>
+                        <div class="bk-paymongo-browser-notice" id="bkPaymongoBrowserNotice" hidden role="note">
+                            <i class="bi bi-browser-chrome" aria-hidden="true"></i>
+                            <p><strong>Open this page in Chrome or Safari before continuing.</strong> Messenger and other in-app browsers can block PayMongo’s Download QR Code button. Tap the browser menu, then choose <em>Open in browser</em>.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -385,6 +389,7 @@
             var sumServicePrice = document.getElementById('bkSumServicePrice');
             var sumAmountDue = document.getElementById('bkSumAmountDue');
             var paymongoEnabled = @json(!empty($paymongoEnabled));
+            var paymongoBrowserNotice = document.getElementById('bkPaymongoBrowserNotice');
             var paymentMethodInput = document.getElementById('payment_method');
             var paymentTypeInput = document.getElementById('payment_type');
             var paymentTypeButtons = Array.from(document.querySelectorAll('[data-payment-type]'));
@@ -400,6 +405,10 @@
             var conflictDate = document.getElementById('bkConflictDate');
             var conflictTime = document.getElementById('bkConflictTime');
             var currentUserConflicts = {};
+
+            if (paymongoBrowserNotice && /FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(navigator.userAgent || '')) {
+                paymongoBrowserNotice.hidden = false;
+            }
 
             function hideBookingToast() {
                 if (!bookingToast) return;

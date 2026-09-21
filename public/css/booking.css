@@ -1907,6 +1907,34 @@ body.bk-modal-open {
     line-height: 1.45;
 }
 
+.bk-paymongo-browser-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px solid #edc66e;
+    border-radius: 12px;
+    background: #fff9e8;
+    color: #6f4f08;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.bk-paymongo-browser-notice[hidden] {
+    display: none;
+}
+
+.bk-paymongo-browser-notice i {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    font-size: 18px;
+}
+
+.bk-paymongo-browser-notice p {
+    margin: 0;
+}
+
 .bk-paymongo-panel .bk-paymongo-steps-card {
     display: flex;
     flex-direction: column;

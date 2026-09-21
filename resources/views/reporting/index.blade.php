@@ -57,6 +57,10 @@
                             <i class="bi bi-download" aria-hidden="true"></i>
                             <span>Export report</span>
                         </a>
+                        <button type="button" class="rep-print-btn" id="repPrintBtn">
+                            <i class="bi bi-printer" aria-hidden="true"></i>
+                            <span>Print report</span>
+                        </button>
                         @if (auth()->user()->isAdmin())
                             <a href="{{ route('reporting.backup') }}" class="rep-backup-btn">
                                 <i class="bi bi-database-down" aria-hidden="true"></i>
@@ -72,6 +76,12 @@
                 </div>
 
                 @include('partials.status-toast')
+
+                <div class="rep-print-heading" aria-hidden="true">
+                    <strong>TOUCHnRELIEF Reporting</strong>
+                    <span id="repPrintSubtitle">{{ $pageSubtitle ?? 'Sales and user signups' }}</span>
+                    <small id="repPrintTimestamp">Printed {{ now()->format('M j, Y g:i A') }}</small>
+                </div>
 
                 <section class="rep-grid">
                     <section class="rep-metrics">
@@ -196,12 +206,27 @@
     <script>
         const reportingDataUrl = @json(route('reporting.data'));
         const reportingExportUrl = @json(route('reporting.export'));
+        const printReportButton = document.getElementById('repPrintBtn');
         const pieColors = ['#0c9aa6', '#04724d', '#4f6d8c', '#2f9d62', '#c95a7b', '#f0a74d', '#7f8c8d', '#8e44ad'];
         let trendChart = null;
         let pieChart = null;
         let currentPeriod = @json($period ?? 'monthly');
         let currentPeriodValue = @json($periodValue ?? null);
         let availableYears = @json($availableYears ?? []);
+
+        printReportButton?.addEventListener('click', () => {
+            const printSubtitle = document.getElementById('repPrintSubtitle');
+            const pageSubtitle = document.getElementById('repPageSubtitle');
+            const printTimestamp = document.getElementById('repPrintTimestamp');
+            if (printSubtitle && pageSubtitle) printSubtitle.textContent = pageSubtitle.textContent.trim();
+            if (printTimestamp) {
+                printTimestamp.textContent = `Printed ${new Intl.DateTimeFormat(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                }).format(new Date())}`;
+            }
+            window.print();
+        });
 
         const weekdayOptions = [
             ['monday', 'Monday'],
