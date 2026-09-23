@@ -576,6 +576,81 @@ body.auth-page #container.active .sign-up {
     background: rgba(4, 114, 77, 0.08);
 }
 
+.auth-reset-heading {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 8px;
+}
+
+.auth-reset-heading h1 {
+    margin: 2px 0 0;
+    font-size: 29px !important;
+    line-height: 1.16;
+}
+
+.auth-reset-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: #e8f4f1;
+    color: var(--auth-primary);
+    font-size: 23px;
+}
+
+.auth-reset-eyebrow {
+    color: var(--auth-primary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.auth-reset-copy,
+.auth-reset-hint {
+    width: 100%;
+    max-width: 380px;
+    color: var(--auth-muted);
+    line-height: 1.5;
+}
+
+.auth-reset-copy {
+    margin: 0 0 10px;
+    font-size: 13px;
+}
+
+.auth-reset-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 6px 0 0;
+    font-size: 11px;
+}
+
+.auth-reset-hint i {
+    margin-top: 2px;
+    color: var(--auth-primary);
+}
+
+.auth-reset-page #reset-email[readonly] {
+    color: #49616d;
+    cursor: default;
+}
+
+.auth-reset-panel-copy {
+    max-width: 320px;
+    margin-top: 14px;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 14px;
+    line-height: 1.55;
+    text-align: center;
+}
+
 .auth-login-panel,
 .auth-forgot-panel {
     position: absolute;
@@ -813,6 +888,16 @@ body.auth-page #container.active .toggle-left {
 
     .mobile-toggle {
         display: flex !important;
+    }
+
+    .auth-reset-page #container,
+    .auth-reset-page .form-container.sign-in,
+    .auth-reset-page #container form {
+        min-height: 610px;
+    }
+
+    .auth-reset-heading h1 {
+        font-size: 24px !important;
     }
 }
 

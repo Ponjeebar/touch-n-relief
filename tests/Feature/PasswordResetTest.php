@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password as PasswordBroker;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase
@@ -70,6 +71,30 @@ class PasswordResetTest extends TestCase
         ])->assertRedirect(route('login'));
 
         $this->assertTrue(Hash::check('NewPassword123!', $user->fresh()->password));
+    }
+
+    public function test_reset_link_remains_available_with_an_existing_session(): void
+    {
+        $signedInUser = User::factory()->create();
+        $resetUser = User::factory()->create(['password' => 'OldPassword123!']);
+        $token = PasswordBroker::createToken($resetUser);
+
+        $this->actingAs($signedInUser)
+            ->get(route('password.reset', ['token' => $token, 'email' => $resetUser->email]))
+            ->assertOk()
+            ->assertSee('Choose a new password');
+
+        $this->actingAs($signedInUser)
+            ->post(route('password.update'), [
+                'token' => $token,
+                'email' => $resetUser->email,
+                'password' => 'NewPassword123!',
+                'password_confirmation' => 'NewPassword123!',
+            ])
+            ->assertRedirect(route('login'));
+
+        $this->assertGuest();
+        $this->assertTrue(Hash::check('NewPassword123!', $resetUser->fresh()->password));
     }
 
     public function test_reset_email_renders_branded_html_with_embedded_logo(): void

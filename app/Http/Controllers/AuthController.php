@@ -102,6 +102,12 @@ class AuthController extends Controller
         );
 
         if ($status === PasswordBroker::PASSWORD_RESET) {
+            if (Auth::check()) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+
             return redirect()->route('login')->with('status', __($status));
         }
 
