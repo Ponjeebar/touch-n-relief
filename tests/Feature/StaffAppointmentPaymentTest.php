@@ -7,6 +7,7 @@ use App\Models\SpaService;
 use App\Models\User;
 use App\Services\BookingSlotService;
 use App\Services\PaymongoService;
+use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -162,6 +163,123 @@ class StaffAppointmentPaymentTest extends TestCase
 
         $this->get(route('appointments.index', ['date' => $booking->booking_date->format('Y-m-d')]))
             ->assertOk()->assertSee(route('appointments.paymongo.retry', $booking), false);
+    }
+
+    public function test_downpayment_booking_must_be_fully_paid_before_session_can_start(): void
+    {
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $client->id,
+            'service_name' => 'Swedish Massage',
+            'booking_date' => now()->toDateString(),
+            'time_slot' => '10:00 AM',
+            'amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+            'payment_amount' => 50,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+        ]);
+
+        $this->actingAs($staff)->patch(route('appointments.start', $booking))
+            ->assertRedirect(route('appointments.index', ['date' => $booking->booking_date->format('Y-m-d')]))
+            ->assertSessionHas('error', 'Collect the remaining balance before starting this session.');
+
+        $this->assertNull($booking->fresh()->session_started_at);
+    }
+
+    public function test_staff_can_collect_exact_balance_then_start_session(): void
+    {
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $client->id,
+            'service_name' => 'Swedish Massage',
+            'booking_date' => now()->toDateString(),
+            'time_slot' => '10:00 AM',
+            'amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+            'payment_amount' => 50,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+        ]);
+
+        $this->actingAs($staff)->patch(route('appointments.collect-balance', $booking), [
+            'balance_payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+            'balance_payment_reference' => 'OR-1001',
+        ])->assertRedirect(route('appointments.index', ['date' => $booking->booking_date->format('Y-m-d')]))
+            ->assertSessionHas('status');
+
+        $booking->refresh();
+        $this->assertSame(50.0, (float) $booking->balance_amount);
+        $this->assertSame($staff->id, $booking->balance_collected_by);
+        $this->assertSame('OR-1001', $booking->balance_payment_reference);
+        $this->assertTrue($booking->isFullyPaid());
+
+        $this->patch(route('appointments.start', $booking))->assertRedirect(route('ongoing-sessions.index'));
+        $this->assertNotNull($booking->fresh()->session_started_at);
+    }
+
+    public function test_unconfirmed_initial_payment_cannot_have_balance_collected(): void
+    {
+        $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $client->id,
+            'service_name' => 'Swedish Massage',
+            'booking_date' => now()->toDateString(),
+            'time_slot' => '10:00 AM',
+            'amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+            'payment_amount' => 50,
+            'payment_status' => PaymentMethodCatalog::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($staff)->patch(route('appointments.collect-balance', $booking), [
+            'balance_payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+        ])->assertSessionHasErrors('balance_payment_method', null, 'balance');
+
+        $this->assertNull($booking->fresh()->balance_paid_at);
+    }
+
+    public function test_customer_cannot_record_their_own_balance_payment(): void
+    {
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $client->id,
+            'service_name' => 'Swedish Massage',
+            'booking_date' => now()->toDateString(),
+            'time_slot' => '10:00 AM',
+            'amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+            'payment_amount' => 50,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+        ]);
+
+        $this->actingAs($client)->patch(route('appointments.collect-balance', $booking), [
+            'balance_payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+        ])->assertForbidden();
+
+        $this->assertNull($booking->fresh()->balance_paid_at);
+    }
+
+    public function test_unstarted_past_appointment_is_not_auto_completed(): void
+    {
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $client->id,
+            'service_name' => 'Swedish Massage',
+            'booking_date' => now()->subDay()->toDateString(),
+            'time_slot' => '8:00 AM',
+            'duration_minutes' => 60,
+            'amount' => 100,
+            'payment_status' => PaymentMethodCatalog::STATUS_PENDING,
+        ]);
+
+        $this->assertFalse(app(SpaSessionService::class)->autoCompleteIfExpired($booking, now()));
+        $this->assertNull($booking->fresh()->completed_at);
     }
 
     private function bookingInput(User $client, string $method, string $type): array

@@ -72,7 +72,7 @@
 
             @if ($isActiveBooking || $isCompleted || $isCancelled || $isInSession || $isNoShow)
                 <div class="appt-actions" role="group" aria-label="Actions for {{ $appointment['client'] }}">
-                    @if ($isActiveBooking && $bookingId)
+                    @if ($isActiveBooking && $bookingId && ! empty($appointment['can_start']))
                         <form method="POST" action="{{ route('appointments.start', $bookingId) }}" class="appt-start-form">
                             @csrf
                             @method('PATCH')
@@ -80,6 +80,25 @@
                                 <i class="bi bi-play-fill" aria-hidden="true"></i>
                             </button>
                         </form>
+                    @elseif ($isActiveBooking && $bookingId && ! empty($appointment['can_collect_balance']))
+                        <button
+                            class="appt-icon-btn collect-balance"
+                            type="button"
+                            title="Collect remaining balance"
+                            aria-label="Collect remaining balance from {{ $appointment['client'] }}"
+                            data-open-balance="true"
+                            data-balance-url="{{ route('appointments.collect-balance', $bookingId) }}"
+                            data-client="{{ $appointment['client'] }}"
+                            data-service="{{ $appointment['service'] }}"
+                            data-paid-amount="{{ $appointment['paid_amount'] }}"
+                            data-remaining-balance="{{ $appointment['remaining_balance'] }}"
+                        >
+                            <i class="bi bi-cash-coin" aria-hidden="true"></i>
+                        </button>
+                    @elseif ($isActiveBooking && $bookingId)
+                        <button class="appt-icon-btn payment-locked" type="button" disabled title="Initial payment is still pending" aria-label="Initial payment pending for {{ $appointment['client'] }}">
+                            <i class="bi bi-lock" aria-hidden="true"></i>
+                        </button>
                     @endif
                     @if (($isStaff ?? false) && ! empty($appointment['can_reschedule']) && $bookingId)
                         <button
@@ -127,6 +146,9 @@
                         data-payment-summary="{{ $appointment['payment_summary'] ?? '' }}"
                         data-payment-method="{{ $appointment['payment_method_label'] ?? '' }}"
                         data-payment-status="{{ $appointment['payment_status_label'] ?? '' }}"
+                        data-full-payment-status="{{ $appointment['full_payment_status_label'] ?? '' }}"
+                        data-total-paid="{{ $appointment['paid_amount'] ?? '' }}"
+                        data-remaining-balance="{{ $appointment['remaining_balance'] ?? '' }}"
                         data-payment-retry-url="{{ ! empty($appointment['can_retry_paymongo']) && $bookingId ? route('appointments.paymongo.retry', $bookingId) : '' }}"
                         data-payment-type="{{ $appointment['payment_type_label'] ?? '' }}"
                         data-payment-amount="{{ $appointment['payment_amount'] ?? '' }}"

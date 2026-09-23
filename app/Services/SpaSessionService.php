@@ -93,7 +93,7 @@ class SpaSessionService
         $date = $booking->booking_date->format('Y-m-d');
         $amountRaw = (float) ($booking->amount ?? 0);
         $paymentAmountRaw = (float) ($booking->payment_amount ?? 0);
-        $displayAmountRaw = $paymentAmountRaw > 0 ? $paymentAmountRaw : $amountRaw;
+        $displayAmountRaw = $amountRaw > 0 ? $amountRaw : $paymentAmountRaw;
         $durationMinutes = (int) ($booking->duration_minutes ?? 0);
 
         return [
@@ -198,7 +198,7 @@ class SpaSessionService
 
     public function hasExpired(SpaBooking $booking, ?Carbon $now = null): bool
     {
-        if ($booking->isCancelled() || $booking->completed_at !== null) {
+        if ($booking->isCancelled() || $booking->completed_at !== null || $booking->session_started_at === null) {
             return false;
         }
 
@@ -243,10 +243,7 @@ class SpaSessionService
             ->with('user')
             ->whereNull('cancelled_at')
             ->whereNull('completed_at')
-            ->where(function (Builder $query): void {
-                $query->whereNotNull('session_started_at')
-                    ->orWhereNotNull('booking_date');
-            })
+            ->whereNotNull('session_started_at')
             ->orderBy('id')
             ->each(function (SpaBooking $booking) use ($now, $completed): void {
                 if ($this->autoCompleteIfExpired($booking, $now)) {
@@ -288,6 +285,7 @@ class SpaSessionService
     {
         return ! $booking->isCancelled()
             && $booking->completed_at === null
+            && $booking->isFullyPaid()
             && ($booking->session_started_at !== null || $this->isOngoing($booking));
     }
 
@@ -314,7 +312,7 @@ class SpaSessionService
             return SpaBooking::DISPLAY_RESCHEDULED;
         }
 
-        if ($booking->payment_type === PaymentMethodCatalog::TYPE_DOWNPAYMENT) {
+        if (! $booking->isFullyPaid()) {
             return SpaBooking::DISPLAY_PENDING;
         }
 
@@ -323,7 +321,8 @@ class SpaSessionService
 
     public function canStart(SpaBooking $booking): bool
     {
-        return $this->resolveStatus($booking) === SpaBooking::STATUS_CONFIRMED;
+        return $booking->isFullyPaid()
+            && $this->resolveStatus($booking) === SpaBooking::STATUS_CONFIRMED;
     }
 
     public function start(SpaBooking $booking): void
@@ -392,6 +391,10 @@ class SpaSessionService
 
         if ($booking->completed_at !== null) {
             return;
+        }
+
+        if (! $booking->isFullyPaid()) {
+            throw new \InvalidArgumentException('The remaining balance must be collected before completing this session.');
         }
 
         $booking->forceFill([
@@ -637,6 +640,9 @@ class SpaSessionService
     {
         $paymentAmount = (float) ($booking->payment_amount ?? 0);
         $serviceAmount = (float) ($booking->amount ?? 0);
+        $paidAmount = $booking->totalPaidAmount();
+        $remainingBalance = $booking->remainingBalance();
+        $isFullyPaid = $booking->isFullyPaid();
         $hasPayment = filled($booking->payment_method);
 
         return [
@@ -654,6 +660,23 @@ class SpaSessionService
             'payment_proof_url' => $booking->payment_proof_path ? public_storage_url($booking->payment_proof_path) : '',
             'payment_transaction_id' => (string) ($booking->payment_transaction_id ?? ''),
             'payment_status_label' => PaymentMethodCatalog::statusLabelFor($booking->payment_status),
+            'paid_amount' => $paidAmount > 0 ? '₱'.number_format($paidAmount, 2) : '₱0.00',
+            'paid_amount_raw' => $paidAmount,
+            'remaining_balance' => '₱'.number_format($remainingBalance, 2),
+            'remaining_balance_raw' => $remainingBalance,
+            'is_fully_paid' => $isFullyPaid,
+            'full_payment_status' => $isFullyPaid ? PaymentMethodCatalog::STATUS_PAID : PaymentMethodCatalog::STATUS_PENDING,
+            'full_payment_status_label' => $isFullyPaid
+                ? 'Fully paid'
+                : ($booking->payment_status === PaymentMethodCatalog::STATUS_PAID ? 'Balance due' : 'Initial payment pending'),
+            'can_collect_balance' => ! $isFullyPaid
+                && $booking->payment_status === PaymentMethodCatalog::STATUS_PAID
+                && $booking->cancelled_at === null
+                && $booking->completed_at === null
+                && $booking->session_started_at === null,
+            'balance_payment_method_label' => PaymentMethodCatalog::labelFor($booking->balance_payment_method),
+            'balance_payment_reference' => (string) ($booking->balance_payment_reference ?? ''),
+            'balance_paid_at' => $booking->balance_paid_at?->format('M j, Y g:i A') ?? '',
             'refund_status' => (string) ($booking->refund_status ?? ''),
             'refund_status_label' => app(BookingRefundService::class)->labelFor($booking->refund_status),
             'refund_amount' => (float) ($booking->refund_amount ?? 0) > 0
@@ -669,7 +692,7 @@ class SpaSessionService
                     .' · '.PaymentMethodCatalog::typeLabelFor($booking->payment_type)
                     .' · ₱'.number_format($paymentAmount, 2)
                     .(filled($booking->payment_transaction_id) ? ' · Ref: '.$booking->payment_transaction_id : '')
-                    .($booking->payment_status ? ' · '.PaymentMethodCatalog::statusLabelFor($booking->payment_status) : '')
+                    .' · '.($isFullyPaid ? 'Fully paid' : 'Balance ₱'.number_format($remainingBalance, 2).' due')
                 : '—',
         ];
     }

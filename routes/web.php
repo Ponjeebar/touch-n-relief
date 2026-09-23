@@ -71,6 +71,7 @@ Route::middleware(['auth', 'staff.activity'])->group(function () {
     Route::patch('/appointments/{spaBooking}/cancel', [StaffAppointmentController::class, 'cancel'])->name('appointments.cancel');
     Route::patch('/appointments/{spaBooking}/no-show', [StaffAppointmentController::class, 'markNoShow'])->name('appointments.no-show');
     Route::patch('/appointments/{spaBooking}/refund', [StaffAppointmentController::class, 'completeRefund'])->name('appointments.refund.complete');
+    Route::patch('/appointments/{spaBooking}/collect-balance', [DashboardController::class, 'collectBalance'])->name('appointments.collect-balance');
     Route::patch('/appointments/{spaBooking}/start', [DashboardController::class, 'startSession'])->name('appointments.start');
     Route::get('/services', [DashboardController::class, 'services'])->name('services.index');
     Route::post('/services', [DashboardController::class, 'storeService'])->name('services.store');

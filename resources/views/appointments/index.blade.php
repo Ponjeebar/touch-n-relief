@@ -551,6 +551,52 @@
     </div>
     @endif
 
+    <div class="profile-modal hidden-section" id="collect-balance-modal" role="dialog" aria-modal="true" aria-labelledby="collect-balance-modal-title">
+        <div class="profile-modal-backdrop" data-close-balance="true"></div>
+        <div class="profile-modal-content balance-modal-content">
+            <button class="profile-modal-close" type="button" data-close-balance="true" aria-label="Close">&times;</button>
+            <h3 class="profile-modal-title" id="collect-balance-modal-title">Collect Remaining Balance</h3>
+            <p class="reschedule-subtitle">Record the in-store payment before starting the session.</p>
+
+            @if ($errors->balance->any())
+                <div class="add-appointment-errors" role="alert">
+                    @foreach ($errors->balance->all() as $error)
+                        <p>{{ $error }}</p>
+                    @endforeach
+                </div>
+            @endif
+
+            <form method="POST" id="collect-balance-form" action="#">
+                @csrf
+                @method('PATCH')
+                <input type="hidden" name="balance_payment_method" value="cash_counter">
+
+                <div class="balance-summary">
+                    <div><span>Client</span><strong id="balance-client">—</strong></div>
+                    <div><span>Service</span><strong id="balance-service">—</strong></div>
+                    <div><span>Already paid</span><strong id="balance-paid">—</strong></div>
+                    <div class="balance-summary-due"><span>Amount to collect</span><strong id="balance-due">—</strong></div>
+                </div>
+
+                <div class="profile-field">
+                    <label>Payment method</label>
+                    <input type="text" value="Cash at counter" readonly>
+                </div>
+                <div class="profile-field">
+                    <label for="balance-payment-reference">Reference or receipt number (optional)</label>
+                    <input id="balance-payment-reference" name="balance_payment_reference" type="text" maxlength="255" value="{{ old('balance_payment_reference') }}" placeholder="Enter receipt number">
+                </div>
+
+                <p class="balance-confirm-note"><i class="bi bi-shield-check" aria-hidden="true"></i> Confirm only after receiving the exact amount shown above.</p>
+
+                <div class="profile-modal-actions">
+                    <button type="button" class="user-action" data-close-balance="true">Cancel</button>
+                    <button type="submit" class="user-action add">Confirm full payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="profile-modal hidden-section" id="view-appointment-modal" role="dialog" aria-modal="true" aria-labelledby="view-appointment-modal-title">
         <div class="profile-modal-backdrop" data-close-view="true"></div>
         <div class="profile-modal-content view-modal-content">
@@ -600,8 +646,20 @@
                     <input id="view-payment-amount" type="text" readonly>
                 </div>
                 <div class="profile-field" id="view-payment-status-wrap">
-                    <label>Payment status</label>
+                    <label>Initial payment status</label>
                     <input id="view-payment-status" type="text" readonly>
+                </div>
+                <div class="profile-field">
+                    <label>Overall payment status</label>
+                    <input id="view-full-payment-status" type="text" readonly>
+                </div>
+                <div class="profile-field">
+                    <label>Total paid</label>
+                    <input id="view-total-paid" type="text" readonly>
+                </div>
+                <div class="profile-field">
+                    <label>Remaining balance</label>
+                    <input id="view-remaining-balance" type="text" readonly>
                 </div>
                 <div class="profile-field" id="view-service-amount-wrap">
                     <label>Service price</label>
@@ -1619,6 +1677,9 @@
         const viewPaymentType = document.getElementById('view-payment-type');
         const viewPaymentAmount = document.getElementById('view-payment-amount');
         const viewPaymentStatus = document.getElementById('view-payment-status');
+        const viewFullPaymentStatus = document.getElementById('view-full-payment-status');
+        const viewTotalPaid = document.getElementById('view-total-paid');
+        const viewRemainingBalance = document.getElementById('view-remaining-balance');
         const viewServiceAmount = document.getElementById('view-service-amount');
         const viewPaymentProofLink = document.getElementById('view-payment-proof-link');
         const viewPaymentProofEmpty = document.getElementById('view-payment-proof-empty');
@@ -1646,6 +1707,9 @@
             const paymentType = button.getAttribute('data-payment-type') ?? '';
             const paymentAmount = button.getAttribute('data-payment-amount') ?? '';
             const paymentStatus = button.getAttribute('data-payment-status') ?? '';
+            const fullPaymentStatus = button.getAttribute('data-full-payment-status') ?? '';
+            const totalPaid = button.getAttribute('data-total-paid') ?? '';
+            const remainingBalance = button.getAttribute('data-remaining-balance') ?? '';
             const serviceAmount = button.getAttribute('data-service-amount') ?? '';
             const paymentProof = button.getAttribute('data-payment-proof') ?? '';
             const paymentTransaction = button.getAttribute('data-payment-transaction') ?? '';
@@ -1674,6 +1738,9 @@
             if (viewPaymentType) viewPaymentType.value = paymentType || '—';
             if (viewPaymentAmount) viewPaymentAmount.value = paymentAmount || '—';
             if (viewPaymentStatus) viewPaymentStatus.value = paymentStatus || '—';
+            if (viewFullPaymentStatus) viewFullPaymentStatus.value = fullPaymentStatus || '—';
+            if (viewTotalPaid) viewTotalPaid.value = totalPaid || '—';
+            if (viewRemainingBalance) viewRemainingBalance.value = remainingBalance || '—';
             if (viewServiceAmount) viewServiceAmount.value = serviceAmount || '—';
             if (viewPaymentTransaction) viewPaymentTransaction.value = paymentTransaction || '—';
             if (viewPaymentTransactionWrap) {
@@ -2429,6 +2496,48 @@
             initialMeta?.getAttribute('data-pending') ?? '0',
             initialMeta?.getAttribute('data-rescheduled') ?? '0'
         );
+    </script>
+    <script>
+        (() => {
+            const modal = document.getElementById('collect-balance-modal');
+            const form = document.getElementById('collect-balance-form');
+            const client = document.getElementById('balance-client');
+            const service = document.getElementById('balance-service');
+            const paid = document.getElementById('balance-paid');
+            const due = document.getElementById('balance-due');
+
+            if (!(modal instanceof HTMLElement) || !(form instanceof HTMLFormElement)) return;
+
+            const close = () => {
+                modal.classList.add('hidden-section');
+                document.body.classList.remove('modal-open');
+            };
+
+            document.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+
+                const openButton = target.closest('[data-open-balance="true"]');
+                if (openButton instanceof HTMLElement) {
+                    event.preventDefault();
+                    form.action = openButton.dataset.balanceUrl || '#';
+                    if (client) client.textContent = openButton.dataset.client || '—';
+                    if (service) service.textContent = openButton.dataset.service || '—';
+                    if (paid) paid.textContent = openButton.dataset.paidAmount || '—';
+                    if (due) due.textContent = openButton.dataset.remainingBalance || '—';
+                    modal.classList.remove('hidden-section');
+                    document.body.classList.add('modal-open');
+                    window.setTimeout(() => document.getElementById('balance-payment-reference')?.focus(), 0);
+                    return;
+                }
+
+                if (target.closest('[data-close-balance="true"]')) close();
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !modal.classList.contains('hidden-section')) close();
+            });
+        })();
     </script>
     <script src="{{ asset('js/staff-feed-poll.js') }}?v={{ filemtime(public_path('js/staff-feed-poll.js')) }}"></script>
     @include('partials.payment-receipt-modal')

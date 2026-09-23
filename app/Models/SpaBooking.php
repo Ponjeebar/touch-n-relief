@@ -56,6 +56,11 @@ class SpaBooking extends Model
         'payment_transaction_id',
         'paymongo_checkout_session_id',
         'payment_status',
+        'balance_amount',
+        'balance_payment_method',
+        'balance_payment_reference',
+        'balance_collected_by',
+        'balance_paid_at',
         'refund_status',
         'refund_amount',
         'refunded_at',
@@ -79,6 +84,8 @@ class SpaBooking extends Model
             'duration_minutes' => 'integer',
             'amount' => 'decimal:2',
             'payment_amount' => 'decimal:2',
+            'balance_amount' => 'decimal:2',
+            'balance_paid_at' => 'datetime',
             'refund_amount' => 'decimal:2',
             'refunded_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -102,6 +109,30 @@ class SpaBooking extends Model
     public function isOngoing(): bool
     {
         return app(\App\Services\SpaSessionService::class)->isOngoing($this);
+    }
+
+    public function initialPaidAmount(): float
+    {
+        return $this->payment_status === \App\Support\PaymentMethodCatalog::STATUS_PAID
+            ? max((float) ($this->payment_amount ?? 0), 0)
+            : 0.0;
+    }
+
+    public function totalPaidAmount(): float
+    {
+        $balance = $this->balance_paid_at !== null ? max((float) ($this->balance_amount ?? 0), 0) : 0.0;
+
+        return round($this->initialPaidAmount() + $balance, 2);
+    }
+
+    public function remainingBalance(): float
+    {
+        return round(max((float) ($this->amount ?? 0) - $this->totalPaidAmount(), 0), 2);
+    }
+
+    public function isFullyPaid(): bool
+    {
+        return (float) ($this->amount ?? 0) > 0 && $this->remainingBalance() < 0.01;
     }
 
     public function scopeActive($query)

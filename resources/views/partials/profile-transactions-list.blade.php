@@ -104,17 +104,27 @@
                                         <dd>{{ $txn['payment_type_label'] ?? '—' }}</dd>
                                     </div>
                                     <div class="txn-payment-item">
-                                        <dt>Amount</dt>
+                                        <dt>Initial payment</dt>
                                         <dd>{{ $txn['payment_amount'] ?? '—' }}</dd>
                                     </div>
-                                    @if (! empty($txn['payment_status']))
+                                    @if (! empty($txn['full_payment_status']))
                                         <div class="txn-payment-item">
                                             <dt>Status</dt>
                                             <dd>
-                                                <span class="txn-payment-status txn-payment-status--{{ $txn['payment_status'] }}">
-                                                    {{ $txn['payment_status_label'] ?? '—' }}
+                                                <span class="txn-payment-status txn-payment-status--{{ $txn['full_payment_status'] }}">
+                                                    {{ $txn['full_payment_status_label'] ?? '—' }}
                                                 </span>
                                             </dd>
+                                        </div>
+                                    @endif
+                                    <div class="txn-payment-item">
+                                        <dt>Total paid</dt>
+                                        <dd>{{ $txn['paid_amount'] ?? '₱0.00' }}</dd>
+                                    </div>
+                                    @if (! ($txn['is_fully_paid'] ?? false))
+                                        <div class="txn-payment-item">
+                                            <dt>Balance due</dt>
+                                            <dd>{{ $txn['remaining_balance'] ?? '—' }}</dd>
                                         </div>
                                     @endif
                                     @if (! empty($txn['payment_transaction_id']))

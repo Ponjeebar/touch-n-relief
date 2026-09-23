@@ -333,6 +333,12 @@ class DashboardController extends Controller
                 ->with('status', 'This session is already completed.');
         }
 
+        if (! $spaBooking->isFullyPaid()) {
+            return redirect()
+                ->route('ongoing-sessions.index')
+                ->with('error', 'Collect the remaining balance before completing this session.');
+        }
+
         if ($sessions->hasExpired($spaBooking)) {
             $sessions->autoCompleteIfExpired($spaBooking);
 
@@ -371,6 +377,12 @@ class DashboardController extends Controller
 
     public function startSession(Request $request, SpaBooking $spaBooking, SpaSessionService $sessions): RedirectResponse
     {
+        if (! $spaBooking->isFullyPaid()) {
+            return redirect()
+                ->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
+                ->with('error', 'Collect the remaining balance before starting this session.');
+        }
+
         if (! $sessions->canStart($spaBooking)) {
             if ($spaBooking->session_started_at !== null && $spaBooking->completed_at === null) {
                 return redirect()
@@ -403,6 +415,71 @@ class DashboardController extends Controller
         return redirect()
             ->route('ongoing-sessions.index')
             ->with('status', 'Session started. You can monitor it below.');
+    }
+
+    public function collectBalance(Request $request, SpaBooking $spaBooking): RedirectResponse
+    {
+        $validated = $request->validateWithBag('balance', [
+            'balance_payment_method' => ['required', Rule::in([PaymentMethodCatalog::METHOD_CASH_COUNTER])],
+            'balance_payment_reference' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $collected = DB::transaction(function () use ($spaBooking, $validated, $request): SpaBooking {
+                $booking = SpaBooking::query()->lockForUpdate()->findOrFail($spaBooking->id);
+
+                if ($booking->isCancelled() || $booking->completed_at !== null || $booking->session_started_at !== null) {
+                    throw ValidationException::withMessages([
+                        'balance_payment_method' => 'The balance can only be collected before the session starts.',
+                    ]);
+                }
+
+                if ($booking->payment_status !== PaymentMethodCatalog::STATUS_PAID) {
+                    throw ValidationException::withMessages([
+                        'balance_payment_method' => 'The initial payment must be confirmed before collecting the balance.',
+                    ]);
+                }
+
+                $remaining = $booking->remainingBalance();
+                if ($remaining < 0.01) {
+                    throw ValidationException::withMessages([
+                        'balance_payment_method' => 'This appointment is already fully paid.',
+                    ]);
+                }
+
+                $booking->forceFill([
+                    'balance_amount' => $remaining,
+                    'balance_payment_method' => $validated['balance_payment_method'],
+                    'balance_payment_reference' => trim((string) ($validated['balance_payment_reference'] ?? '')) ?: null,
+                    'balance_collected_by' => $request->user()?->id,
+                    'balance_paid_at' => now(),
+                ])->save();
+
+                return $booking->fresh();
+            });
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
+                ->withErrors($exception->errors(), 'balance')
+                ->withInput();
+        }
+
+        ActivityLogger::log(
+            'payment.balance_collected',
+            sprintf('Collected ₱%s remaining balance for %s', number_format((float) $collected->balance_amount, 2), (string) $collected->service_name),
+            [
+                'booking_id' => $collected->id,
+                'amount' => (float) $collected->balance_amount,
+                'method' => $collected->balance_payment_method,
+                'reference' => $collected->balance_payment_reference,
+            ],
+            subject: $collected,
+            request: $request,
+        );
+
+        return redirect()
+            ->route('appointments.index', ['date' => $collected->booking_date?->format('Y-m-d')])
+            ->with('status', 'Remaining balance collected. The appointment is now fully paid and ready to start.');
     }
 
     public function completedSessions(Request $request, SpaSessionService $sessions): View

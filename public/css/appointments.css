@@ -633,6 +633,72 @@
     color: var(--primary);
 }
 
+.appt-icon-btn.collect-balance {
+    background: rgba(215, 154, 45, 0.12);
+    border-color: rgba(176, 112, 12, 0.28);
+    color: #94600d;
+}
+
+.balance-modal-content {
+    width: min(520px, calc(100vw - 24px));
+}
+
+.balance-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 18px 0;
+}
+
+.balance-summary > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    border: 1px solid rgba(20, 45, 56, 0.12);
+    border-radius: 12px;
+    background: #f7faf9;
+}
+
+.balance-summary span {
+    color: #60717a;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.balance-summary strong {
+    color: #17313d;
+    font-size: 15px;
+}
+
+.balance-summary .balance-summary-due {
+    background: #eef8f3;
+    border-color: rgba(15, 95, 69, 0.24);
+}
+
+.balance-summary-due strong {
+    color: #0f704e;
+    font-size: 20px;
+}
+
+.balance-confirm-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 14px 0 0;
+    color: #52636d;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+@media (max-width: 520px) {
+    .balance-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
 .reschedule-modal-content,
 .add-appointment-modal-content,
 .view-modal-content {
