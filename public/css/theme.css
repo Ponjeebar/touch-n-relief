@@ -1082,6 +1082,45 @@ html[data-theme="dark"] .auth-theme-btn.active {
     color: #b6ffe9;
 }
 
+@media (max-width: 480px) {
+    .auth-page-header .nav-shell {
+        min-height: 52px;
+        padding-right: 82px;
+    }
+
+    .auth-page-header .brand-wrap {
+        min-width: 0;
+        gap: 0.45rem;
+    }
+
+    .auth-page-header .brand-logo {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+    }
+
+    .auth-page-header .brand {
+        font-size: 1.2rem;
+        white-space: nowrap;
+    }
+
+    .auth-theme-float {
+        top: 22px;
+        right: calc(4% + 8px);
+        gap: 2px;
+        padding: 3px;
+        border-radius: 11px;
+        box-shadow: 0 5px 14px rgba(31, 43, 51, 0.16);
+    }
+
+    .auth-theme-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        font-size: 15px;
+    }
+}
+
 html[data-theme="dark"] .welcome h1 {
     color: var(--text);
 }
