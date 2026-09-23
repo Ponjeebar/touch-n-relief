@@ -16,7 +16,6 @@ class BrandedResetPassword extends ResetPassword
                 'name' => trim((string) ($notifiable->name ?? '')),
                 'resetUrl' => $resetUrl,
                 'expiresIn' => $expiresIn,
-                'logoSrc' => 'cid:touch-n-relief-logo',
         ];
 
         return (new MailMessage)

@@ -109,10 +109,7 @@ class PasswordResetTest extends TestCase
                 && $request->hasHeader('Authorization', 'Bearer re_test_key')
                 && $payload['to'] === [$user->email]
                 && str_contains((string) $payload['html'], 'Reset your password')
-                && str_contains((string) $payload['html'], '/reset-password/')
-                && str_contains((string) $payload['html'], 'cid:touch-n-relief-logo')
-                && ($payload['attachments'][0]['content_id'] ?? null) === 'touch-n-relief-logo'
-                && ($payload['attachments'][0]['content_type'] ?? null) === 'image/png';
+                && str_contains((string) $payload['html'], '/reset-password/');
         });
     }
 
