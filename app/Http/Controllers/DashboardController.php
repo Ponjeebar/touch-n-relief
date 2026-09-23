@@ -428,6 +428,9 @@ class DashboardController extends Controller
 
     public function startSession(Request $request, SpaBooking $spaBooking, SpaSessionService $sessions): RedirectResponse
     {
+        $sessions->releaseAvailabilityBlocks();
+        $spaBooking->refresh();
+
         if (! $spaBooking->isFullyPaid()) {
             return redirect()
                 ->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
@@ -443,7 +446,7 @@ class DashboardController extends Controller
 
             return redirect()
                 ->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
-                ->with('error', 'This appointment cannot be started.');
+                ->with('error', $sessions->startEligibilityMessage($spaBooking));
         }
 
         $sessions->start($spaBooking);
@@ -640,6 +643,7 @@ class DashboardController extends Controller
     public function appointments(Request $request, SpaSessionService $sessions): View
     {
         $this->ensureCatalogSeeded();
+        $sessions->releaseAvailabilityBlocks();
 
         $notifications = app(NotificationFeedService::class)->recentBookingNotifications(6);
 
@@ -996,7 +1000,7 @@ class DashboardController extends Controller
 
         $appointments = $appointments
             ->map(function (array $appointment): array {
-                unset($appointment['starts_at'], $appointment['late_cutoff_at'], $appointment['parsed_date'], $appointment['can_start']);
+                unset($appointment['starts_at'], $appointment['late_cutoff_at'], $appointment['parsed_date']);
 
                 return $appointment;
             });

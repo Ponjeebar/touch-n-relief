@@ -404,6 +404,12 @@
     color: #c77742;
 }
 
+.tt-status.resting {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.24);
+    color: #2563eb;
+}
+
 .tt-status.off-duty {
     background: rgba(88, 111, 124, 0.12);
     border-color: rgba(88, 111, 124, 0.20);

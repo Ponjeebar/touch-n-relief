@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\SpaBooking;
 use App\Models\Therapist;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
@@ -51,19 +52,36 @@ class TherapistAvailabilityService
 
     public function effectiveStatus(Therapist $therapist, ?Carbon $at = null): string
     {
-        return $this->effectiveStatusForDate($therapist, ($at ?? now())->copy());
+        $at ??= now();
+        $scheduled = $this->effectiveStatusForDate($therapist, $at->copy());
+        if ($scheduled === 'off-duty') {
+            return $scheduled;
+        }
+
+        $name = trim((string) $therapist->name);
+        if ($name !== '' && Schema::hasTable('spa_bookings')) {
+            $busy = SpaBooking::query()
+                ->where('therapist_name', $name)
+                ->where('session_status', SpaBooking::STATUS_IN_SESSION)
+                ->whereNull('cancelled_at')
+                ->whereNull('completed_at')
+                ->exists();
+            if ($busy) {
+                return 'busy';
+            }
+
+            if (app(BookingSlotService::class)->therapistIsRestingAt($name, $at)) {
+                return 'resting';
+            }
+        }
+
+        return 'available';
     }
 
     public function effectiveStatusForDate(Therapist $therapist, Carbon $date): string
     {
         $stored = strtolower(trim((string) $therapist->status));
         $date = $date->copy()->startOfDay();
-        $today = now()->startOfDay();
-
-        if ($stored === 'busy' && $date->equalTo($today)) {
-            return 'busy';
-        }
-
         if ((bool) $therapist->work_on_off_day) {
             return 'available';
         }
@@ -102,7 +120,6 @@ class TherapistAvailabilityService
         }
 
         return match ($this->effectiveStatusForDate($therapist, ($date ?? now())->copy())) {
-            'busy' => 'In session',
             'off-duty' => 'Off duty',
             default => 'Unavailable',
         };

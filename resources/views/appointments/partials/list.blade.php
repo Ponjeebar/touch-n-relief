@@ -80,6 +80,23 @@
                                 <i class="bi bi-play-fill" aria-hidden="true"></i>
                             </button>
                         </form>
+                    @elseif ($isActiveBooking && $bookingId && ! empty($appointment['is_fully_paid']))
+                        <form method="POST" action="{{ route('appointments.start', $bookingId) }}" class="appt-start-form">
+                            @csrf
+                            @method('PATCH')
+                            <button
+                                class="appt-icon-btn start"
+                                type="submit"
+                                disabled
+                                data-scheduled-start-button="true"
+                                data-start-at="{{ $appointment['start_at_iso'] ?? '' }}"
+                                data-start-cutoff-at="{{ $appointment['start_cutoff_at_iso'] ?? '' }}"
+                                title="Available only from the scheduled time until 10 minutes after"
+                                aria-label="Start appointment for {{ $appointment['client'] }} at its scheduled time"
+                            >
+                                <i class="bi bi-play-fill" aria-hidden="true"></i>
+                            </button>
+                        </form>
                     @elseif ($isActiveBooking && $bookingId && ! empty($appointment['can_collect_balance']))
                         <button
                             class="appt-icon-btn collect-balance"
@@ -192,6 +209,26 @@
         <div class="empty-users">No appointments yet.</div>
     @endforelse
 </div>
+
+<script>
+    (() => {
+        const refresh = () => {
+            const now = Date.now();
+            document.querySelectorAll('[data-scheduled-start-button="true"]').forEach((button) => {
+                const start = Date.parse(button.dataset.startAt || '');
+                const cutoff = Date.parse(button.dataset.startCutoffAt || '');
+                const available = Number.isFinite(start) && Number.isFinite(cutoff) && now >= start && now < cutoff;
+                button.disabled = !available;
+                button.title = available
+                    ? 'Start session'
+                    : (now < start ? 'Available at the scheduled time' : 'The 10-minute start window has passed');
+            });
+        };
+
+        refresh();
+        window.setInterval(refresh, 1000);
+    })();
+</script>
 
 @if ($appointments instanceof \Illuminate\Pagination\LengthAwarePaginator && $appointments->hasPages())
     <div class="appointments-pagination">

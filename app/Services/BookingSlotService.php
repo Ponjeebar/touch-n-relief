@@ -429,6 +429,12 @@ class BookingSlotService
             return false;
         }
 
+        foreach ($this->therapistRestWindowsForDate($therapistName, $bookingDate, $excludeBookingId) as $restWindow) {
+            if ($this->windowsOverlap($proposedWindow, $restWindow)) {
+                return true;
+            }
+        }
+
         foreach ($this->blockingBookingsForTherapistOnDate($therapistName, $bookingDate, $excludeBookingId) as $booking) {
             $existingWindow = $this->slotWindow(
                 $bookingDate,
@@ -463,7 +469,8 @@ class BookingSlotService
         }
 
         $existing = $this->blockingBookingsForTherapistOnDate($therapistName, $bookingDate, $excludeBookingId);
-        if ($existing->isEmpty()) {
+        $restWindows = $this->therapistRestWindowsForDate($therapistName, $bookingDate, $excludeBookingId);
+        if ($existing->isEmpty() && $restWindows === []) {
             return [];
         }
 
@@ -477,6 +484,12 @@ class BookingSlotService
 
             $proposedWindow = $this->slotWindow($bookingDate, $slotLabel, $proposedDurationMinutes);
             if ($proposedWindow === null) {
+                continue;
+            }
+
+            if (collect($restWindows)->contains(fn (array $rest): bool => $this->windowsOverlap($proposedWindow, $rest))) {
+                $busy[] = $slotLabel;
+
                 continue;
             }
 
@@ -517,7 +530,8 @@ class BookingSlotService
         }
 
         $existing = $this->blockingBookingsForTherapistOnDate($therapistName, $bookingDate, $excludeBookingId);
-        if ($existing->isEmpty()) {
+        $restWindows = $this->therapistRestWindowsForDate($therapistName, $bookingDate, $excludeBookingId);
+        if ($existing->isEmpty() && $restWindows === []) {
             return [];
         }
 
@@ -529,6 +543,16 @@ class BookingSlotService
 
             $proposedWindow = $this->slotWindow($bookingDate, $slotLabel, $proposedDurationMinutes);
             if ($proposedWindow === null) {
+                continue;
+            }
+
+            if (collect($restWindows)->contains(fn (array $rest): bool => $this->windowsOverlap($proposedWindow, $rest))) {
+                $details[$slotLabel] = [
+                    'service' => 'Required therapist rest',
+                    'time_slot' => $slotLabel,
+                    'message' => 'The therapist is on a required 1-hour rest after three consecutive sessions.',
+                ];
+
                 continue;
             }
 
@@ -591,6 +615,72 @@ class BookingSlotService
         $window = $this->slotWindow($dateYmd, $timeSlot, 1);
 
         return $window !== null && $window['start']->lte($now ?? now());
+    }
+
+    /**
+     * One hour of rest is reserved after every three back-to-back appointments.
+     *
+     * @return array<int, array{start: Carbon, end: Carbon}>
+     */
+    public function therapistRestWindowsForDate(string $therapistName, string $bookingDate, ?int $excludeBookingId = null): array
+    {
+        $therapistName = trim($therapistName);
+        if ($therapistName === '') {
+            return [];
+        }
+
+        $bookings = SpaBooking::query()
+            ->where('therapist_name', $therapistName)
+            ->whereDate('booking_date', $bookingDate)
+            ->whereNull('cancelled_at')
+            ->where(function ($query): void {
+                $query->whereNull('session_status')
+                    ->orWhereNotIn('session_status', [SpaBooking::STATUS_CANCELLED, SpaBooking::STATUS_NO_SHOW]);
+            })
+            ->when($excludeBookingId !== null, fn ($query) => $query->where('id', '!=', $excludeBookingId))
+            ->get(['id', 'time_slot', 'duration_minutes', 'service_name'])
+            ->map(fn (SpaBooking $booking): ?array => $this->slotWindow(
+                $bookingDate,
+                (string) $booking->time_slot,
+                $this->resolvedBookingDurationMinutes($booking),
+            ))
+            ->filter()
+            ->sortBy(fn (array $window): int => $window['start']->timestamp)
+            ->values();
+
+        $restWindows = [];
+        $consecutive = 0;
+        $previousEnd = null;
+        foreach ($bookings as $window) {
+            $consecutive = $previousEnd !== null && $window['start']->equalTo($previousEnd)
+                ? $consecutive + 1
+                : 1;
+            $previousEnd = $window['end'];
+
+            if ($consecutive === 3) {
+                $restWindows[] = [
+                    'start' => $window['end']->copy(),
+                    'end' => $window['end']->copy()->addHour(),
+                ];
+                $consecutive = 0;
+                $previousEnd = $window['end']->copy()->addHour();
+            }
+        }
+
+        return $restWindows;
+    }
+
+    public function therapistIsRestingAt(string $therapistName, ?Carbon $at = null): bool
+    {
+        $at ??= now();
+
+        foreach ($this->therapistRestWindowsForDate($therapistName, $at->toDateString()) as $window) {
+            if ($at->gte($window['start']) && $at->lt($window['end'])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -932,6 +932,12 @@ html[data-theme="dark"] .tt-status.busy {
     color: #fcd34d;
 }
 
+html[data-theme="dark"] .tt-status.resting {
+    background: rgba(96, 165, 250, 0.14);
+    border-color: rgba(96, 165, 250, 0.34);
+    color: #93c5fd;
+}
+
 html[data-theme="dark"] .tt-status.off-duty {
     background: rgba(148, 163, 184, 0.16);
     border-color: rgba(148, 163, 184, 0.34);

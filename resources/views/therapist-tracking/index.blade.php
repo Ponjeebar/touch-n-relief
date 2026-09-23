@@ -807,7 +807,7 @@
                     const st = row.querySelector('.tt-status');
                     if (st) {
                         st.textContent = p.status;
-                        st.classList.remove('available', 'busy', 'off-duty');
+                        st.classList.remove('available', 'busy', 'resting', 'off-duty');
                         st.classList.add(p.status);
                     }
                     const meta = row.querySelector('.tt-meta');
@@ -820,7 +820,7 @@
                     const st = card.querySelector('.tt-person-status .tt-status');
                     if (st) {
                         st.textContent = p.status;
-                        st.classList.remove('available', 'busy', 'off-duty');
+                        st.classList.remove('available', 'busy', 'resting', 'off-duty');
                         st.classList.add(p.status);
                     }
                     const specsWrap = card.querySelector('.tt-specs');
@@ -1268,7 +1268,7 @@
                     const st = row.querySelector('.tt-status');
                     if (st) {
                         st.textContent = status;
-                        st.classList.remove('available', 'busy', 'off-duty');
+                        st.classList.remove('available', 'busy', 'resting', 'off-duty');
                         st.classList.add(status);
                     }
                 }
@@ -1278,7 +1278,7 @@
                     const st = card.querySelector('.tt-person-status .tt-status');
                     if (st) {
                         st.textContent = status;
-                        st.classList.remove('available', 'busy', 'off-duty');
+                        st.classList.remove('available', 'busy', 'resting', 'off-duty');
                         st.classList.add(status);
                     }
                 }

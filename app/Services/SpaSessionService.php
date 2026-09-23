@@ -6,7 +6,6 @@ use App\Models\SpaBooking;
 use App\Models\Therapist;
 use App\Models\Transaction;
 use App\Support\PaymentMethodCatalog;
-use App\Services\BookingRefundService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -14,6 +13,8 @@ use Illuminate\Support\Facades\Schema;
 
 class SpaSessionService
 {
+    public const START_GRACE_MINUTES = 10;
+
     public function resolveStatus(SpaBooking $booking, ?Carbon $now = null): string
     {
         if ($booking->session_status === SpaBooking::STATUS_NO_SHOW) {
@@ -261,6 +262,7 @@ class SpaSessionService
     {
         $now = $now ?? now();
 
+        $this->autoCancelMissedAppointments($now);
         $this->autoCompleteAllExpired($now);
 
         SpaBooking::query()
@@ -319,10 +321,64 @@ class SpaSessionService
         return 'Confirmed';
     }
 
-    public function canStart(SpaBooking $booking): bool
+    public function canStart(SpaBooking $booking, ?Carbon $now = null): bool
     {
+        $window = $this->window($booking);
+        $now ??= now();
+
         return $booking->isFullyPaid()
-            && $this->resolveStatus($booking) === SpaBooking::STATUS_CONFIRMED;
+            && $this->resolveStatus($booking, $now) === SpaBooking::STATUS_CONFIRMED
+            && $window !== null
+            && $now->gte($window['start'])
+            && $now->lt($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES));
+    }
+
+    public function startEligibilityMessage(SpaBooking $booking, ?Carbon $now = null): string
+    {
+        $now ??= now();
+        $window = $this->window($booking);
+        if ($window === null) {
+            return 'This appointment has an invalid schedule and cannot be started.';
+        }
+        if ($now->lt($window['start'])) {
+            return 'This session can be started at '.$window['start']->format('g:i A').'.';
+        }
+        if ($now->gte($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES))) {
+            return 'The 10-minute start window has passed. This appointment has been automatically cancelled.';
+        }
+
+        return 'This appointment cannot be started.';
+    }
+
+    public function autoCancelMissedAppointments(?Carbon $now = null): Collection
+    {
+        $now ??= now();
+        $cancelled = collect();
+
+        SpaBooking::query()
+            ->whereNull('cancelled_at')
+            ->whereNull('completed_at')
+            ->whereNull('session_started_at')
+            ->where(function (Builder $query): void {
+                $query->whereNull('session_status')
+                    ->orWhere('session_status', SpaBooking::STATUS_CONFIRMED);
+            })
+            ->get()
+            ->each(function (SpaBooking $booking) use ($now, $cancelled): void {
+                $start = $this->window($booking)['start'] ?? null;
+                if ($start === null || $now->lt($start->copy()->addMinutes(self::START_GRACE_MINUTES))) {
+                    return;
+                }
+
+                $booking->forceFill([
+                    'cancelled_at' => $now,
+                    'cancellation_reason' => 'Automatically cancelled because the session was not started within 10 minutes.',
+                    'session_status' => SpaBooking::STATUS_CANCELLED,
+                ])->save();
+                $cancelled->push($booking->fresh());
+            });
+
+        return $cancelled->values();
     }
 
     public function start(SpaBooking $booking): void
@@ -513,9 +569,11 @@ class SpaSessionService
             'parsed_date' => $booking->booking_date->copy()->startOfDay(),
             'time' => $start->format('h:i A').' - '.$end->format('h:i A'),
             'starts_at' => $start,
+            'start_at_iso' => $start->toIso8601String(),
+            'start_cutoff_at_iso' => $start->copy()->addMinutes(self::START_GRACE_MINUTES)->toIso8601String(),
             'status' => $this->appointmentStatus($booking, $now),
             'notes' => trim((string) ($booking->notes ?? '')) !== '' ? trim((string) $booking->notes) : 'No notes provided.',
-            'can_start' => $this->canStart($booking),
+            'can_start' => $this->canStart($booking, $now),
             'can_reschedule' => app(BookingRescheduleService::class)->canStaffReschedule($booking),
             'can_cancel' => app(BookingCancellationService::class)->canStaffCancel($booking),
             'can_mark_no_show' => $booking->session_status !== SpaBooking::STATUS_NO_SHOW
@@ -781,8 +839,11 @@ class SpaSessionService
             })
             ->count();
 
-        $therapistCount = Therapist::query()->count();
-        $activeTherapistCount = Therapist::query()->where('status', 'available')->count();
+        $therapists = Therapist::query()->get();
+        $therapistCount = $therapists->count();
+        $activeTherapistCount = $therapists
+            ->filter(fn (Therapist $therapist): bool => app(TherapistAvailabilityService::class)->effectiveStatus($therapist, $now) === 'available')
+            ->count();
 
         return [
             'ongoing_sessions' => count($currentSessions),

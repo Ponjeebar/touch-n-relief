@@ -9,6 +9,7 @@ use App\Services\BookingSlotService;
 use App\Services\PaymongoService;
 use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -216,8 +217,10 @@ class StaffAppointmentPaymentTest extends TestCase
         $this->assertSame('OR-1001', $booking->balance_payment_reference);
         $this->assertTrue($booking->isFullyPaid());
 
+        Carbon::setTestNow($booking->booking_date->copy()->setTime(10, 5));
         $this->patch(route('appointments.start', $booking))->assertRedirect(route('ongoing-sessions.index'));
         $this->assertNotNull($booking->fresh()->session_started_at);
+        Carbon::setTestNow();
     }
 
     public function test_unconfirmed_initial_payment_cannot_have_balance_collected(): void
