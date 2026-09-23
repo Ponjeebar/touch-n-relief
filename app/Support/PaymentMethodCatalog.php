@@ -2,8 +2,12 @@
 
 namespace App\Support;
 
+use Carbon\Carbon;
+
 class PaymentMethodCatalog
 {
+    public const FULL_PAYMENT_CUTOFF_MINUTES = 60;
+
     public const TYPE_DOWNPAYMENT = 'downpayment';
 
     public const TYPE_FULL = 'full';
@@ -202,6 +206,24 @@ class PaymentMethodCatalog
         }
 
         return round($serviceAmount, 2);
+    }
+
+    public static function requiresFullPayment(string $bookingDate, string $timeSlot, ?Carbon $now = null): bool
+    {
+        $now ??= now();
+
+        try {
+            $appointment = Carbon::createFromFormat(
+                'Y-m-d g:i A',
+                trim($bookingDate).' '.trim($timeSlot),
+                $now->getTimezone(),
+            );
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return $appointment->greaterThan($now)
+            && $appointment->lessThan($now->copy()->addMinutes(self::FULL_PAYMENT_CUTOFF_MINUTES));
     }
 
     /**

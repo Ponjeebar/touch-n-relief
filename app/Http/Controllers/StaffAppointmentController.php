@@ -13,22 +13,22 @@ use App\Services\BookingCancellationService;
 use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
-use App\Services\SpaServiceCatalog;
 use App\Services\PaymongoService;
-use App\Services\WalkInClientService;
+use App\Services\SpaServiceCatalog;
 use App\Services\TherapistAvailabilityService;
 use App\Services\TherapistCatalog;
+use App\Services\WalkInClientService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -205,6 +205,15 @@ class StaffAppointmentController extends Controller
         }
 
         $validated = Validator::make($request->all(), $rules, $messages)->validateWithBag('appointment');
+
+        if ($hasPaymentFields
+            && ($validated['payment_type'] ?? null) === PaymentMethodCatalog::TYPE_DOWNPAYMENT
+            && PaymentMethodCatalog::requiresFullPayment($validated['booking_date'], $validated['time_slot'])) {
+            return back()
+                ->withErrors(['payment_type' => 'Appointments starting in less than 1 hour require full payment.'], 'appointment')
+                ->withInput()
+                ->with('open_add_appointment', true);
+        }
 
         if ($hasPaymentFields && $validated['payment_method'] === PaymentMethodCatalog::METHOD_PAYMONGO && ! $this->paymongo->isConfigured()) {
             return back()->withErrors(['payment_method' => 'PayMongo checkout is unavailable. Choose payment at the counter or contact an administrator.'], 'appointment')
@@ -977,5 +986,4 @@ class StaffAppointmentController extends Controller
 
         return array_values(array_slice($results, 0, 10));
     }
-
 }

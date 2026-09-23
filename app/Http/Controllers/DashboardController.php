@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
 use App\Models\Customer;
 use App\Models\Receptionist;
 use App\Models\SpaBooking;
@@ -10,31 +9,31 @@ use App\Models\SpaService;
 use App\Models\Therapist;
 use App\Models\TimeSlot;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Services\BookingSlotService;
 use App\Services\NotificationFeedService;
-use App\Services\ActivityLogger;
+use App\Services\SiteSettingsService;
 use App\Services\SpaServiceCatalog;
 use App\Services\SpaSessionService;
 use App\Services\TherapistAvailabilityService;
 use App\Services\TherapistCatalog;
 use App\Services\WalkInClientService;
-use App\Services\SiteSettingsService;
 use App\Support\PaymentMethodCatalog;
+use Carbon\Carbon;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use ZipArchive;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DashboardController extends Controller
 {
@@ -97,26 +96,26 @@ class DashboardController extends Controller
 
         $customers->setCollection(
             $customers->getCollection()
-            ->reject(function (Customer $customer) use ($usersByEmail): bool {
-                $linkedUser = $usersByEmail->get(strtolower(trim((string) $customer->email)));
+                ->reject(function (Customer $customer) use ($usersByEmail): bool {
+                    $linkedUser = $usersByEmail->get(strtolower(trim((string) $customer->email)));
 
-                return $customer->isWalkIn() || ($linkedUser instanceof User && $linkedUser->isWalkIn());
-            })
-            ->values()
-            ->map(function (Customer $customer) use ($usersByEmail) {
-                $source = trim($customer->full_name ?: $customer->email);
-                $initials = collect(preg_split('/\s+/', $source) ?: [])
-                    ->filter()
-                    ->take(2)
-                    ->map(fn (string $part) => strtoupper(substr($part, 0, 1)))
-                    ->implode('');
+                    return $customer->isWalkIn() || ($linkedUser instanceof User && $linkedUser->isWalkIn());
+                })
+                ->values()
+                ->map(function (Customer $customer) use ($usersByEmail) {
+                    $source = trim($customer->full_name ?: $customer->email);
+                    $initials = collect(preg_split('/\s+/', $source) ?: [])
+                        ->filter()
+                        ->take(2)
+                        ->map(fn (string $part) => strtoupper(substr($part, 0, 1)))
+                        ->implode('');
 
-                $customer->initials = $initials ?: 'CU';
-                $linkedUser = $usersByEmail->get(strtolower(trim((string) $customer->email)));
-                $customer->profile_photo_url = $this->profilePhotoUrlFor($linkedUser);
+                    $customer->initials = $initials ?: 'CU';
+                    $linkedUser = $usersByEmail->get(strtolower(trim((string) $customer->email)));
+                    $customer->profile_photo_url = $this->profilePhotoUrlFor($linkedUser);
 
-                return $customer;
-            })
+                    return $customer;
+                })
         );
 
         $activeTab = in_array(request('tab'), ['receptionists', 'customers'], true)
@@ -130,6 +129,58 @@ class DashboardController extends Controller
             'customerTotal' => $customers->total(),
             'activeTab' => $activeTab,
         ]);
+    }
+
+    public function appointmentsExport(Request $request): StreamedResponse
+    {
+        $validated = $request->validate([
+            'date' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+        $date = $validated['date'] ?? now()->toDateString();
+        $bookings = SpaBooking::query()
+            ->with('user:id,name,email')
+            ->whereDate('booking_date', $date)
+            ->orderBy('time_slot')
+            ->orderBy('id')
+            ->get();
+        $filename = 'appointments-'.$date.'.csv';
+
+        ActivityLogger::log(
+            'appointment.export',
+            'Exported appointment records',
+            ['filename' => $filename, 'date' => $date, 'rows' => $bookings->count()],
+            request: $request,
+        );
+
+        return response()->streamDownload(function () use ($bookings): void {
+            $out = fopen('php://output', 'w');
+            if ($out === false) {
+                return;
+            }
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, [
+                'Booking ID', 'Client', 'Email', 'Service', 'Therapist', 'Date', 'Time',
+                'Session Status', 'Service Price', 'Total Paid', 'Balance', 'Payment Status', 'Source',
+            ]);
+            foreach ($bookings as $booking) {
+                fputcsv($out, [
+                    $booking->id,
+                    $booking->client_name ?: $booking->user?->name,
+                    $booking->user?->email,
+                    $booking->service_name,
+                    $booking->therapist_name,
+                    optional($booking->booking_date)->format('Y-m-d'),
+                    $booking->time_slot,
+                    $booking->session_status,
+                    number_format((float) ($booking->amount ?? 0), 2, '.', ''),
+                    number_format($booking->totalPaidAmount(), 2, '.', ''),
+                    number_format($booking->remainingBalance(), 2, '.', ''),
+                    $booking->isFullyPaid() ? 'Fully Paid' : PaymentMethodCatalog::statusLabelFor($booking->payment_status),
+                    $booking->booking_source,
+                ]);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function storeCustomer(Request $request): RedirectResponse
@@ -169,7 +220,7 @@ class DashboardController extends Controller
             'full_name' => ['required', 'string', 'max:255'],
             'birthday' => ['nullable', 'date'],
             'number' => ['nullable', 'regex:/^09\d{9}$/'],
-            'email' => ['required', 'email', 'max:255', 'unique:customers,email,' . $customer->id],
+            'email' => ['required', 'email', 'max:255', 'unique:customers,email,'.$customer->id],
             'password' => ['nullable', 'string', 'min:8'],
             'return_to' => ['nullable', 'string', 'in:users.index,client-records.index,client-records.show'],
         ], [
@@ -799,6 +850,7 @@ class DashboardController extends Controller
                 $a['time'] = $timeSlots[$i] ?? ($a['time'] ?? '09:00 AM - 10:00 AM');
                 $a['status'] = $i % 3 === 0 ? 'Cancelled' : 'Completed';
                 $a['parsed_date'] = Carbon::createFromFormat('M d, Y', $dateLabel);
+
                 return $a;
             })->values();
         }
@@ -2009,6 +2061,7 @@ class DashboardController extends Controller
             ->values()
             ->map(function (array $row): array {
                 unset($row['history_at']);
+
                 return $row;
             })
             ->all();
@@ -2170,40 +2223,30 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function reportingBackup(): BinaryFileResponse
+    public function reportingBackup(): StreamedResponse|RedirectResponse
     {
-        $tables = ['users', 'customers', 'receptionists', 'transactions', 'registrations'];
+        $tables = ['users', 'customers', 'receptionists', 'therapists', 'spa_services', 'time_slots', 'spa_bookings', 'transactions', 'registrations', 'site_settings'];
 
-        $tmp = tempnam(sys_get_temp_dir(), 'tnr-bak-');
-        if ($tmp === false) {
-            abort(500, 'Could not create temporary file.');
-        }
-
-        unlink($tmp);
-        $zipPath = $tmp.'.zip';
-
-        $zip = new ZipArchive;
-        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            abort(500, 'Could not create backup archive.');
-        }
-
-        $zip->addFromString(
-            'README.txt',
-            "TOUCHnRELIEF data backup\n".
-            'Generated: '.now()->toDateTimeString()."\n".
-            "Format: one UTF-8 CSV per table (includes hashed passwords where applicable).\n"
-        );
-
-        foreach ($tables as $table) {
-            if (! Schema::hasTable($table)) {
-                continue;
+        try {
+            $data = [];
+            foreach ($tables as $table) {
+                if (Schema::hasTable($table)) {
+                    $data[$table] = DB::table($table)->get()->map(fn ($row) => (array) $row)->all();
+                }
             }
-            $zip->addFromString($table.'.csv', $this->backupTableToCsv($table));
+            $payload = json_encode([
+                'application' => 'TOUCHnRELIEF',
+                'generated_at' => now()->toIso8601String(),
+                'format_version' => 1,
+                'tables' => $data,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('reporting.index')->with('error', 'The backup could not be created. Please try again or contact the administrator.');
         }
 
-        $zip->close();
-
-        $downloadName = 'touchnrelief-data-backup-'.now()->format('Y-m-d-His').'.zip';
+        $downloadName = 'touchnrelief-data-backup-'.now()->format('Y-m-d-His').'.json';
 
         ActivityLogger::log(
             'report.backup',
@@ -2212,7 +2255,11 @@ class DashboardController extends Controller
             request: request(),
         );
 
-        return response()->download($zipPath, $downloadName)->deleteFileAfterSend(true);
+        return response()->streamDownload(function () use ($payload): void {
+            echo $payload;
+        }, $downloadName, [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ]);
     }
 
     private function backupTableToCsv(string $table): string
@@ -2432,7 +2479,7 @@ class DashboardController extends Controller
             $primaryBadge = $selectionBadge;
             $primarySub = 'Total sales for '.$dateLabel;
             $primaryIcon = 'receipt';
-            $secondaryLabel = 'Daily Users';
+            $secondaryLabel = 'New Users';
             $secondaryBadge = $selectionBadge;
             $secondarySub = 'New users on '.$dateLabel;
             $secondaryIcon = 'people';
@@ -2448,7 +2495,7 @@ class DashboardController extends Controller
             $primaryBadge = $selectionBadge;
             $primarySub = $year === (int) now()->year ? 'Year-to-date' : 'Full year total';
             $primaryIcon = 'calendar2-range';
-            $secondaryLabel = 'Yearly Users';
+            $secondaryLabel = 'New Users';
             $secondaryBadge = $selectionBadge;
             $secondarySub = $year === (int) now()->year ? 'New users year-to-date' : 'New users in '.$selectionBadge;
             $secondaryIcon = 'people';
@@ -2463,7 +2510,7 @@ class DashboardController extends Controller
             $primaryBadge = $selectionBadge;
             $primarySub = 'Total for '.$dateLabel;
             $primaryIcon = 'calendar2-week';
-            $secondaryLabel = 'Monthly Users';
+            $secondaryLabel = 'New Users';
             $secondaryBadge = $selectionBadge;
             $secondarySub = 'New users in '.$dateLabel;
             $secondaryIcon = 'calendar2-week';
@@ -2742,8 +2789,8 @@ class DashboardController extends Controller
 
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:receptionists,username,' . $receptionist->id],
-            'email' => ['required', 'email', 'max:255', 'unique:receptionists,email,' . $receptionist->id],
+            'username' => ['required', 'string', 'max:255', 'unique:receptionists,username,'.$receptionist->id],
+            'email' => ['required', 'email', 'max:255', 'unique:receptionists,email,'.$receptionist->id],
             'address' => ['nullable', 'string', 'max:255'],
             'phone_number' => ['nullable', 'regex:/^09\d{9}$/'],
             'birthday' => ['nullable', 'date'],
@@ -2827,25 +2874,25 @@ class DashboardController extends Controller
             // Ensure the newer column exists (older DBs might not be migrated).
             if (! Schema::hasColumn('receptionists', 'full_name')) {
                 Schema::table('receptionists', function ($table): void {
-                    /** @var \Illuminate\Database\Schema\Blueprint $table */
+                    /** @var Blueprint $table */
                     $table->string('full_name')->nullable()->after('receptionist_id');
                 });
             }
             if (! Schema::hasColumn('receptionists', 'address')) {
                 Schema::table('receptionists', function ($table): void {
-                    /** @var \Illuminate\Database\Schema\Blueprint $table */
+                    /** @var Blueprint $table */
                     $table->string('address')->nullable()->after('email');
                 });
             }
             if (! Schema::hasColumn('receptionists', 'phone_number')) {
                 Schema::table('receptionists', function ($table): void {
-                    /** @var \Illuminate\Database\Schema\Blueprint $table */
+                    /** @var Blueprint $table */
                     $table->string('phone_number', 30)->nullable()->after('address');
                 });
             }
             if (! Schema::hasColumn('receptionists', 'birthday')) {
                 Schema::table('receptionists', function ($table): void {
-                    /** @var \Illuminate\Database\Schema\Blueprint $table */
+                    /** @var Blueprint $table */
                     $table->date('birthday')->nullable()->after('phone_number');
                 });
             }
@@ -2854,7 +2901,7 @@ class DashboardController extends Controller
         }
 
         Schema::create('receptionists', function ($table): void {
-            /** @var \Illuminate\Database\Schema\Blueprint $table */
+            /** @var Blueprint $table */
             $table->id();
             $table->string('receptionist_id')->unique();
             $table->string('full_name')->nullable();
@@ -2874,7 +2921,7 @@ class DashboardController extends Controller
         $latest = Receptionist::latest('id')->first();
         $nextNumber = ($latest?->id ?? 0) + 1;
 
-        return 'RCP-' . str_pad((string) $nextNumber, 3, '0', STR_PAD_LEFT);
+        return 'RCP-'.str_pad((string) $nextNumber, 3, '0', STR_PAD_LEFT);
     }
 
     /**

@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\SpaBooking;
+use App\Models\Therapist;
 use App\Models\TimeSlot;
+use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -69,7 +71,7 @@ class BookingSlotService
         $this->syncExpiredSessions();
 
         // Lock a stable row even when the therapist has no bookings yet.
-        \App\Models\Therapist::query()
+        Therapist::query()
             ->where('name', $therapistName)
             ->lockForUpdate()
             ->first();
@@ -161,6 +163,7 @@ class BookingSlotService
             ]);
         }
     }
+
     /**
      * @return array<int, string>
      */
@@ -217,7 +220,7 @@ class BookingSlotService
             return [];
         }
 
-        $query = \App\Models\Therapist::query();
+        $query = Therapist::query();
 
         if (Schema::hasColumn('therapists', 'is_active')) {
             $query->where('is_active', true);
@@ -690,6 +693,10 @@ class BookingSlotService
         return [
             'offered_slots' => array_values($offered),
             'past_slots' => $pastSlots,
+            'full_payment_required_slots' => array_values(array_filter(
+                $offered,
+                fn (string $slot): bool => PaymentMethodCatalog::requiresFullPayment($bookingDate, $slot),
+            )),
             'fully_booked_slots' => array_values($fullyBooked),
             'user_conflicts' => $userConflicts,
             'store_closed' => $this->isStoreClosedOn($bookingDate),
@@ -747,6 +754,10 @@ class BookingSlotService
             'offered_slots' => array_values($offered),
             'booked_slots' => array_values($booked),
             'past_slots' => $pastSlots,
+            'full_payment_required_slots' => array_values(array_filter(
+                $offered,
+                fn (string $slot): bool => PaymentMethodCatalog::requiresFullPayment($bookingDate, $slot),
+            )),
             'therapist_busy_details' => $therapistBusyDetails,
             'user_conflicts' => $userConflicts,
             'fully_booked_slots' => array_values($fullyBooked),

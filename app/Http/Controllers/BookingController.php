@@ -3,16 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\SpaBooking;
-use App\Models\User;
 use App\Models\TimeSlot;
-use App\Support\PaymentMethodCatalog;
+use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\BookingCancellationService;
+use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
 use App\Services\PaymongoService;
-use App\Services\TherapistAvailabilityService;
+use App\Services\SiteSettingsService;
 use App\Services\SpaServiceCatalog;
+use App\Services\TherapistAvailabilityService;
+use App\Services\TherapistCatalog;
+use App\Support\PaymentMethodCatalog;
+use App\Support\TherapistGridLayout;
+use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,13 +50,13 @@ class BookingController extends Controller
         $services = $this->servicesWithSlotTimes($user instanceof User ? $user : null);
         $slotMap = $this->slots->slotMapByService();
         $hidePrenatalRefs = $user instanceof User && $user->isMale();
-        $therapists = app(\App\Services\TherapistCatalog::class)->forLanding($hidePrenatalRefs);
-        $footer = app(\App\Services\SiteSettingsService::class)->footer();
+        $therapists = app(TherapistCatalog::class)->forLanding($hidePrenatalRefs);
+        $footer = app(SiteSettingsService::class)->footer();
 
         return view('welcome', [
             'services' => $services,
             'therapists' => $therapists,
-            'therapistGridColumns' => \App\Support\TherapistGridLayout::responsiveColumns(count($therapists)),
+            'therapistGridColumns' => TherapistGridLayout::responsiveColumns(count($therapists)),
             'slotMap' => $slotMap,
             'bookableTherapistNames' => collect($this->therapistCatalog())->pluck('name')->values()->all(),
             'landingAvailabilityUrl' => route('landing.availability'),
@@ -72,9 +78,9 @@ class BookingController extends Controller
         $services = $this->servicesWithSlotTimes($user instanceof User ? $user : null);
         $bookingDateInput = (string) old('booking_date', $request->query('date', ''));
         $bookingWhen = $bookingDateInput !== ''
-            ? \Carbon\Carbon::parse($bookingDateInput)->startOfDay()
+            ? Carbon::parse($bookingDateInput)->startOfDay()
             : now()->startOfDay();
-        $therapists = app(\App\Services\TherapistCatalog::class)->forBooking($bookingWhen);
+        $therapists = app(TherapistCatalog::class)->forBooking($bookingWhen);
         $requestedService = (string) $request->query('service', '');
         $requestedTherapist = (string) $request->query('therapist', '');
 
@@ -152,6 +158,13 @@ class BookingController extends Controller
 
         $validated['payment_method'] = PaymentMethodCatalog::METHOD_PAYMONGO;
 
+        if ($validated['payment_type'] === PaymentMethodCatalog::TYPE_DOWNPAYMENT
+            && PaymentMethodCatalog::requiresFullPayment($validated['booking_date'], $validated['time_slot'])) {
+            return back()
+                ->withErrors(['payment_type' => 'Appointments starting in less than 1 hour require full payment.'], 'booking')
+                ->withInput();
+        }
+
         $serviceRow = collect($catalog)->firstWhere('name', $validated['service']);
         $serviceAmount = $this->serviceAmount($serviceRow) ?? 0.0;
         $paymentAmount = PaymentMethodCatalog::calculateAmount($serviceAmount, $validated['payment_type']);
@@ -226,7 +239,7 @@ class BookingController extends Controller
             });
         } catch (ValidationException $e) {
             return $this->bookingValidationResponse($e, $user, $validated, $durationMinutes);
-        } catch (\Illuminate\Database\QueryException) {
+        } catch (QueryException) {
             return back()
                 ->withErrors(['time_slot' => 'Unable to save this booking. Please try again.'], 'booking')
                 ->withInput();
@@ -304,7 +317,7 @@ class BookingController extends Controller
             'booking_date' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
-        $bookingDate = \Carbon\Carbon::parse($validated['booking_date']);
+        $bookingDate = Carbon::parse($validated['booking_date']);
         $bookableTherapistNames = $this->therapistAvailability->bookableTherapistNamesForDate($bookingDate);
 
         return response()->json(
@@ -324,7 +337,7 @@ class BookingController extends Controller
             'booking_date' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
-        $date = \Carbon\Carbon::parse($validated['booking_date'])->startOfDay();
+        $date = Carbon::parse($validated['booking_date'])->startOfDay();
 
         return response()->json([
             'booking_date' => $date->toDateString(),
@@ -360,7 +373,7 @@ class BookingController extends Controller
             }
         }
 
-        $bookingDate = \Carbon\Carbon::parse($validated['booking_date']);
+        $bookingDate = Carbon::parse($validated['booking_date']);
         $bookableTherapistNames = $this->therapistAvailability->bookableTherapistNamesForDate($bookingDate);
 
         $payload = $this->slots->availability(
@@ -474,7 +487,7 @@ class BookingController extends Controller
                 $validated['cancellation_reason'],
                 $validated['cancellation_other'] ?? null,
             );
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             if ($request->expectsJson()) {
                 throw $e;
             }
@@ -484,7 +497,7 @@ class BookingController extends Controller
 
         $spaBooking->refresh();
 
-        $refundService = app(\App\Services\BookingRefundService::class);
+        $refundService = app(BookingRefundService::class);
         $refundMessage = $refundService->customerMessage($spaBooking);
 
         ActivityLogger::logCustomerAction(
@@ -553,9 +566,9 @@ class BookingController extends Controller
 
     private function ensureSlotsSeeded(): void
     {
-        app(\App\Services\TherapistCatalog::class)->ensureSeeded();
+        app(TherapistCatalog::class)->ensureSeeded();
         app(SpaServiceCatalog::class)->ensureSeeded();
-        app(\App\Services\SiteSettingsService::class)->ensureSeeded();
+        app(SiteSettingsService::class)->ensureSeeded();
 
         if (! $this->slots->tablesReady()) {
             return;
@@ -571,7 +584,7 @@ class BookingController extends Controller
      */
     private function therapistCatalog(): array
     {
-        return app(\App\Services\TherapistCatalog::class)->forBooking();
+        return app(TherapistCatalog::class)->forBooking();
     }
 
     /**

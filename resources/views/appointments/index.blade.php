@@ -185,9 +185,9 @@
                                     >
                                         <i class="bi bi-list-check"></i>
                                     </a>
-                                    <button class="icon-btn slim" type="button" aria-label="Export">
+                                    <a class="icon-btn slim" href="{{ route('appointments.export', ['date' => $selectedDateIso]) }}" id="appointments-export-link" aria-label="Export appointments" title="Export appointments as CSV">
                                         <i class="bi bi-download"></i>
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
 
@@ -423,6 +423,7 @@
                                     <button type="button" class="appt-payment-type" data-add-payment-type="downpayment">Downpayment (50%)</button>
                                     <button type="button" class="appt-payment-type" data-add-payment-type="full">Full payment</button>
                                 </div>
+                                <p class="field-help hidden-section" id="add-full-payment-notice">Appointments starting in less than 1 hour require full payment.</p>
                             </div>
 
                             <div class="appt-payment-block">
@@ -745,9 +746,11 @@
         const addAppointmentSaveButton = document.getElementById('add-appointment-save-btn');
         const addPaymentTransactionHint = document.getElementById('add-payment-transaction-hint');
         const addPaymentCashHint = document.getElementById('add-payment-cash-hint');
+        const addFullPaymentNotice = document.getElementById('add-full-payment-notice');
         const CASH_COUNTER_METHOD = 'cash_counter';
         let selectedAddPaymentType = addPaymentTypeInput instanceof HTMLInputElement ? (addPaymentTypeInput.value || 'downpayment') : 'downpayment';
         let selectedAddPaymentMethod = addPaymentMethodInput instanceof HTMLInputElement ? (addPaymentMethodInput.value || '') : '';
+        let addFullPaymentRequiredSlots = new Set();
 
         function isCashCounterSelected() {
             return selectedAddPaymentMethod === CASH_COUNTER_METHOD;
@@ -789,6 +792,9 @@
             addPaymentTypeButtons.forEach((btn) => {
                 const type = btn.getAttribute('data-add-payment-type') || '';
                 btn.classList.toggle('is-active', type === selectedAddPaymentType);
+                const disabled = type === 'downpayment' && addFullPaymentRequiredSlots.has(addHiddenSlot?.value || '');
+                btn.disabled = disabled;
+                btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
             });
             if (addPaymentTypeInput instanceof HTMLInputElement) addPaymentTypeInput.value = selectedAddPaymentType;
         }
@@ -1047,6 +1053,8 @@
             const offered = Array.isArray(payload?.offered_slots) ? payload.offered_slots : [];
             const fullyBooked = new Set(Array.isArray(payload?.fully_booked_slots) ? payload.fully_booked_slots : []);
             const therapistBusy = new Set(Array.isArray(payload?.booked_slots) ? payload.booked_slots : []);
+            const pastSlots = new Set(Array.isArray(payload?.past_slots) ? payload.past_slots : []);
+            addFullPaymentRequiredSlots = new Set(Array.isArray(payload?.full_payment_required_slots) ? payload.full_payment_required_slots : []);
             const userConflicts = payload?.user_conflicts && typeof payload.user_conflicts === 'object' ? payload.user_conflicts : {};
             const storeClosed = payload?.store_closed === true;
             const selected = addHiddenSlot.value || '';
@@ -1097,8 +1105,13 @@
                 const isFullyBooked = fullyBooked.has(slot);
                 const isTherapistBusy = therapist !== '' && therapistBusy.has(slot);
                 const hasUserConflict = Object.prototype.hasOwnProperty.call(userConflicts, slot);
+                const isPast = pastSlots.has(slot);
 
-                if (isFullyBooked) {
+                if (isPast) {
+                    btn.classList.add('unavailable', 'past-slot');
+                    btn.disabled = true;
+                    btn.title = 'This time has already passed';
+                } else if (isFullyBooked) {
                     btn.classList.add('unavailable', 'fully-booked');
                     btn.disabled = true;
                     btn.title = 'All therapists are booked';
@@ -1119,6 +1132,11 @@
                 btn.addEventListener('click', () => {
                     if (btn.disabled || btn.classList.contains('unavailable') || btn.classList.contains('therapist-busy')) return;
                     addHiddenSlot.value = slot;
+                    const requiresFullPayment = addFullPaymentRequiredSlots.has(slot);
+                    if (requiresFullPayment) selectedAddPaymentType = 'full';
+                    addFullPaymentNotice?.classList.toggle('hidden-section', !requiresFullPayment);
+                    paintAddPaymentTypeButtons();
+                    updateAddPaymentSummary();
                     addSlotsWrap.querySelectorAll('.appt-time-slot.active').forEach((el) => el.classList.remove('active'));
                     btn.classList.add('active');
                 });
@@ -1126,8 +1144,10 @@
                 addSlotsWrap.appendChild(btn);
             });
 
-            if (selected && !offered.includes(selected)) {
+            if (selected && (!offered.includes(selected) || pastSlots.has(selected) || fullyBooked.has(selected) || therapistBusy.has(selected) || Object.prototype.hasOwnProperty.call(userConflicts, selected))) {
                 addHiddenSlot.value = '';
+                addFullPaymentNotice?.classList.add('hidden-section');
+                paintAddPaymentTypeButtons();
             }
         }
 
@@ -2075,6 +2095,14 @@
         let currentSelectedDateIso = calendarEl?.dataset.selectedDateIso ?? '';
         let currentStatusSort = statusSortBtn?.dataset.statusSortCurrent ?? 'asc';
         let currentStatusFilter = '';
+
+        document.getElementById('appointments-export-link')?.addEventListener('click', function (event) {
+            event.preventDefault();
+            const url = new URL(this.href, window.location.origin);
+            if (currentSelectedDateIso) url.searchParams.set('date', currentSelectedDateIso);
+            else url.searchParams.delete('date');
+            window.location.href = url.toString();
+        });
 
         const initialParams = new URLSearchParams(window.location.search);
         const initialStatusFilter = (initialParams.get('status_filter') ?? '').toLowerCase();

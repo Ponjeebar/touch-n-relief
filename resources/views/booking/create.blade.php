@@ -204,6 +204,7 @@
                                 <span class="bk-payment-type-sub">Pay in full now</span>
                             </button>
                         </div>
+                        <p class="time-slots-hint" id="bkFullPaymentNotice" hidden>Appointments starting in less than 1 hour require full payment.</p>
                     </div>
                 </div>
 
@@ -396,6 +397,8 @@
             var paymentTypeInput = document.getElementById('payment_type');
             var paymentTypeButtons = Array.from(document.querySelectorAll('[data-payment-type]'));
             var selectedPaymentType = paymentTypeInput ? paymentTypeInput.value || 'downpayment' : 'downpayment';
+            var fullPaymentRequiredSlots = [];
+            var fullPaymentNotice = document.getElementById('bkFullPaymentNotice');
             var confirmBtn = document.getElementById('bkConfirmSubmit');
             var allowSubmit = false;
             var bookingToast = document.getElementById('booking-toast');
@@ -619,6 +622,9 @@
                 paymentTypeButtons.forEach(function (btn) {
                     var type = btn.getAttribute('data-payment-type') || '';
                     btn.classList.toggle('is-active', type === selectedPaymentType);
+                    var disabled = type === 'downpayment' && fullPaymentRequiredSlots.indexOf(hiddenSlot?.value || '') !== -1;
+                    btn.disabled = disabled;
+                    btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
                 });
                 if (paymentTypeInput) paymentTypeInput.value = selectedPaymentType;
             }
@@ -653,6 +659,10 @@
                 var therapist = selectedTherapist();
                 var date = dateInput ? dateInput.value : '';
                 var time = hiddenSlot ? hiddenSlot.value : '';
+                var requiresFullPayment = fullPaymentRequiredSlots.indexOf(time) !== -1;
+                if (requiresFullPayment) selectedPaymentType = 'full';
+                if (fullPaymentNotice) fullPaymentNotice.hidden = !requiresFullPayment;
+                paintPaymentTypeButtons();
 
                 if (!svc) {
                     showBookingToast('Please select a service.');
@@ -1046,6 +1056,7 @@
                             ? data.therapist_busy_details
                             : {};
                         var pastSlots = Array.isArray(data.past_slots) ? data.past_slots : [];
+                        fullPaymentRequiredSlots = Array.isArray(data.full_payment_required_slots) ? data.full_payment_required_slots : [];
                         paintSlots(offered, booked, therapist, userConflicts, dateKey, fullyBooked, therapistBusyDetails, pastSlots);
                     })
                     .catch(function (error) {

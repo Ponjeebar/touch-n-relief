@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\CustomerNotificationController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\CustomerNotificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingSettingsController;
 use App\Http\Controllers\OnboardingController;
@@ -57,39 +57,40 @@ Route::middleware(['auth', 'staff.activity'])->group(function () {
     Route::post('/customer-notifications/{customerNotification}/read', [CustomerNotificationController::class, 'markRead'])->name('customer-notifications.read');
 
     Route::middleware('staff')->group(function () {
-    Route::get('/receptionist-dashboard', [DashboardController::class, 'receptionistDashboard'])->name('receptionist.dashboard');
+        Route::get('/receptionist-dashboard', [DashboardController::class, 'receptionistDashboard'])->name('receptionist.dashboard');
 
-    Route::get('/appointments', [DashboardController::class, 'appointments'])->name('appointments.index');
-    Route::get('/appointments/availability', [StaffAppointmentController::class, 'availability'])->name('appointments.availability');
-    Route::get('/appointments/clients/search', [StaffAppointmentController::class, 'searchClients'])->name('appointments.clients.search');
-    Route::post('/appointments', [StaffAppointmentController::class, 'store'])->name('appointments.store');
-    Route::get('/appointments/paymongo/success/{spaBooking}', [PaymongoController::class, 'staffSuccess'])->name('appointments.paymongo.success');
-    Route::get('/appointments/paymongo/cancel/{spaBooking}', [PaymongoController::class, 'staffCancel'])->name('appointments.paymongo.cancel');
-    Route::get('/appointments/paymongo/retry/{spaBooking}', [PaymongoController::class, 'staffRetry'])->name('appointments.paymongo.retry');
-    Route::patch('/appointments/{spaBooking}/reschedule', [StaffAppointmentController::class, 'reschedule'])->name('appointments.reschedule');
-    Route::get('/appointments/{spaBooking}/reschedule/availability', [StaffAppointmentController::class, 'rescheduleAvailability'])->name('appointments.reschedule.availability');
-    Route::patch('/appointments/{spaBooking}/cancel', [StaffAppointmentController::class, 'cancel'])->name('appointments.cancel');
-    Route::patch('/appointments/{spaBooking}/no-show', [StaffAppointmentController::class, 'markNoShow'])->name('appointments.no-show');
-    Route::patch('/appointments/{spaBooking}/refund', [StaffAppointmentController::class, 'completeRefund'])->name('appointments.refund.complete');
-    Route::patch('/appointments/{spaBooking}/collect-balance', [DashboardController::class, 'collectBalance'])->name('appointments.collect-balance');
-    Route::patch('/appointments/{spaBooking}/start', [DashboardController::class, 'startSession'])->name('appointments.start');
-    Route::get('/services', [DashboardController::class, 'services'])->name('services.index');
-    Route::post('/services', [DashboardController::class, 'storeService'])->name('services.store');
-    Route::put('/services/{spaService}', [DashboardController::class, 'updateService'])->name('services.update');
-    Route::get('/services/{spaService}/timeslots', [DashboardController::class, 'serviceTimeSlotsData'])->name('services.timeslots');
-    Route::post('/services/{spaService}/timeslots', [DashboardController::class, 'storeServiceTimeSlot'])->name('services.timeslots.store');
-    Route::put('/services/{spaService}/timeslots', [DashboardController::class, 'updateServiceTimeSlots'])->name('services.timeslots.update');
-    Route::post('/services/{spaService}/toggle-availability', [DashboardController::class, 'toggleServiceAvailability'])->name('services.toggle-availability');
-    Route::get('/client-records', [DashboardController::class, 'clientRecords'])->name('client-records.index');
-    Route::get('/client-records/{customer}', [DashboardController::class, 'showClientRecord'])->name('client-records.show');
+        Route::get('/appointments', [DashboardController::class, 'appointments'])->name('appointments.index');
+        Route::get('/appointments/export', [DashboardController::class, 'appointmentsExport'])->name('appointments.export');
+        Route::get('/appointments/availability', [StaffAppointmentController::class, 'availability'])->name('appointments.availability');
+        Route::get('/appointments/clients/search', [StaffAppointmentController::class, 'searchClients'])->name('appointments.clients.search');
+        Route::post('/appointments', [StaffAppointmentController::class, 'store'])->name('appointments.store');
+        Route::get('/appointments/paymongo/success/{spaBooking}', [PaymongoController::class, 'staffSuccess'])->name('appointments.paymongo.success');
+        Route::get('/appointments/paymongo/cancel/{spaBooking}', [PaymongoController::class, 'staffCancel'])->name('appointments.paymongo.cancel');
+        Route::get('/appointments/paymongo/retry/{spaBooking}', [PaymongoController::class, 'staffRetry'])->name('appointments.paymongo.retry');
+        Route::patch('/appointments/{spaBooking}/reschedule', [StaffAppointmentController::class, 'reschedule'])->name('appointments.reschedule');
+        Route::get('/appointments/{spaBooking}/reschedule/availability', [StaffAppointmentController::class, 'rescheduleAvailability'])->name('appointments.reschedule.availability');
+        Route::patch('/appointments/{spaBooking}/cancel', [StaffAppointmentController::class, 'cancel'])->name('appointments.cancel');
+        Route::patch('/appointments/{spaBooking}/no-show', [StaffAppointmentController::class, 'markNoShow'])->name('appointments.no-show');
+        Route::patch('/appointments/{spaBooking}/refund', [StaffAppointmentController::class, 'completeRefund'])->name('appointments.refund.complete');
+        Route::patch('/appointments/{spaBooking}/collect-balance', [DashboardController::class, 'collectBalance'])->name('appointments.collect-balance');
+        Route::patch('/appointments/{spaBooking}/start', [DashboardController::class, 'startSession'])->name('appointments.start');
+        Route::get('/services', [DashboardController::class, 'services'])->name('services.index');
+        Route::post('/services', [DashboardController::class, 'storeService'])->name('services.store');
+        Route::put('/services/{spaService}', [DashboardController::class, 'updateService'])->name('services.update');
+        Route::get('/services/{spaService}/timeslots', [DashboardController::class, 'serviceTimeSlotsData'])->name('services.timeslots');
+        Route::post('/services/{spaService}/timeslots', [DashboardController::class, 'storeServiceTimeSlot'])->name('services.timeslots.store');
+        Route::put('/services/{spaService}/timeslots', [DashboardController::class, 'updateServiceTimeSlots'])->name('services.timeslots.update');
+        Route::post('/services/{spaService}/toggle-availability', [DashboardController::class, 'toggleServiceAvailability'])->name('services.toggle-availability');
+        Route::get('/client-records', [DashboardController::class, 'clientRecords'])->name('client-records.index');
+        Route::get('/client-records/{customer}', [DashboardController::class, 'showClientRecord'])->name('client-records.show');
 
-    Route::get('/ongoing-sessions', [DashboardController::class, 'ongoingSessions'])->name('ongoing-sessions.index');
-    Route::get('/ongoing-sessions/poll', [DashboardController::class, 'ongoingSessionsPoll'])->name('ongoing-sessions.poll');
-    Route::get('/staff-feed/poll', [DashboardController::class, 'staffFeedPoll'])->name('staff-feed.poll');
-    Route::patch('/ongoing-sessions/{spaBooking}/complete', [DashboardController::class, 'completeSession'])->name('ongoing-sessions.complete');
-    Route::get('/completed-sessions', [DashboardController::class, 'completedSessions'])->name('completed-sessions.index');
-    Route::get('/therapist-tracking', [DashboardController::class, 'therapistTracking'])->name('therapist-tracking.index');
-    Route::get('/activity-log/click', [ActivityLogController::class, 'click'])->name('activity-logs.click');
+        Route::get('/ongoing-sessions', [DashboardController::class, 'ongoingSessions'])->name('ongoing-sessions.index');
+        Route::get('/ongoing-sessions/poll', [DashboardController::class, 'ongoingSessionsPoll'])->name('ongoing-sessions.poll');
+        Route::get('/staff-feed/poll', [DashboardController::class, 'staffFeedPoll'])->name('staff-feed.poll');
+        Route::patch('/ongoing-sessions/{spaBooking}/complete', [DashboardController::class, 'completeSession'])->name('ongoing-sessions.complete');
+        Route::get('/completed-sessions', [DashboardController::class, 'completedSessions'])->name('completed-sessions.index');
+        Route::get('/therapist-tracking', [DashboardController::class, 'therapistTracking'])->name('therapist-tracking.index');
+        Route::get('/activity-log/click', [ActivityLogController::class, 'click'])->name('activity-logs.click');
     });
 });
 
