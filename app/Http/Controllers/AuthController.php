@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\MailDeliveryConfiguration;
 use App\Services\ActivityLogger;
 use App\Services\WalkInClientService;
 use App\Support\WalkInSchema;
@@ -43,12 +44,7 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        $mailTransport = config('mail.default');
-        $smtpMissingCredentials = $mailTransport === 'smtp'
-            && (blank(config('mail.mailers.smtp.username')) || blank(config('mail.mailers.smtp.password')));
-
-        if ((in_array($mailTransport, ['log', 'array'], true) || $smtpMissingCredentials)
-            && ! app()->environment('testing')) {
+        if (! MailDeliveryConfiguration::isReady() && ! app()->environment('testing')) {
             return redirect()->route('password.request')->withErrors([
                 'email' => 'Email delivery is not configured. Please contact the spa administrator.',
             ])->withInput($request->only('email'));

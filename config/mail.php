@@ -14,7 +14,10 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    'default' => env(
+        'MAIL_MAILER',
+        (env('MAIL_URL') || env('MAIL_USERNAME') || env('MAIL_PASSWORD')) ? 'smtp' : 'log'
+    ),
 
     /*
     |--------------------------------------------------------------------------
