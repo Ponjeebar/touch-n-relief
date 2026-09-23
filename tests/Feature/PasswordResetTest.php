@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Notifications\BrandedResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -85,5 +86,44 @@ class PasswordResetTest extends TestCase
         $this->assertStringContainsString('Content-ID:', $mime);
         $this->assertStringContainsString('touch-n-relief-logo', $mime);
         $this->assertStringContainsString('test-reset-token', $mime);
+    }
+
+    public function test_reset_link_can_be_delivered_through_resend_https_api(): void
+    {
+        config()->set('services.resend.key', 're_test_key');
+        config()->set('services.resend.from_address', 'noreply@example.test');
+        config()->set('services.resend.from_name', 'TouchNRelief');
+        Http::fake([
+            'api.resend.com/emails' => Http::response(['id' => 'email_test_123'], 200),
+        ]);
+        $user = User::factory()->create();
+
+        $this->post(route('password.email'), ['email' => $user->email])
+            ->assertRedirect(route('password.request'))
+            ->assertSessionHas('status');
+
+        Http::assertSent(function ($request) use ($user): bool {
+            $payload = $request->data();
+
+            return $request->url() === 'https://api.resend.com/emails'
+                && $request->hasHeader('Authorization', 'Bearer re_test_key')
+                && $payload['to'] === [$user->email]
+                && str_contains((string) $payload['html'], 'Reset your password')
+                && str_contains((string) $payload['html'], '/reset-password/');
+        });
+    }
+
+    public function test_resend_api_failure_returns_to_form_instead_of_server_error(): void
+    {
+        config()->set('services.resend.key', 're_test_key');
+        config()->set('services.resend.from_address', 'noreply@example.test');
+        Http::fake([
+            'api.resend.com/emails' => Http::response(['message' => 'Rejected'], 422),
+        ]);
+        $user = User::factory()->create();
+
+        $this->post(route('password.email'), ['email' => $user->email])
+            ->assertRedirect(route('password.request'))
+            ->assertSessionHasErrors('email');
     }
 }

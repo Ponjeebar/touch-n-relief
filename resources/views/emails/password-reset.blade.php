@@ -18,7 +18,7 @@
                             <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                                 <tr>
                                     <td style="vertical-align:middle;padding-right:12px;">
-                                        <img src="cid:touch-n-relief-logo" alt="" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:50%;border:2px solid #c7e9dc;object-fit:cover;">
+                                        <img src="{{ $logoSrc ?? 'cid:touch-n-relief-logo' }}" alt="" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:50%;border:2px solid #c7e9dc;object-fit:cover;">
                                     </td>
                                     <td style="vertical-align:middle;color:#ffffff;font-family:Georgia,serif;font-size:25px;font-weight:bold;letter-spacing:.2px;">TouchNRelief</td>
                                 </tr>

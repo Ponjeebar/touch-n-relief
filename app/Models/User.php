@@ -6,6 +6,8 @@ namespace App\Models;
 use App\Models\Concerns\Archivable;
 use App\Models\SpaBooking;
 use App\Notifications\BrandedResetPassword;
+use App\Services\ResendPasswordResetService;
+use App\Support\MailDeliveryConfiguration;
 use App\Support\WalkInSchema;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -136,6 +138,12 @@ class User extends Authenticatable
 
     public function sendPasswordResetNotification($token): void
     {
+        if (MailDeliveryConfiguration::resendIsReady()) {
+            app(ResendPasswordResetService::class)->send($this, (string) $token);
+
+            return;
+        }
+
         $this->notify(new BrandedResetPassword($token));
     }
 

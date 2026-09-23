@@ -6,6 +6,10 @@ class MailDeliveryConfiguration
 {
     public static function isReady(): bool
     {
+        if (self::resendIsReady()) {
+            return true;
+        }
+
         $mailer = (string) config('mail.default', 'log');
 
         if (in_array($mailer, ['log', 'array'], true)) {
@@ -26,5 +30,11 @@ class MailDeliveryConfiguration
             && filled($smtp['port'] ?? null)
             && filled($smtp['username'] ?? null)
             && filled($smtp['password'] ?? null);
+    }
+
+    public static function resendIsReady(): bool
+    {
+        return filled(config('services.resend.key'))
+            && filled(config('services.resend.from_address'));
     }
 }

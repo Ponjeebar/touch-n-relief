@@ -20,6 +20,8 @@ return [
 
     'resend' => [
         'key' => env('RESEND_API_KEY'),
+        'from_address' => env('RESEND_FROM_ADDRESS'),
+        'from_name' => env('RESEND_FROM_NAME', env('APP_NAME', 'TouchNRelief')),
     ],
 
     'ses' => [
