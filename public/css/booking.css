@@ -735,6 +735,11 @@ body:has(.booking-page) {
     text-decoration: line-through;
 }
 
+.time-slot.past-slot {
+    opacity: 0.72;
+    text-decoration: line-through;
+}
+
 .time-slot.therapist-busy {
     border-color: #d4dce2;
     background: #f7f9fa;

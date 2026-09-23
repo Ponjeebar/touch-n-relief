@@ -810,6 +810,7 @@
                     therapist: therapist,
                     offered: data.offered_slots || [],
                     booked: data.booked_slots || [],
+                    past: data.past_slots || [],
                     userConflicts: data.user_conflicts || {},
                     fullyBooked: data.fully_booked_slots || [],
                     therapistBusyDetails: data.therapist_busy_details || {},
@@ -820,7 +821,7 @@
                 lastAvailabilityKey = '';
             }
 
-            function paintSlots(offeredSlots, bookedForDay, therapistName, userConflicts, dateKey, fullyBookedFromApi, therapistBusyDetails) {
+            function paintSlots(offeredSlots, bookedForDay, therapistName, userConflicts, dateKey, fullyBookedFromApi, therapistBusyDetails, pastSlots) {
                 if (!slotsWrap || !hiddenSlot) return;
 
                 var hint = document.getElementById('time-slots-hint');
@@ -831,6 +832,7 @@
                 userConflicts = userConflicts || {};
                 currentUserConflicts = userConflicts;
                 therapistBusyDetails = therapistBusyDetails || {};
+                pastSlots = Array.isArray(pastSlots) ? pastSlots : [];
                 var fullyBooked = fullyBookedSlotsForDate(dateKey, offeredSlots, fullyBookedFromApi);
 
                 if (!offeredSlots.length) {
@@ -848,11 +850,17 @@
                     var userConflict = userConflicts && userConflicts[slot] ? userConflicts[slot] : null;
                     var isFullyBooked = fullyBooked.indexOf(slot) !== -1;
                     var therapistBooked = !isFullyBooked && bookedForDay.indexOf(slot) !== -1;
-                    var available = !userConflict && !isFullyBooked && !therapistBooked;
+                    var isPast = pastSlots.indexOf(slot) !== -1;
+                    var available = !isPast && !userConflict && !isFullyBooked && !therapistBooked;
                     var btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'time-slot';
-                    if (userConflict) {
+                    if (isPast) {
+                        btn.classList.add('unavailable', 'past-slot');
+                        btn.disabled = true;
+                        btn.setAttribute('aria-disabled', 'true');
+                        btn.title = 'This time has already passed';
+                    } else if (userConflict) {
                         btn.classList.add('user-conflict');
                         btn.title = 'This time overlaps with one of your existing appointments';
                         btn.addEventListener('click', function () {
@@ -878,7 +886,7 @@
                     if (available) {
                         btn.addEventListener('click', function () {
                             hiddenSlot.value = hiddenSlot.value === slot ? '' : slot;
-                            paintSlots(offeredSlots, bookedForDay, therapistName, userConflicts, dateKey, fullyBooked, therapistBusyDetails);
+                            paintSlots(offeredSlots, bookedForDay, therapistName, userConflicts, dateKey, fullyBooked, therapistBusyDetails, pastSlots);
                         });
                     }
                     slotsWrap.appendChild(btn);
@@ -887,6 +895,7 @@
                 var selectable = offeredSlots.filter(function (s) {
                     if (fullyBooked.indexOf(s) !== -1) return false;
                     if (bookedForDay.indexOf(s) !== -1) return false;
+                    if (pastSlots.indexOf(s) !== -1) return false;
                     if (userConflicts && userConflicts[s]) return false;
                     return true;
                 });
@@ -903,7 +912,7 @@
                     hiddenSlot.value = restore;
                     oldSlot = '';
                     if (restore) {
-                        paintSlots(offeredSlots, bookedForDay, therapistName, userConflicts, dateKey, fullyBooked, therapistBusyDetails);
+                        paintSlots(offeredSlots, bookedForDay, therapistName, userConflicts, dateKey, fullyBooked, therapistBusyDetails, pastSlots);
                     }
                 }
             }
@@ -1036,7 +1045,8 @@
                         var therapistBusyDetails = data.therapist_busy_details && typeof data.therapist_busy_details === 'object'
                             ? data.therapist_busy_details
                             : {};
-                        paintSlots(offered, booked, therapist, userConflicts, dateKey, fullyBooked, therapistBusyDetails);
+                        var pastSlots = Array.isArray(data.past_slots) ? data.past_slots : [];
+                        paintSlots(offered, booked, therapist, userConflicts, dateKey, fullyBooked, therapistBusyDetails, pastSlots);
                     })
                     .catch(function (error) {
                         if (error && error.name === 'AbortError') return;

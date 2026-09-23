@@ -107,6 +107,12 @@ class BookingSlotService
             ]);
         }
 
+        if ($this->isPastSlot($bookingDate, $normalizedSlot)) {
+            throw ValidationException::withMessages([
+                'time_slot' => 'That time has already passed. Please choose a later time or another date.',
+            ]);
+        }
+
         $durationMinutes = max($durationMinutes, 1);
 
         if (! $this->isSlotOfferedForService($serviceName, $normalizedSlot, $bookingDate)) {
@@ -577,6 +583,25 @@ class BookingSlotService
         ];
     }
 
+    public function isPastSlot(string $dateYmd, string $timeSlot, ?Carbon $now = null): bool
+    {
+        $window = $this->slotWindow($dateYmd, $timeSlot, 1);
+
+        return $window !== null && $window['start']->lte($now ?? now());
+    }
+
+    /**
+     * @param  array<int, string>  $slots
+     * @return array<int, string>
+     */
+    public function pastSlotLabelsForDate(string $dateYmd, array $slots, ?Carbon $now = null): array
+    {
+        return array_values(array_filter(
+            $slots,
+            fn (string $slot): bool => $this->isPastSlot($dateYmd, $slot, $now),
+        ));
+    }
+
     /**
      * @param  array{start: Carbon, end: Carbon}  $first
      * @param  array{start: Carbon, end: Carbon}  $second
@@ -638,6 +663,7 @@ class BookingSlotService
     /**
      * @return array{
      *     offered_slots: array<int, string>,
+     *     past_slots: array<int, string>,
      *     fully_booked_slots: array<int, string>,
      *     user_conflicts: array<string, array{service: string, therapist: string}>,
      *     store_closed: bool,
@@ -655,6 +681,7 @@ class BookingSlotService
         $this->syncExpiredSessions();
 
         $offered = $this->offeredSlotLabelsForServiceOnDate($serviceName, $bookingDate);
+        $pastSlots = $this->pastSlotLabelsForDate($bookingDate, $offered);
         $userConflicts = $userId !== null
             ? $this->userConflictsForDate($userId, $bookingDate, $offered, $proposedDurationMinutes, $excludeBookingId)
             : [];
@@ -662,6 +689,7 @@ class BookingSlotService
 
         return [
             'offered_slots' => array_values($offered),
+            'past_slots' => $pastSlots,
             'fully_booked_slots' => array_values($fullyBooked),
             'user_conflicts' => $userConflicts,
             'store_closed' => $this->isStoreClosedOn($bookingDate),
@@ -674,6 +702,7 @@ class BookingSlotService
      *     all_slots: array<int, string>,
      *     offered_slots: array<int, string>,
      *     booked_slots: array<int, string>,
+     *     past_slots: array<int, string>,
      *     user_conflicts: array<string, array{service: string, therapist: string}>,
      *     fully_booked_slots: array<int, string>,
      *     store_closed: bool,
@@ -692,6 +721,7 @@ class BookingSlotService
         $this->syncExpiredSessions();
 
         $offered = $this->offeredSlotLabelsForServiceOnDate($serviceName, $bookingDate);
+        $pastSlots = $this->pastSlotLabelsForDate($bookingDate, $offered);
         $therapistName = trim($therapistName);
         $booked = $this->therapistBusySlotsForDate(
             $therapistName,
@@ -716,6 +746,7 @@ class BookingSlotService
             'all_slots' => $this->allSlotLabels(),
             'offered_slots' => array_values($offered),
             'booked_slots' => array_values($booked),
+            'past_slots' => $pastSlots,
             'therapist_busy_details' => $therapistBusyDetails,
             'user_conflicts' => $userConflicts,
             'fully_booked_slots' => array_values($fullyBooked),

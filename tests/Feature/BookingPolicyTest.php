@@ -10,6 +10,7 @@ use App\Services\SiteSettingsService;
 use App\Services\SpaSessionService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class BookingPolicyTest extends TestCase
@@ -70,6 +71,36 @@ class BookingPolicyTest extends TestCase
 
         $this->assertSame(2, $snapshot['upcoming_appointments']);
         $this->assertSame(2, $snapshot['appointments_today']);
+    }
+
+    public function test_same_day_past_slots_are_disabled_and_rejected(): void
+    {
+        Carbon::setTestNow('2026-09-23 07:00:00 PM');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $slots = app(\App\Services\BookingSlotService::class);
+
+        $this->assertSame(
+            ['08:00 AM', '06:30 PM'],
+            $slots->pastSlotLabelsForDate('2026-09-23', ['08:00 AM', '06:30 PM', '07:30 PM']),
+        );
+        $this->assertSame([], $slots->pastSlotLabelsForDate('2026-09-24', ['08:00 AM']));
+
+        try {
+            $slots->assertBookingAvailable(
+                $customer->id,
+                'Swedish Massage',
+                'Test Therapist',
+                '2026-09-23',
+                '08:00 AM',
+                60,
+            );
+            $this->fail('A past time slot was accepted.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(
+                'That time has already passed. Please choose a later time or another date.',
+                $exception->errors()['time_slot'][0],
+            );
+        }
     }
 
     private function booking(User $customer, string $date, string $time): SpaBooking
