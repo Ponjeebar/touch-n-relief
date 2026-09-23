@@ -34,6 +34,10 @@ html[data-theme="dark"] .tnr-chat-prompts button, html[data-theme="dark"] .tnr-c
 html[data-theme="dark"] .tnr-chat-actions a { color: #a8e4ba; }
 @media (max-width: 480px) { .tnr-chat { right: 12px; bottom: 12px; } .tnr-chat-panel { bottom: 60px; height: min(540px, calc(100dvh - 90px)); } }
 @media (max-width: 900px) {
+    .booking-page-body .tnr-chat {
+        display: none !important;
+    }
+
     body:has(.customer-mobile-shortcuts) .tnr-chat {
         bottom: calc(80px + env(safe-area-inset-bottom));
     }
