@@ -292,7 +292,7 @@ body:has(.booking-page) {
     background: #fff;
     cursor: pointer;
     transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease, background-color 0.16s ease;
-    touch-action: manipulation;
+    touch-action: pan-y pinch-zoom;
     -webkit-tap-highlight-color: rgba(47, 141, 175, 0.14);
 }
 
@@ -394,7 +394,7 @@ body:has(.booking-page) {
     background: #fff;
     cursor: pointer;
     transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease, background-color 0.16s ease;
-    touch-action: manipulation;
+    touch-action: pan-y pinch-zoom;
     -webkit-tap-highlight-color: rgba(31, 122, 160, 0.14);
 }
 
@@ -884,6 +884,18 @@ body:has(.booking-page) {
     .therapist-list,
     .service-list {
         flex: none;
+    }
+
+    .therapist-list {
+        overflow: visible;
+        overscroll-behavior: auto;
+        touch-action: pan-y pinch-zoom;
+    }
+
+    .booking-panel-service,
+    .booking-panel-therapist {
+        height: auto;
+        overflow: visible;
     }
 
     .therapist-item,
