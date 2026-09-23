@@ -38,6 +38,8 @@
         text-align: center;
         text-decoration: none;
         cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(4, 114, 77, .12);
     }
     .customer-mobile-shortcuts i { font-size: 21px; line-height: 1; }
     .customer-mobile-shortcuts a[aria-current="page"] {

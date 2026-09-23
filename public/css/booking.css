@@ -292,6 +292,8 @@ body:has(.booking-page) {
     background: #fff;
     cursor: pointer;
     transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease, background-color 0.16s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(47, 141, 175, 0.14);
 }
 
 .service-item:hover {
@@ -392,6 +394,8 @@ body:has(.booking-page) {
     background: #fff;
     cursor: pointer;
     transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease, background-color 0.16s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(31, 122, 160, 0.14);
 }
 
 .therapist-item:hover {

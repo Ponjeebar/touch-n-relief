@@ -366,6 +366,8 @@
             var serverUserConflict = @json(session('booking_user_conflict'));
             var servicePriceMap = @json($servicePriceMap ?? []);
             var slotsLoading = false;
+            var availabilityController = null;
+            var availabilityRequestId = 0;
             var lastAvailabilityKey = '';
             var therapistScheduleMap = {};
             var therapistScheduleDateKey = '';
@@ -927,6 +929,13 @@
                 var dateKey = dateInput ? dateInput.value : '';
                 var hint = document.getElementById('time-slots-hint');
 
+                if (!silent && availabilityController) {
+                    availabilityController.abort();
+                    availabilityController = null;
+                    availabilityRequestId += 1;
+                    slotsLoading = false;
+                }
+
                 if (!dateKey) {
                     resetAvailabilityCache();
                     if (hint) {
@@ -963,7 +972,10 @@
                     return;
                 }
 
-                if (slotsLoading) return;
+                if (silent && slotsLoading) return;
+
+                availabilityController = typeof AbortController === 'function' ? new AbortController() : null;
+                var requestId = ++availabilityRequestId;
                 slotsLoading = true;
 
                 if (!silent) {
@@ -982,6 +994,7 @@
                 });
 
                 fetch(availabilityUrl + '?' + params.toString(), {
+                    signal: availabilityController ? availabilityController.signal : undefined,
                     headers: {
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
@@ -992,6 +1005,8 @@
                         return res.json();
                     })
                     .then(function (data) {
+                        if (requestId !== availabilityRequestId) return;
+
                         if (data.therapists && typeof data.therapists === 'object') {
                             applyTherapistScheduleMap(data.therapists);
                         } else if (data.therapist_schedule && typeof data.therapist_schedule === 'object') {
@@ -1023,13 +1038,18 @@
                             : {};
                         paintSlots(offered, booked, therapist, userConflicts, dateKey, fullyBooked, therapistBusyDetails);
                     })
-                    .catch(function () {
+                    .catch(function (error) {
+                        if (error && error.name === 'AbortError') return;
+                        if (requestId !== availabilityRequestId) return;
                         if (!silent) {
                             renderSlotsLocal(service, therapist, dateKey);
                         }
                     })
                     .finally(function () {
-                        slotsLoading = false;
+                        if (requestId === availabilityRequestId) {
+                            slotsLoading = false;
+                            availabilityController = null;
+                        }
                     });
             }
 
@@ -1045,24 +1065,12 @@
                 var input = label.querySelector('input[name="service"]');
                 if (!input) return;
 
-                label.addEventListener('mousedown', function () {
-                    if (input.disabled) return;
-                    if (input.checked) {
-                        input.dataset.uncheck = '1';
-                    } else {
-                        delete input.dataset.uncheck;
-                    }
-                });
-
                 label.addEventListener('click', function (e) {
+                    e.preventDefault();
                     if (input.disabled) {
-                        e.preventDefault();
                         return;
                     }
-                    if (input.dataset.uncheck !== '1') return;
-                    input.checked = false;
-                    delete input.dataset.uncheck;
-                    e.preventDefault();
+                    input.checked = !input.checked;
                     onServiceSelectionChange();
                 });
             });
@@ -1075,27 +1083,15 @@
                 var input = label.querySelector('input[name="therapist"]');
                 if (!input) return;
 
-                label.addEventListener('mousedown', function () {
-                    if (input.disabled || label.classList.contains('is-unavailable') || label.dataset.therapistBookable === '0') return;
-                    if (input.checked) {
-                        input.dataset.uncheck = '1';
-                    } else {
-                        delete input.dataset.uncheck;
-                    }
-                });
-
                 label.addEventListener('click', function (e) {
+                    e.preventDefault();
                     if (input.disabled || label.classList.contains('is-unavailable') || label.dataset.therapistBookable === '0') {
-                        e.preventDefault();
                         var labelText = label.dataset.unavailableLabel || 'Unavailable';
                         var nameEl = label.querySelector('.therapist-item-name');
                         showBookingToast((nameEl ? nameEl.textContent : 'This therapist') + ' is ' + labelText.toLowerCase() + ' on the selected date.');
                         return;
                     }
-                    if (input.dataset.uncheck !== '1') return;
-                    input.checked = false;
-                    delete input.dataset.uncheck;
-                    e.preventDefault();
+                    input.checked = !input.checked;
                     applyTherapistCardStates();
                     renderSlots();
                 });
