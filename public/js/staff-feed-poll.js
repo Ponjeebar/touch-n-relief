@@ -187,7 +187,7 @@
             const data = await response.json();
             renderNotifications(data.notifications ?? []);
             renderTodayAppointments(data.today_appointments ?? []);
-            updateMetricValue('[data-appointments-today-count]', data.appointments_today ?? 0);
+            updateMetricValue('[data-upcoming-appointments-count]', data.upcoming_appointments ?? 0);
             updateMetricValue('[data-ongoing-sessions-count]', data.ongoing_sessions ?? 0);
         } catch (e) {
             // Ignore transient network errors.

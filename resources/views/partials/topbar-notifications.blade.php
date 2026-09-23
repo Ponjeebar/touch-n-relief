@@ -63,7 +63,7 @@
             document.body.dataset.staffFeedPollUrl = @json(route('staff-feed.poll'));
         }
     </script>
-    <script src="{{ asset('js/staff-feed-poll.js') }}"></script>
+    <script src="{{ asset('js/staff-feed-poll.js') }}?v={{ filemtime(public_path('js/staff-feed-poll.js')) }}"></script>
     <script>
         document.querySelectorAll('[data-topbar-notifications]').forEach((root) => {
             const toggleBtn = root.querySelector('[data-notif-toggle]');
@@ -197,4 +197,3 @@
         });
     </script>
 @endonce
-

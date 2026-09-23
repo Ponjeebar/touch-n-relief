@@ -144,7 +144,7 @@
                         </article>
                         <article class="metric-card">
                             <div class="metric-label">Upcoming Appointments</div>
-                            <div class="metric-value" data-appointments-today-count>{{ $appointmentsToday ?? 0 }}</div>
+                            <div class="metric-value" data-upcoming-appointments-count>{{ $upcomingAppointments ?? 0 }}</div>
                             <div class="metric-sub">Scheduled bookings</div>
                         </article>
                     </div>
@@ -441,7 +441,7 @@
         });
 
     </script>
-    <script src="{{ asset('js/staff-feed-poll.js') }}"></script>
+    <script src="{{ asset('js/staff-feed-poll.js') }}?v={{ filemtime(public_path('js/staff-feed-poll.js')) }}"></script>
     <script src="{{ asset('js/system-clock.js') }}"></script>
     <script>
         window.initSystemClock({

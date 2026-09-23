@@ -7,6 +7,7 @@ use App\Models\SpaBooking;
 use App\Models\User;
 use App\Services\BookingCancellationService;
 use App\Services\SiteSettingsService;
+use App\Services\SpaSessionService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -50,6 +51,25 @@ class BookingPolicyTest extends TestCase
 
         $this->assertSame(3, SpaBooking::query()->where('user_id', $customer->id)->where('session_status', SpaBooking::STATUS_NO_SHOW)->count());
         $this->assertNotNull($customer->fresh()->banned_at);
+    }
+
+    public function test_dashboard_counts_all_future_active_appointments_as_upcoming(): void
+    {
+        Carbon::setTestNow('2026-09-21 12:00:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+
+        $this->booking($customer, '2026-09-21', '01:00 PM');
+        $this->booking($customer, '2026-09-23', '10:00 AM');
+        $this->booking($customer, '2026-09-21', '09:00 AM');
+        $this->booking($customer, '2026-09-24', '10:00 AM')->update([
+            'cancelled_at' => now(),
+            'session_status' => SpaBooking::STATUS_CANCELLED,
+        ]);
+
+        $snapshot = app(SpaSessionService::class)->dashboardSnapshot();
+
+        $this->assertSame(2, $snapshot['upcoming_appointments']);
+        $this->assertSame(2, $snapshot['appointments_today']);
     }
 
     private function booking(User $customer, string $date, string $time): SpaBooking

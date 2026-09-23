@@ -2430,7 +2430,7 @@
             initialMeta?.getAttribute('data-rescheduled') ?? '0'
         );
     </script>
-    <script src="{{ asset('js/staff-feed-poll.js') }}"></script>
+    <script src="{{ asset('js/staff-feed-poll.js') }}?v={{ filemtime(public_path('js/staff-feed-poll.js')) }}"></script>
     @include('partials.payment-receipt-modal')
     @include('partials.payment-receipt-modal-script')
     <script src="{{ asset('js/system-clock.js') }}"></script>

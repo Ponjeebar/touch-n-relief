@@ -695,6 +695,7 @@ class SpaSessionService
      *     current_sessions: array<int, array<string, mixed>>,
      *     today_appointments: array<int, array<string, mixed>>,
      *     appointments_today: int,
+     *     upcoming_appointments: int,
      *     today_sales: string,
      *     today_transactions: int,
      *     active_therapists: int,
@@ -741,6 +742,22 @@ class SpaSessionService
             ->filter(fn (SpaBooking $booking): bool => ! $booking->isCancelled() && ! $this->isCompleted($booking, $now))
             ->count();
 
+        $upcomingAppointmentsCount = SpaBooking::query()
+            ->active()
+            ->whereNull('completed_at')
+            ->whereDate('booking_date', '>=', $today)
+            ->where(function (Builder $query): void {
+                $query->whereNull('session_status')
+                    ->orWhere('session_status', SpaBooking::STATUS_CONFIRMED);
+            })
+            ->get()
+            ->filter(function (SpaBooking $booking) use ($now): bool {
+                $start = $this->window($booking)['start'] ?? null;
+
+                return $start !== null && $start->gte($now);
+            })
+            ->count();
+
         $therapistCount = Therapist::query()->count();
         $activeTherapistCount = Therapist::query()->where('status', 'available')->count();
 
@@ -749,6 +766,7 @@ class SpaSessionService
             'current_sessions' => $currentSessions,
             'today_appointments' => $todayAppointments,
             'appointments_today' => $appointmentsTodayCount,
+            'upcoming_appointments' => $upcomingAppointmentsCount,
             'today_sales' => $todaySalesTotal > 0 ? number_format($todaySalesTotal, 0) : '0',
             'today_transactions' => $todayTransactionCount,
             'active_therapists' => $activeTherapistCount > 0 ? $activeTherapistCount : $therapistCount,

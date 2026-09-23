@@ -55,6 +55,7 @@ class DashboardController extends Controller
             'currentSessions' => collect($live['current_sessions']),
             'todayAppointments' => collect($live['today_appointments']),
             'appointmentsToday' => $live['appointments_today'],
+            'upcomingAppointments' => $live['upcoming_appointments'],
             'todaySales' => $live['today_sales'],
             'todayTransactions' => $live['today_transactions'],
             'activeTherapists' => $live['active_therapists'],
@@ -260,6 +261,7 @@ class DashboardController extends Controller
             'todayAppointments' => collect($live['today_appointments']),
             'ongoingSessions' => $live['ongoing_sessions'],
             'appointmentsToday' => $live['appointments_today'],
+            'upcomingAppointments' => $live['upcoming_appointments'],
             'todaySales' => $live['today_sales'],
             'todayTransactions' => $live['today_transactions'],
             'activeTherapists' => $live['active_therapists'],
@@ -312,6 +314,7 @@ class DashboardController extends Controller
             'notifications' => app(NotificationFeedService::class)->recentBookingNotifications(6),
             'today_appointments' => $live['today_appointments'],
             'appointments_today' => $live['appointments_today'],
+            'upcoming_appointments' => $live['upcoming_appointments'],
             'ongoing_sessions' => $live['ongoing_sessions'],
         ]);
     }
