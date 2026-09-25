@@ -87,6 +87,7 @@ class BookingRefundService
     {
         return $booking->cancelled_at !== null
             && $booking->refund_status === self::STATUS_PENDING
+            && str_starts_with((string) $booking->refund_reference, 'RF-PND-')
             && (float) ($booking->refund_amount ?? 0) > 0;
     }
 

@@ -497,6 +497,10 @@
     grid-column: 1 / -1;
 }
 
+.txn-payment-item-refund {
+    grid-column: 1 / -1;
+}
+
 .txn-payment-item dt {
     margin: 0 0 0.12rem;
     font-size: 0.66rem;

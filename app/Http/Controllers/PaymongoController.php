@@ -297,7 +297,8 @@ class PaymongoController extends Controller
         match ($eventType) {
             'checkout_session.payment.paid' => $this->handleCheckoutPaid($resource),
             'payment.paid' => $this->handlePaymentPaid($resource),
-            'refund.succeeded' => $this->handleRefundSucceeded($resource),
+            'payment.refunded' => $this->handlePaymentRefunded($resource),
+            'payment.refund.updated' => $this->handleRefundUpdated($resource),
             default => null,
         };
 
@@ -366,7 +367,59 @@ class PaymongoController extends Controller
     /**
      * @param  array<string, mixed>  $refund
      */
-    private function handleRefundSucceeded(array $refund): void
+    private function handlePaymentRefunded(array $payment): void
+    {
+        $paymentId = (string) ($payment['id'] ?? '');
+        $attributes = is_array($payment['attributes'] ?? null) ? $payment['attributes'] : [];
+        $refunds = is_array($attributes['refunds'] ?? null) ? $attributes['refunds'] : [];
+
+        if ($paymentId === '' && ($payment['type'] ?? '') === 'refund') {
+            $this->applyRefundUpdate($payment, BookingRefundService::STATUS_PROCESSED);
+
+            return;
+        }
+
+        if ($refunds !== []) {
+            foreach ($refunds as $refund) {
+                if (! is_array($refund)) {
+                    continue;
+                }
+
+                $refundAttributes = is_array($refund['attributes'] ?? null) ? $refund['attributes'] : [];
+                $refund['attributes'] = array_merge($refundAttributes, ['payment_id' => $paymentId]);
+                $this->applyRefundUpdate($refund, BookingRefundService::STATUS_PROCESSED);
+            }
+
+            return;
+        }
+
+        $this->applyRefundUpdate([
+            'attributes' => [
+                'payment_id' => $paymentId,
+            ],
+        ], BookingRefundService::STATUS_PROCESSED);
+    }
+
+    /**
+     * @param  array<string, mixed>  $refund
+     */
+    private function handleRefundUpdated(array $refund): void
+    {
+        $attributes = is_array($refund['attributes'] ?? null) ? $refund['attributes'] : [];
+        $gatewayStatus = strtolower((string) ($attributes['status'] ?? ''));
+        $status = match ($gatewayStatus) {
+            'succeeded', 'success', 'refunded' => BookingRefundService::STATUS_PROCESSED,
+            'failed', 'cancelled', 'canceled' => BookingRefundService::STATUS_FAILED,
+            default => BookingRefundService::STATUS_PENDING,
+        };
+
+        $this->applyRefundUpdate($refund, $status);
+    }
+
+    /**
+     * @param  array<string, mixed>  $refund
+     */
+    private function applyRefundUpdate(array $refund, string $status): void
     {
         $refundId = (string) ($refund['id'] ?? '');
         $attributes = is_array($refund['attributes'] ?? null) ? $refund['attributes'] : [];
@@ -387,6 +440,7 @@ class PaymongoController extends Controller
                 ->whereIn('refund_status', [
                     BookingRefundService::STATUS_PENDING,
                     BookingRefundService::STATUS_FAILED,
+                    BookingRefundService::STATUS_PROCESSED,
                 ])
                 ->latest('id')
                 ->first();
@@ -396,18 +450,33 @@ class PaymongoController extends Controller
             return;
         }
 
+        // PayMongo retries webhook deliveries. Never let an older update regress a completed refund.
+        if ($booking->refund_status === BookingRefundService::STATUS_PROCESSED
+            && $status !== BookingRefundService::STATUS_PROCESSED) {
+            return;
+        }
+
         $refundAmount = $amountCentavos > 0
             ? round($amountCentavos / 100, 2)
             : (float) ($booking->refund_amount ?? $booking->payment_amount ?? 0);
 
-        $booking->forceFill([
-            'payment_status' => PaymentMethodCatalog::STATUS_REFUNDED,
-            'refund_status' => BookingRefundService::STATUS_PROCESSED,
+        $values = [
+            'refund_status' => $status,
             'refund_amount' => $refundAmount,
-            'refunded_at' => now(),
             'refund_reference' => $refundId !== '' ? $refundId : $booking->refund_reference,
-            'refund_note' => 'Refund sent back to the client\'s PayMongo payment method.',
-        ])->save();
+        ];
+
+        if ($status === BookingRefundService::STATUS_PROCESSED) {
+            $values['payment_status'] = PaymentMethodCatalog::STATUS_REFUNDED;
+            $values['refunded_at'] = $booking->refunded_at ?? now();
+            $values['refund_note'] = 'Refund sent back to the client\'s PayMongo payment method.';
+        } elseif ($status === BookingRefundService::STATUS_FAILED) {
+            $values['refund_note'] = 'PayMongo could not complete the refund. Please contact reception for assistance.';
+        } else {
+            $values['refund_note'] = 'PayMongo refund is processing. It will return to the client\'s payment method once complete.';
+        }
+
+        $booking->forceFill($values)->save();
     }
 
     /**

@@ -114,8 +114,19 @@
                                         <div class="txn-payment-item">
                                             <dt>Status</dt>
                                             <dd>
-                                                <span class="txn-payment-status txn-payment-status--{{ $txn['full_payment_status'] }}">
-                                                    {{ $txn['full_payment_status_label'] ?? '—' }}
+                                                @php
+                                                    $showRefundStatus = $badgeClass === 'cancelled'
+                                                        && ! empty($txn['refund_status'])
+                                                        && $txn['refund_status'] !== 'not_applicable';
+                                                    $displayPaymentStatus = $showRefundStatus
+                                                        ? ($txn['refund_status'] === 'processed' ? 'refunded' : $txn['refund_status'])
+                                                        : $txn['full_payment_status'];
+                                                    $displayPaymentLabel = $showRefundStatus
+                                                        ? ($txn['refund_status_label'] ?? 'Refund pending')
+                                                        : ($txn['full_payment_status_label'] ?? '—');
+                                                @endphp
+                                                <span class="txn-payment-status txn-payment-status--{{ $displayPaymentStatus }}">
+                                                    {{ $displayPaymentLabel }}
                                                 </span>
                                             </dd>
                                         </div>
@@ -124,8 +135,8 @@
                                         <dt>Total paid</dt>
                                         <dd>{{ $txn['paid_amount'] ?? '₱0.00' }}</dd>
                                     </div>
-                                    @if (! ($txn['is_fully_paid'] ?? false))
-                                        <div class="txn-payment-item">
+                                    @if (! ($txn['is_fully_paid'] ?? false) && $badgeClass !== 'cancelled')
+                                        <div class="txn-payment-item txn-payment-item-balance">
                                             <dt>Balance due</dt>
                                             <dd>{{ $txn['remaining_balance'] ?? '—' }}</dd>
                                         </div>

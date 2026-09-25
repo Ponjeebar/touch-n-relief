@@ -378,10 +378,17 @@
                 refundItem.appendChild(refundValue);
                 paymentBlock.appendChild(refundItem);
             }
+            var balanceItem = card.querySelector('.txn-payment-item-balance');
+            if (balanceItem) {
+                balanceItem.remove();
+            }
             var statusPill = card.querySelector('.txn-payment-status');
-            if (statusPill && refundData.refund_status === 'processed') {
-                statusPill.textContent = 'Refunded';
-                statusPill.className = 'txn-payment-status txn-payment-status--refunded';
+            if (statusPill) {
+                var displayedRefundStatus = refundData.refund_status === 'processed'
+                    ? 'refunded'
+                    : refundData.refund_status;
+                statusPill.textContent = refundData.refund_status_label || 'Refund pending';
+                statusPill.className = 'txn-payment-status txn-payment-status--' + displayedRefundStatus;
             }
         }
     }
