@@ -2617,11 +2617,14 @@ class DashboardController extends Controller
 
         if ($period === 'daily') {
             $trendRows = DB::table('transactions')
-                ->selectRaw("DATE_FORMAT(time, '%H:00') as bucket, SUM(amount) as total")
+                ->select(['time', 'amount'])
                 ->whereDate('date', '=', $rangeStart)
-                ->groupBy('bucket')
-                ->orderBy('bucket')
-                ->get();
+                ->get()
+                ->groupBy(fn ($transaction) => Carbon::parse((string) $transaction->time)->format('H:00'))
+                ->map(fn (Collection $transactions, string $bucket) => (object) [
+                    'bucket' => $bucket,
+                    'total' => $transactions->sum(fn ($transaction) => (float) $transaction->amount),
+                ]);
 
             $map = $trendRows->keyBy('bucket');
             $trendLabelsPretty = collect(range(0, 23))
@@ -2631,12 +2634,15 @@ class DashboardController extends Controller
         } elseif ($period === 'yearly') {
             $year = (int) $periodValue;
             $trendRows = DB::table('transactions')
-                ->selectRaw("DATE_FORMAT(date, '%Y-%m') as bucket, SUM(amount) as total")
+                ->select(['date', 'amount'])
                 ->whereDate('date', '>=', Carbon::create($year, 1, 1)->toDateString())
                 ->whereDate('date', '<=', $rangeEnd)
-                ->groupBy('bucket')
-                ->orderBy('bucket')
-                ->get();
+                ->get()
+                ->groupBy(fn ($transaction) => Carbon::parse((string) $transaction->date)->format('Y-m'))
+                ->map(fn (Collection $transactions, string $bucket) => (object) [
+                    'bucket' => $bucket,
+                    'total' => $transactions->sum(fn ($transaction) => (float) $transaction->amount),
+                ]);
 
             $map = $trendRows->keyBy('bucket');
             $trendYm = collect(range(1, 12))

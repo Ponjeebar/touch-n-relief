@@ -11,6 +11,7 @@ use App\Services\SiteSettingsService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class RevisionAdjustmentsTest extends TestCase
@@ -74,6 +75,32 @@ class RevisionAdjustmentsTest extends TestCase
             ->assertJsonPath('periodValueLabel', 'Sep 14 - Sep 20, 2026')
             ->assertJsonPath('primaryLabel', 'Weekly Sales')
             ->assertJsonCount(7, 'trendLabels');
+    }
+
+    public function test_daily_and_yearly_report_trends_are_grouped_without_database_specific_functions(): void
+    {
+        Carbon::setTestNow('2026-09-25 10:00:00');
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        DB::table('transactions')->insert([
+            [
+                'transaction_id' => 'TRX-HEROKU-1', 'client_name' => 'Client One', 'therapist_id' => 1,
+                'service_name' => 'Swedish Massage', 'date' => '2026-09-25', 'time' => '08:15:00',
+                'duration' => 60, 'amount' => 80, 'created_at' => now(), 'updated_at' => now(),
+            ],
+            [
+                'transaction_id' => 'TRX-HEROKU-2', 'client_name' => 'Client Two', 'therapist_id' => 1,
+                'service_name' => 'Swedish Massage', 'date' => '2026-09-25', 'time' => '08:45:00',
+                'duration' => 60, 'amount' => 120, 'created_at' => now(), 'updated_at' => now(),
+            ],
+        ]);
+
+        $this->actingAs($admin)->getJson(route('reporting.data', [
+            'period' => 'daily', 'period_value' => 'friday',
+        ]))->assertOk()->assertJsonPath('trendData.8', 200);
+
+        $this->actingAs($admin)->getJson(route('reporting.data', [
+            'period' => 'yearly', 'period_value' => '2026',
+        ]))->assertOk()->assertJsonPath('trendData.8', 200);
     }
 
     public function test_reporting_pdf_downloads_the_selected_period(): void

@@ -1,0 +1,44 @@
+{
+    "name": "TouchNRelief",
+    "description": "TouchNRelief appointment and record management system",
+    "buildpacks": [
+        {
+            "url": "heroku/php"
+        }
+    ],
+    "env": {
+        "APP_ENV": {
+            "value": "production"
+        },
+        "APP_DEBUG": {
+            "value": "false"
+        },
+        "APP_KEY": {
+            "description": "Generate with: php artisan key:generate --show"
+        },
+        "APP_TIMEZONE": {
+            "value": "Asia/Manila"
+        },
+        "DB_CONNECTION": {
+            "value": "pgsql"
+        },
+        "LOG_CHANNEL": {
+            "value": "stderr"
+        },
+        "SESSION_DRIVER": {
+            "value": "database"
+        },
+        "CACHE_STORE": {
+            "value": "database"
+        },
+        "QUEUE_CONNECTION": {
+            "value": "sync"
+        },
+        "SESSION_SECURE_COOKIE": {
+            "value": "true"
+        }
+    },
+    "addons": [
+        "heroku-postgresql:essential-0"
+    ]
+}
