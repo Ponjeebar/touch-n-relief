@@ -258,9 +258,11 @@ class AuthController extends Controller
             'birthday' => ['required', 'date', 'before_or_equal:'.$minimumBirthday],
             'sex' => ['required', Rule::in(User::sexOptions())],
             'password' => ['required', 'confirmed', StrongPassword::rule()],
+            'terms_accepted' => ['accepted'],
         ], [
             'birthday.before_or_equal' => 'You must be at least 15 years old to register.',
             'contact_number.regex' => 'Phone number must be 11 digits starting with 09.',
+            'terms_accepted.accepted' => 'You must agree to the Terms and Conditions and Privacy Policy to create an account.',
         ]);
 
         try {

@@ -27,6 +27,7 @@ class AuthVerificationTest extends TestCase
             'sex' => User::SEX_FEMALE,
             'password' => 'SecurePass1',
             'password_confirmation' => 'SecurePass1',
+            'terms_accepted' => '1',
         ];
 
         $this->post(route('register'), $registration)->assertRedirect();
@@ -59,12 +60,38 @@ class AuthVerificationTest extends TestCase
             'contact_number' => '09123456789',
             'birthday' => '2000-01-01',
             'sex' => User::SEX_MALE,
+            'terms_accepted' => '1',
         ];
 
         $this->post(route('register'), [...$base, 'password' => 'lowercase1', 'password_confirmation' => 'lowercase1'])
             ->assertSessionHasErrors(['password'], null, 'register');
         $this->post(route('register'), [...$base, 'password' => 'NoNumberHere', 'password_confirmation' => 'NoNumberHere'])
             ->assertSessionHasErrors(['password'], null, 'register');
+    }
+
+    public function test_registration_requires_terms_and_privacy_agreement(): void
+    {
+        $this->post(route('register'), [
+            'name' => 'Customer',
+            'username' => 'customer_terms',
+            'email' => 'terms@example.test',
+            'contact_number' => '09123456789',
+            'birthday' => '2000-01-01',
+            'sex' => User::SEX_MALE,
+            'password' => 'SecurePass1',
+            'password_confirmation' => 'SecurePass1',
+        ])->assertSessionHasErrors(['terms_accepted'], null, 'register');
+    }
+
+    public function test_login_and_legal_pages_expose_privacy_and_terms_links(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee(route('privacy-policy'), false)
+            ->assertSee(route('terms-and-conditions'), false);
+
+        $this->get(route('privacy-policy'))->assertOk()->assertSee('Privacy Policy');
+        $this->get(route('terms-and-conditions'))->assertOk()->assertSee('Terms and Conditions');
     }
 
     public function test_password_reset_rejects_current_and_recent_passwords(): void

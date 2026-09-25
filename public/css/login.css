@@ -17,7 +17,7 @@
     --auth-shadow: 0 18px 42px rgba(31, 43, 51, 0.14);
     --auth-radius: 36px;
     --auth-width: 960px;
-    --auth-min-height: 640px;
+    --auth-min-height: 700px;
     --auth-bg-image: none;
 }
 
@@ -331,6 +331,40 @@ body.auth-page #container .sign-up form button[type="submit"] {
 body.auth-page #container .sign-up form .mobile-toggle {
     align-self: center;
 }
+
+body.auth-page #container .auth-terms-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    width: 100%;
+    margin-top: 7px;
+    color: var(--auth-muted);
+    font-size: 11px;
+    line-height: 1.45;
+    cursor: pointer;
+}
+
+body.auth-page #container .auth-terms-option input {
+    width: 16px !important;
+    height: 16px;
+    min-width: 16px;
+    margin: 1px 0 0 !important;
+    padding: 0 !important;
+    accent-color: var(--auth-primary);
+}
+
+body.auth-page #container .auth-terms-option a,
+body.auth-page #container .auth-legal-links a {
+    margin: 0;
+    color: var(--auth-primary);
+    font-size: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+body.auth-page #container .auth-terms-option.invalid { color: #9f1239; }
+.auth-legal-links { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 10px; font-size: 12px; color: var(--auth-muted); }
 
 body.auth-page #container form h1 {
     font-size: 34px;
@@ -895,7 +929,12 @@ body.auth-page #container.active .toggle-left {
 
     body.auth-page #container.active .sign-up {
         display: flex;
+        min-height: 760px;
     }
+
+    body.auth-page #container.active { min-height: 760px; }
+
+    body.auth-page #container.active .sign-up form { min-height: 760px; }
 
     body.auth-page #container.active .sign-in {
         display: none;

@@ -158,6 +158,13 @@
                         <i class="bi bi-eye" aria-hidden="true"></i>
                     </button>
                 </div>
+                <label class="auth-terms-option @error('terms_accepted', 'register') invalid @enderror">
+                    <input type="checkbox" name="terms_accepted" value="1" @checked(old('terms_accepted')) required>
+                    <span>I agree to the <a href="{{ route('terms-and-conditions') }}" target="_blank" rel="noopener">Terms and Conditions</a> and acknowledge the <a href="{{ route('privacy-policy') }}" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                </label>
+                @error('terms_accepted', 'register')
+                    <p class="field-msg">{{ $message }}</p>
+                @enderror
                 <button type="submit">Sign Up</button>
                 <div class="mobile-toggle">
                     <span>Already have an account?</span>
@@ -206,6 +213,11 @@
                     <a href="{{ route('password.request') }}" data-auth-forgot-open="true">Forgot Password?</a>
                 </div>
                 <button type="submit">Sign In</button>
+                <div class="auth-legal-links" aria-label="Legal information">
+                    <a href="{{ route('privacy-policy') }}">Privacy Policy</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="{{ route('terms-and-conditions') }}">Terms and Conditions</a>
+                </div>
                 <div class="mobile-toggle">
                     <span>No account yet?</span>
                     <button type="button" class="link" data-auth-panel="register">Sign Up</button>
