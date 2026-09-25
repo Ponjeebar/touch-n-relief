@@ -177,6 +177,13 @@ body {
     display: none;
 }
 
+.nav-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex: 0 0 auto;
+}
+
 .nav-links a {
     color: #f8f0e9;
     text-decoration: none;
@@ -1724,6 +1731,10 @@ body {
 
     .landing-header .brand-wrap {
         min-width: 0;
+    }
+
+    .landing-header .nav-header-actions {
+        margin-left: auto;
     }
 
     .mobile-nav-toggle {

@@ -31,11 +31,21 @@
     transform: translateY(-1px);
 }
 
-.landing-header.nav-solid .customer-notif-btn,
-.landing-header.scrolled .customer-notif-btn {
+.landing-header.nav-solid .customer-notif-btn {
     border-color: rgba(255, 255, 255, 0.22);
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
+}
+
+.landing-header.scrolled:not(.nav-solid) .customer-notif-btn {
+    border-color: rgba(18, 18, 18, 0.25);
+    background: rgba(0, 0, 0, 0.03);
+    color: #111;
+}
+
+.landing-header.scrolled:not(.nav-solid) .customer-notif-btn:hover {
+    border-color: rgba(18, 18, 18, 0.4);
+    background: rgba(0, 0, 0, 0.08);
 }
 
 .customer-notif-badge {
@@ -59,6 +69,10 @@
 
 .landing-header.nav-solid .customer-notif-badge {
     border-color: rgba(10, 10, 10, 0.9);
+}
+
+.landing-header.scrolled:not(.nav-solid) .customer-notif-badge {
+    border-color: rgba(255, 255, 255, 0.96);
 }
 
 .customer-notif-badge[hidden] {

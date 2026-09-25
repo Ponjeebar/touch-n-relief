@@ -120,7 +120,7 @@
             </div>
         </div>
 
-        <link rel="stylesheet" href="{{ asset('css/customer-notifications.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/customer-notifications.css') }}?v={{ filemtime(public_path('css/customer-notifications.css')) }}">
         <script>
             window.__tnrCustomerNotifications = @json($customerNotifications);
         </script>

@@ -9,10 +9,6 @@
                 <img src="{{ asset('images/dashboard/logo.png') }}" alt="Buenos Touche logo" class="brand-logo">
                 <div class="brand">TouchNRelief</div>
             </a>
-            <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
-                <span class="mobile-nav-icon" aria-hidden="true"></span>
-                <span>Menu</span>
-            </button>
             <nav class="nav-links" id="public-mobile-navigation">
                 @if ($navMode === 'full')
                     <a href="{{ $onLanding ? '#services' : route('landing').'#services' }}">Services</a>
@@ -40,9 +36,6 @@
                                 ->implode('');
                             $initials = $initials ?: 'U';
                         @endphp
-                        @if ($user->isUser() && ! $user->isWalkIn())
-                            @include('partials.customer-notifications')
-                        @endif
                         <div class="nav-user-wrap" data-user-menu>
                             <button type="button" class="nav-user" title="{{ $user?->name }}" aria-haspopup="menu" aria-expanded="false">
                                 <span class="nav-avatar" aria-hidden="true">
@@ -87,6 +80,19 @@
                     </form>
                 @endif
             </nav>
+            <div class="nav-header-actions">
+                @if ($navMode === 'full')
+                    @auth
+                        @if (auth()->user()->isUser() && ! auth()->user()->isWalkIn())
+                            @include('partials.customer-notifications')
+                        @endif
+                    @endauth
+                @endif
+                <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
+                    <span class="mobile-nav-icon" aria-hidden="true"></span>
+                    <span>Menu</span>
+                </button>
+            </div>
         </div>
     </div>
 </header>
