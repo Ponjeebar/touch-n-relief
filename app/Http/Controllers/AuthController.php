@@ -148,8 +148,6 @@ class AuthController extends Controller
 
         $identifier = trim($credentials['login']);
         $password = $credentials['password'];
-        $remember = $request->boolean('remember');
-
         $user = $this->findUserForLogin($identifier);
 
         if ($user instanceof User && $user->isWalkIn()) {
@@ -176,7 +174,9 @@ class AuthController extends Controller
             ])->onlyInput('login', 'remember');
         }
 
-        Auth::login($user, $remember);
+        $rememberCustomer = $request->boolean('remember') && $user->isUser();
+
+        Auth::login($user, $rememberCustomer);
 
         $request->session()->regenerate();
 

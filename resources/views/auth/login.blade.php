@@ -208,7 +208,7 @@
                 <div class="auth-login-options">
                     <label class="auth-remember-option">
                         <input type="checkbox" name="remember" value="1" @checked(old('remember'))>
-                        <span>Remember me</span>
+                        <span>Keep me signed in (customers only)</span>
                     </label>
                     <a href="{{ route('password.request') }}" data-auth-forgot-open="true">Forgot Password?</a>
                 </div>
