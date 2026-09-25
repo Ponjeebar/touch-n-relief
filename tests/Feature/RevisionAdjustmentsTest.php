@@ -76,6 +76,25 @@ class RevisionAdjustmentsTest extends TestCase
             ->assertJsonCount(7, 'trendLabels');
     }
 
+    public function test_reporting_pdf_downloads_the_selected_period(): void
+    {
+        Carbon::setTestNow('2026-09-25 10:00:00');
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $response = $this->actingAs($admin)->get(route('reporting.pdf', [
+            'period' => 'weekly',
+            'period_value' => '2026-09-14',
+        ]));
+
+        $response->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+        $this->assertStringContainsString(
+            'touchnrelief-report-weekly-2026-09-14.pdf',
+            (string) $response->headers->get('content-disposition'),
+        );
+        $this->assertStringStartsWith('%PDF-', (string) $response->getContent());
+    }
+
     public function test_landing_settings_save_and_render_social_links(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);

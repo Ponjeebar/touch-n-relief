@@ -58,10 +58,10 @@
                             <i class="bi bi-download" aria-hidden="true"></i>
                             <span>Export report</span>
                         </a>
-                        <button type="button" class="rep-print-btn" id="repPrintBtn">
-                            <i class="bi bi-printer" aria-hidden="true"></i>
-                            <span>Print report</span>
-                        </button>
+                        <a href="{{ route('reporting.pdf', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-print-btn" id="repPdfLink">
+                            <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
+                            <span>Generate PDF</span>
+                        </a>
                         @if (auth()->user()->isAdmin())
                             <a href="{{ route('reporting.backup') }}" class="rep-backup-btn">
                                 <i class="bi bi-database-down" aria-hidden="true"></i>
@@ -238,7 +238,7 @@
     <script>
         const reportingDataUrl = @json(route('reporting.data'));
         const reportingExportUrl = @json(route('reporting.export'));
-        const printReportButton = document.getElementById('repPrintBtn');
+        const reportingPdfUrl = @json(route('reporting.pdf'));
         const pieColors = ['#0c9aa6', '#04724d', '#4f6d8c', '#2f9d62', '#c95a7b', '#f0a74d', '#7f8c8d', '#8e44ad'];
         let trendChart = null;
         let pieChart = null;
@@ -306,12 +306,6 @@
                 }).format(new Date())}`;
             }
         }
-
-        printReportButton?.addEventListener('click', () => {
-            syncPrintableReport();
-            window.print();
-        });
-        window.addEventListener('beforeprint', syncPrintableReport);
 
         const weekdayOptions = [
             ['monday', 'Monday'],
@@ -481,16 +475,20 @@
         }
 
         function updateExportLink(period, periodValue) {
-            const a = document.getElementById('repExportLink');
-            if (!a || !reportingExportUrl) return;
-            const url = new URL(reportingExportUrl, window.location.origin);
-            url.searchParams.set('period', period || 'monthly');
-            if (periodValue) {
-                url.searchParams.set('period_value', periodValue);
-            } else {
-                url.searchParams.delete('period_value');
-            }
-            a.href = url.toString();
+            [
+                [document.getElementById('repExportLink'), reportingExportUrl],
+                [document.getElementById('repPdfLink'), reportingPdfUrl],
+            ].forEach(([link, baseUrl]) => {
+                if (!link || !baseUrl) return;
+                const url = new URL(baseUrl, window.location.origin);
+                url.searchParams.set('period', period || 'monthly');
+                if (periodValue) {
+                    url.searchParams.set('period_value', periodValue);
+                } else {
+                    url.searchParams.delete('period_value');
+                }
+                link.href = url.toString();
+            });
         }
 
         function buildTrendFallbackHtml(labels, data) {

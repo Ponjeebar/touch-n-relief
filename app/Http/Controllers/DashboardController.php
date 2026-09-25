@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Customer;
 use App\Models\Receptionist;
 use App\Models\SpaBooking;
@@ -24,6 +25,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -2225,6 +2227,26 @@ class DashboardController extends Controller
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    public function reportingPdf(Request $request): Response
+    {
+        $period = $this->normalizeReportingPeriod($request->query('period', 'monthly'));
+        $periodValue = $request->query('period_value');
+        $payload = $this->reportingPayload($period, $periodValue);
+        $safeSelection = preg_replace('/[^a-z0-9_-]+/i', '-', (string) ($payload['periodValue'] ?? 'current')) ?: 'current';
+        $filename = 'touchnrelief-report-'.$period.'-'.$safeSelection.'.pdf';
+
+        ActivityLogger::log(
+            'report.pdf_generated',
+            'Generated reporting PDF ('.$period.')',
+            ['period' => $period, 'filename' => $filename],
+            request: $request,
+        );
+
+        return Pdf::loadView('reporting.pdf', $payload)
+            ->setPaper('a4', 'landscape')
+            ->download($filename);
     }
 
     public function reportingBackup(): StreamedResponse|RedirectResponse

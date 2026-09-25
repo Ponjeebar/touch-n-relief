@@ -105,6 +105,7 @@ Route::middleware(['auth', 'admin', 'staff.activity'])->group(function () {
     Route::get('/reporting', [DashboardController::class, 'reporting'])->name('reporting.index');
     Route::get('/reporting/data', [DashboardController::class, 'reportingData'])->name('reporting.data');
     Route::get('/reporting/export', [DashboardController::class, 'reportingExport'])->name('reporting.export');
+    Route::get('/reporting/pdf', [DashboardController::class, 'reportingPdf'])->name('reporting.pdf');
     Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     Route::get('/activity-log/poll', [ActivityLogController::class, 'poll'])->name('activity-logs.poll');
     Route::get('/users', [DashboardController::class, 'users'])->name('users.index');

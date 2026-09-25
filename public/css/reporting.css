@@ -711,10 +711,50 @@
         max-width: 100%;
     }
 
-    .rep-toolbar,
-    .rep-period {
+    .rep-toolbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
         width: 100%;
-        justify-content: flex-start;
+    }
+
+    .rep-period {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        width: 100%;
+        padding: 8px;
+    }
+
+    .rep-period-btn {
+        width: 100%;
+        min-width: 0;
+        padding: 9px 4px;
+        text-align: center;
+    }
+
+    .rep-period-divider {
+        display: none;
+    }
+
+    .rep-period-select {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .rep-export-btn,
+    .rep-print-btn,
+    .rep-backup-btn {
+        width: 100%;
+        min-width: 0;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
+    .rep-backup-btn {
+        grid-column: 1 / -1;
     }
 
     .rep-legend {
