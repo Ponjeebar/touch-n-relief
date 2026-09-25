@@ -458,7 +458,7 @@
                 }
             };
 
-            const paintModalTimes = (offered, fullyBooked, userConflicts, storeClosed) => {
+            const paintModalTimes = (offered, fullyBooked, userConflicts, pastSlots, storeClosed) => {
                 if (!timesEl) return;
                 timesEl.innerHTML = '';
 
@@ -484,8 +484,12 @@
                     const chip = document.createElement('span');
                     const userConflict = userConflicts && userConflicts[time] ? userConflicts[time] : null;
                     const isFullyBooked = fullyBooked.indexOf(time) !== -1;
+                    const isPast = pastSlots.indexOf(time) !== -1;
 
-                    if (userConflict) {
+                    if (isPast) {
+                        chip.className = 'time-chip time-chip-past';
+                        chip.title = 'This time has already passed';
+                    } else if (userConflict) {
                         chip.className = 'time-chip time-chip-user-conflict';
                         chip.title = 'This time overlaps with one of your existing appointments';
                     } else if (isFullyBooked) {
@@ -497,7 +501,7 @@
                     }
 
                     chip.textContent = time;
-                    if (userConflict || isFullyBooked) {
+                    if (isPast || userConflict || isFullyBooked) {
                         chip.setAttribute('aria-disabled', 'true');
                     }
                     timesEl.appendChild(chip);
@@ -508,6 +512,7 @@
                 dateKey,
                 service,
                 offered: data.offered_slots || [],
+                past: data.past_slots || [],
                 fullyBooked: data.fully_booked_slots || [],
                 userConflicts: data.user_conflicts || {},
                 storeClosed: data.store_closed === true,
@@ -574,11 +579,12 @@
                         lastModalAvailabilityKey = snapshotKey;
 
                         const offered = Array.isArray(data.offered_slots) ? data.offered_slots : [];
+                        const pastSlots = Array.isArray(data.past_slots) ? data.past_slots : [];
                         const fullyBooked = Array.isArray(data.fully_booked_slots) ? data.fully_booked_slots : [];
                         const userConflicts = data.user_conflicts && typeof data.user_conflicts === 'object'
                             ? data.user_conflicts
                             : {};
-                        paintModalTimes(offered, fullyBooked, userConflicts, data.store_closed === true);
+                        paintModalTimes(offered, fullyBooked, userConflicts, pastSlots, data.store_closed === true);
                     })
                     .catch(function () {
                         if (!silent) {

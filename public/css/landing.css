@@ -1335,6 +1335,12 @@ body {
 .service-modal-dialog {
     position: relative;
     width: min(520px, 92%);
+    max-height: 86vh;
+    max-height: 86dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
     margin: 7vh auto 0;
     background: #fff;
     border-radius: 16px;
@@ -1443,6 +1449,14 @@ body {
     color: #7a8791;
 }
 
+.time-chip-past {
+    opacity: 0.55;
+    text-decoration: line-through;
+    border-color: rgba(86, 67, 57, 0.16);
+    background: #eef1f2;
+    color: #748087;
+}
+
 .time-chip-unavailable {
     opacity: 0.55;
 }
@@ -1484,6 +1498,15 @@ body {
     border-radius: 6px;
     color: #605853;
     font-size: 0.88rem;
+}
+
+@media (max-width: 700px) {
+    .service-modal-dialog {
+        width: calc(100% - 24px);
+        max-height: calc(100dvh - 24px);
+        margin-top: 12px;
+        padding: 1.1rem 1rem 1.25rem;
+    }
 }
 
 .reveal {
