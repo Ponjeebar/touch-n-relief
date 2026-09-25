@@ -72,7 +72,8 @@ class SocialAuthenticationTest extends TestCase
 
         $this->get(route('social.complete'))
             ->assertOk()
-            ->assertSee('social.customer@example.com');
+            ->assertSee('social.customer@example.com')
+            ->assertDontSee('chatbot.js');
 
         $this->post(route('social.store'), [
             'contact_number' => '09171234567',

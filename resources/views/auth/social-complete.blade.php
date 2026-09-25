@@ -14,30 +14,55 @@
     @include('partials.landing-nav', ['navMode' => 'auth'])
 
     <main class="social-complete-card">
-        <div class="social-complete-provider" aria-hidden="true">
-            <i class="bi bi-{{ $pending['provider'] === 'google' ? 'google' : 'facebook' }}"></i>
-        </div>
-        <h1>Complete your account</h1>
-        <p class="social-complete-copy">Signed in as <strong>{{ $pending['email'] }}</strong>. Add the required spa details to finish creating your customer account.</p>
+        <header class="social-complete-header">
+            <div class="social-complete-provider">
+                <i class="bi bi-{{ $pending['provider'] === 'google' ? 'google' : 'facebook' }}" aria-hidden="true"></i>
+                <span>{{ ucfirst($pending['provider']) }} account verified</span>
+            </div>
+            <h1>Complete your account</h1>
+            <p class="social-complete-copy">Add the remaining details required for booking your spa appointments.</p>
+        </header>
+
+        <section class="social-account-summary" aria-label="Verified social account">
+            <div class="social-account-avatar" aria-hidden="true">{{ strtoupper(substr($pending['name'], 0, 1)) }}</div>
+            <div class="social-account-identity">
+                <strong>{{ $pending['name'] }}</strong>
+                <span>{{ $pending['email'] }}</span>
+            </div>
+            <span class="social-account-status"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Verified</span>
+        </section>
 
         @if ($errors->any())
             <div class="social-complete-errors" role="alert">
-                @foreach ($errors->all() as $error)
-                    <p>{{ $error }}</p>
-                @endforeach
+                <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                <div>
+                    <strong>Check the highlighted information.</strong>
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
             </div>
         @endif
 
         <form method="POST" action="{{ route('social.store') }}">
             @csrf
-            <label for="social-contact">Contact number</label>
-            <input id="social-contact" name="contact_number" type="tel" value="{{ old('contact_number') }}" placeholder="09XXXXXXXXX" maxlength="11" pattern="^09\d{9}$" inputmode="numeric" autocomplete="tel" required>
+            <div class="social-complete-fields">
+                <div class="social-complete-field">
+                    <label for="social-contact">Contact number</label>
+                    <input id="social-contact" name="contact_number" type="tel" value="{{ old('contact_number') }}" placeholder="09XXXXXXXXX" maxlength="11" pattern="^09\d{9}$" inputmode="numeric" autocomplete="tel" class="@error('contact_number') invalid @enderror" aria-describedby="social-contact-hint" required>
+                    <small id="social-contact-hint">Use an 11-digit Philippine mobile number.</small>
+                </div>
 
-            <label for="social-birthday">Birthday</label>
-            <input id="social-birthday" name="birthday" type="date" value="{{ old('birthday') }}" max="{{ now()->subYears(15)->format('Y-m-d') }}" autocomplete="bday" required>
-            <p class="auth-field-hint">You must be at least 15 years old.</p>
+                <div class="social-complete-field">
+                    <label for="social-birthday">Birthday</label>
+                    <input id="social-birthday" name="birthday" type="date" value="{{ old('birthday') }}" max="{{ now()->subYears(15)->format('Y-m-d') }}" autocomplete="bday" class="@error('birthday') invalid @enderror" aria-describedby="social-birthday-hint" required>
+                    <small id="social-birthday-hint">You must be at least 15 years old.</small>
+                </div>
+            </div>
 
-            <fieldset class="auth-gender-field">
+            <fieldset class="auth-gender-field @error('sex') invalid @enderror">
                 <legend>Sex</legend>
                 <div class="auth-gender-options">
                     <label class="auth-gender-option"><input type="radio" name="sex" value="male" @checked(old('sex') === 'male') required><span>Male</span></label>
@@ -45,13 +70,15 @@
                 </div>
             </fieldset>
 
-            <label class="auth-terms-option">
+            <label class="auth-terms-option @error('terms_accepted') invalid @enderror">
                 <input type="checkbox" name="terms_accepted" value="1" @checked(old('terms_accepted')) required>
                 <span>I agree to the <a href="{{ route('terms-and-conditions') }}" target="_blank" rel="noopener">Terms and Conditions</a> and acknowledge the <a href="{{ route('privacy-policy') }}" target="_blank" rel="noopener">Privacy Policy</a>.</span>
             </label>
 
-            <button type="submit">Create customer account</button>
-            <a class="social-complete-cancel" href="{{ route('login') }}">Cancel</a>
+            <div class="social-complete-actions">
+                <button type="submit"><i class="bi bi-person-check" aria-hidden="true"></i> Finish sign up</button>
+                <a class="social-complete-cancel" href="{{ route('login') }}">Cancel and return to sign in</a>
+            </div>
         </form>
     </main>
 

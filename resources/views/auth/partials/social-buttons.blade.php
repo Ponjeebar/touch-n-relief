@@ -6,7 +6,7 @@
         'facebook' => ['label' => 'Facebook', 'icon' => 'bi-facebook'],
     ];
 @endphp
-<div class="auth-social" aria-label="{{ $socialAction }} with a social account">
+<div class="auth-social auth-social-{{ $socialIntent }}" aria-label="{{ $socialAction }} with a social account">
     <div class="auth-social-buttons">
         @foreach ($providers as $provider => $details)
             @php
@@ -14,12 +14,12 @@
                     && filled(config("services.$provider.client_secret"));
             @endphp
             @if ($configured)
-                <a class="auth-social-button auth-social-button-{{ $provider }}" href="{{ route('social.redirect', ['provider' => $provider, 'intent' => $socialIntent]) }}">
+                <a class="auth-social-button auth-social-button-{{ $provider }}" href="{{ route('social.redirect', ['provider' => $provider, 'intent' => $socialIntent]) }}" aria-label="{{ $socialAction }} with {{ $details['label'] }}">
                     <i class="bi {{ $details['icon'] }}" aria-hidden="true"></i>
                     <span>{{ $socialAction }} with {{ $details['label'] }}</span>
                 </a>
             @else
-                <span class="auth-social-button is-disabled" aria-disabled="true" title="{{ $details['label'] }} login is not configured yet">
+                <span class="auth-social-button auth-social-button-{{ $provider }} is-disabled" aria-disabled="true" title="{{ $details['label'] }} login is not configured yet">
                     <i class="bi {{ $details['icon'] }}" aria-hidden="true"></i>
                     <span>{{ $socialAction }} with {{ $details['label'] }}</span>
                 </span>

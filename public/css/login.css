@@ -447,13 +447,12 @@ body.auth-page #container input.invalid {
 
 body.auth-page #container .auth-login-options {
     width: 100%;
-    max-width: 380px;
-    display: flex;
+    max-width: 410px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 6px 12px;
-    margin-top: 6px;
+    gap: 10px 14px;
+    margin-top: 8px;
 }
 
 body.auth-page #container .auth-remember-option {
@@ -461,7 +460,8 @@ body.auth-page #container .auth-remember-option {
     align-items: center;
     gap: 8px;
     color: var(--auth-text);
-    font-size: 14px;
+    font-size: 12px;
+    line-height: 1.35;
     cursor: pointer;
 }
 
@@ -478,12 +478,15 @@ body.auth-page #container .auth-remember-option input {
 
 body.auth-page #container .auth-login-options a {
     margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .auth-social {
     width: 100%;
-    max-width: 380px;
-    margin: 10px 0 2px;
+    max-width: 410px;
+    margin: 14px 0 4px;
 }
 
 .auth-social-buttons {
@@ -493,13 +496,13 @@ body.auth-page #container .auth-login-options a {
 }
 
 body.auth-page #container .auth-social-button {
-    min-height: 40px;
+    min-height: 46px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     margin: 0;
-    padding: 8px 10px;
+    padding: 9px 12px;
     border: 1px solid #ccd9dd;
     border-radius: 9px;
     background: #fff;
@@ -509,7 +512,8 @@ body.auth-page #container .auth-social-button {
     line-height: 1.2;
     text-align: center;
     text-decoration: none;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    white-space: nowrap;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 
 body.auth-page #container .auth-social-button:hover {
@@ -517,6 +521,13 @@ body.auth-page #container .auth-social-button:hover {
     background: #f5faf8;
     color: #24343c;
     text-decoration: none;
+    box-shadow: 0 5px 14px rgba(31, 43, 51, 0.08);
+    transform: translateY(-1px);
+}
+
+body.auth-page #container .auth-social-button:focus-visible {
+    outline: 2px solid var(--auth-accent-teal);
+    outline-offset: 2px;
 }
 
 .auth-social-button .bi {
@@ -533,15 +544,18 @@ body.auth-page #container .auth-social-button:hover {
 }
 
 body.auth-page #container .auth-social-button.is-disabled {
-    opacity: 0.52;
+    border-color: #dce3e6;
+    background: #f4f6f7;
+    color: #7d8a91;
     cursor: not-allowed;
+    opacity: 0.78;
 }
 
 .auth-divider {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 7px;
+    margin-top: 10px;
     color: #758790;
     font-size: 11px;
     font-weight: 600;
@@ -563,13 +577,37 @@ body.auth-page #container .sign-up .auth-social {
 }
 
 body.auth-page #container .sign-up .auth-social-button {
-    min-height: 36px;
-    padding: 6px 8px;
+    min-height: 40px;
+    padding: 7px 9px;
 }
 
 .auth-social-error {
-    margin: 6px 0 !important;
-    text-align: center;
+    width: 100%;
+    max-width: 410px;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    border: 1px solid #fecdd3;
+    border-radius: 9px;
+    background: #fff1f2;
+    color: #9f1239;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: left;
+}
+
+.auth-social-error .bi {
+    flex: 0 0 auto;
+    margin-top: 1px;
+    font-size: 15px;
+}
+
+body.auth-page #container .auth-login-panel > input,
+body.auth-page #container .auth-login-panel > .auth-password-wrap {
+    max-width: 410px;
 }
 
 .auth-field-label {
@@ -1212,42 +1250,111 @@ body.auth-page #container.active .toggle-left {
 
 .social-complete-page {
     overflow-y: auto;
+    align-items: stretch;
 }
 
 .social-complete-card {
-    width: min(520px, calc(100% - 32px));
-    margin: 34px auto 60px;
-    padding: 28px 34px;
+    width: min(680px, calc(100% - 32px));
+    margin: 26px auto 48px;
+    padding: 30px 36px 32px;
     border: 1px solid rgba(207, 219, 222, 0.9);
-    border-radius: 18px;
+    border-radius: 22px;
     background: var(--auth-surface);
     box-shadow: 0 22px 55px rgba(15, 39, 45, 0.2);
     color: var(--auth-text);
 }
 
-.social-complete-card h1 {
-    margin: 8px 0;
-    font-size: 28px;
+.social-complete-header {
     text-align: center;
+}
+
+.social-complete-card h1 {
+    margin: 13px 0 7px;
+    font-size: 30px;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
 }
 
 .social-complete-provider {
-    width: 46px;
-    height: 46px;
-    display: grid;
-    place-items: center;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     margin: 0 auto;
-    border-radius: 50%;
+    padding: 8px 13px;
+    border: 1px solid #cfe5de;
+    border-radius: 999px;
     background: #edf6f3;
     color: var(--auth-primary);
-    font-size: 22px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.social-complete-provider .bi {
+    font-size: 17px;
 }
 
 .social-complete-copy {
-    margin: 0 0 18px;
+    max-width: 500px;
+    margin: 0 auto;
     color: var(--auth-muted);
-    line-height: 1.5;
-    text-align: center;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.social-account-summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0;
+    padding: 13px 15px;
+    border: 1px solid var(--auth-line);
+    border-radius: 12px;
+    background: var(--auth-input-bg);
+}
+
+.social-account-avatar {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--auth-primary);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.social-account-identity {
+    min-width: 0;
+}
+
+.social-account-identity strong,
+.social-account-identity span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.social-account-identity strong {
+    margin-bottom: 3px;
+    font-size: 13px;
+}
+
+.social-account-identity span {
+    color: var(--auth-muted);
+    font-size: 12px;
+}
+
+.social-account-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--auth-primary);
+    font-size: 11px;
+    font-weight: 700;
 }
 
 .social-complete-card form {
@@ -1255,9 +1362,20 @@ body.auth-page #container.active .toggle-left {
     flex-direction: column;
 }
 
-.social-complete-card form > label:not(.auth-terms-option),
+.social-complete-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.social-complete-field {
+    min-width: 0;
+}
+
+.social-complete-field label,
 .social-complete-card legend {
-    margin: 8px 0 5px;
+    display: block;
+    margin: 0 0 6px;
     color: var(--auth-text);
     font-size: 13px;
     font-weight: 700;
@@ -1266,74 +1384,235 @@ body.auth-page #container.active .toggle-left {
 .social-complete-card input[type='tel'],
 .social-complete-card input[type='date'] {
     width: 100%;
-    padding: 12px 14px;
+    min-height: 46px;
+    padding: 11px 13px;
     border: 1px solid #cbdadd;
     border-radius: 9px;
     background: var(--auth-input-bg);
     color: var(--auth-text);
     font: inherit;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.social-complete-card .auth-field-hint {
-    margin: 4px 0 5px;
+.social-complete-card input[type='tel']:focus,
+.social-complete-card input[type='date']:focus {
+    border-color: var(--auth-accent-teal);
+    box-shadow: 0 0 0 3px rgba(47, 143, 131, 0.16);
+}
+
+.social-complete-card input.invalid {
+    border-color: #e07d96;
+}
+
+.social-complete-field small {
+    display: block;
+    margin-top: 5px;
+    color: var(--auth-muted);
+    font-size: 11px;
+    line-height: 1.4;
 }
 
 .social-complete-card .auth-gender-field {
     width: 100%;
     max-width: none;
-    margin: 8px 0;
+    margin: 18px 0 0;
 }
 
 .social-complete-card .auth-terms-option {
-    margin: 10px 0 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 18px 0 0;
+    padding: 12px 14px;
+    border: 1px solid var(--auth-line);
+    border-radius: 10px;
+    background: #f9fbfb;
+    color: var(--auth-muted);
+    font-size: 11px;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.social-complete-card .auth-terms-option.invalid {
+    border-color: #e07d96;
+    background: #fff7f8;
+    color: #9f1239;
+}
+
+.social-complete-card .auth-terms-option input {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+    margin-top: 1px;
+    accent-color: var(--auth-primary);
 }
 
 .social-complete-card .auth-terms-option a {
     color: var(--auth-primary);
+    font-weight: 700;
+    text-underline-offset: 2px;
+}
+
+.social-complete-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+    margin-top: 20px;
 }
 
 .social-complete-card button[type='submit'] {
-    align-self: center;
-    margin-top: 18px;
-    padding: 12px 24px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 20px;
     border: 0;
     border-radius: 10px;
     background: var(--auth-primary);
     color: #fff;
     font: inherit;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.social-complete-card button[type='submit']:hover {
+    background: var(--auth-primary-hover);
+    box-shadow: 0 7px 18px rgba(4, 114, 77, 0.24);
 }
 
 .social-complete-cancel {
-    align-self: center;
-    margin-top: 12px;
     color: var(--auth-accent-blue);
-    font-size: 13px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.social-complete-cancel:hover {
+    color: var(--auth-primary);
+    text-decoration: underline;
 }
 
 .social-complete-errors {
-    margin-bottom: 10px;
-    padding: 10px 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 11px 13px;
     border: 1px solid #fecaca;
-    border-radius: 9px;
+    border-radius: 10px;
     background: #fef2f2;
     color: #991b1b;
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.45;
 }
 
-.social-complete-errors p {
+.social-complete-errors > .bi {
+    margin-top: 2px;
+    font-size: 16px;
+}
+
+.social-complete-errors strong {
+    display: block;
+    margin-bottom: 3px;
+}
+
+.social-complete-errors ul {
     margin: 0;
+    padding-left: 17px;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 700px) {
+    body.auth-page {
+        padding-right: 12px;
+        padding-left: 12px;
+    }
+
+    body.auth-page #container {
+        border-radius: 22px;
+    }
+
+    body.auth-page #container form,
+    body.auth-page #container .sign-up form {
+        padding-right: 20px;
+        padding-left: 20px;
+    }
+
+    body.auth-page #container .auth-login-panel > input,
+    body.auth-page #container .auth-login-panel > .auth-password-wrap,
+    body.auth-page #container .auth-login-options,
+    body.auth-page #container .auth-social,
+    body.auth-page #container .auth-social-error {
+        max-width: 100%;
+    }
+
+    body.auth-page #container .auth-login-panel > button[type='submit'] {
+        width: min(220px, 100%);
+    }
+
+    body.auth-page #container.active,
+    body.auth-page #container.active .sign-up,
+    body.auth-page #container.active .sign-up form {
+        min-height: 850px;
+    }
+
+    .social-complete-page {
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+
+    .social-complete-card {
+        width: 100%;
+        margin: 14px auto 26px;
+        padding: 24px 20px;
+        border-radius: 18px;
+    }
+
+    .social-complete-card h1 {
+        font-size: 26px;
+    }
+
+    .social-complete-fields {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .social-account-summary {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .social-account-status {
+        grid-column: 2;
+        justify-self: start;
+    }
+
+    .social-complete-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .social-complete-card button[type='submit'] {
+        width: 100%;
+        order: -1;
+    }
+}
+
+@media (max-width: 460px) {
     .auth-social-buttons {
         grid-template-columns: 1fr;
     }
 
-    .social-complete-card {
-        margin-top: 18px;
-        padding: 24px 20px;
+    body.auth-page #container .auth-login-options {
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
+
+    body.auth-page #container .auth-login-options a {
+        justify-self: end;
     }
 }
 .auth-page-header .mobile-nav-toggle {

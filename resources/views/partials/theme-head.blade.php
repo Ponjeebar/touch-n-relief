@@ -251,6 +251,6 @@
 @auth
     @include('partials.logout-confirm-modal')
 @endauth
-@unless (request()->routeIs('login', 'password.*'))
+@unless (request()->routeIs('login', 'password.*', 'social.complete'))
     @include('partials.chatbot-assets')
 @endunless

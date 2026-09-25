@@ -179,7 +179,10 @@
                 @csrf
                 <h1 tabindex="-1">Sign In</h1>
                 @error('social')
-                    <p class="field-msg auth-social-error">{{ $message }}</p>
+                    <div class="auth-social-error" role="alert">
+                        <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                        <span>{{ $message }}</span>
+                    </div>
                 @enderror
                 @include('auth.partials.social-buttons', ['socialIntent' => 'login'])
                 <input
