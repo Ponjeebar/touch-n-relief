@@ -390,6 +390,7 @@
     grid-template-columns: minmax(200px, 1.25fr) minmax(260px, 1.6fr) 170px;
     gap: 12px;
     align-items: center;
+    min-height: 112px;
     border: 1px solid var(--appt-row-border);
     background: var(--appt-row);
     border-radius: 14px;
@@ -412,6 +413,7 @@
 .appt-avatar {
     width: 42px;
     height: 42px;
+    flex: 0 0 42px;
     border-radius: 14px;
     background: rgba(4, 114, 77, 0.10);
     border: 1px solid rgba(4, 114, 77, 0.22);
@@ -425,7 +427,30 @@
 .appt-client-main {
     display: grid;
     gap: 2px;
+    width: 100%;
     min-width: 0;
+    overflow: hidden;
+}
+
+@media (min-width: 701px) {
+    .appt-client-name-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .appt-client-name-row strong {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .appt-client-name-row .client-source-pill {
+        flex-shrink: 0;
+    }
 }
 
 .appt-client-main strong {
