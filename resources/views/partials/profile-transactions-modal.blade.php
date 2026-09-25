@@ -1,5 +1,5 @@
 @once
-    <link rel="stylesheet" href="{{ asset('css/transactions-modal.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/transactions-modal.css') }}?v={{ filemtime(public_path('css/transactions-modal.css')) }}">
 @endonce
 
 <div class="txn-modal txn-modal-hidden" id="tnr-transactions-modal" role="dialog" aria-modal="true" aria-labelledby="tnr-transactions-modal-title" aria-hidden="true">
