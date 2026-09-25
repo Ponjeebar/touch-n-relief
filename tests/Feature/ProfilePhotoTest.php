@@ -12,9 +12,16 @@ class ProfilePhotoTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['filesystems.media_disk' => 'media-test']);
+    }
+
     public function test_photo_can_be_saved_without_editing_other_profile_fields_and_seen_after_new_login(): void
     {
-        Storage::fake('public');
+        Storage::fake(media_storage_disk());
         $user = User::factory()->create(['role' => User::ROLE_USER]);
 
         $this->actingAs($user)->post(route('profile.photo.update'), [
@@ -23,7 +30,7 @@ class ProfilePhotoTest extends TestCase
 
         $path = $user->fresh()->profile_photo_path;
         $this->assertNotNull($path);
-        Storage::disk('public')->assertExists($path);
+        Storage::disk(media_storage_disk())->assertExists($path);
 
         $this->flushSession();
         auth()->logout();
@@ -36,17 +43,17 @@ class ProfilePhotoTest extends TestCase
 
     public function test_replacing_photo_removes_the_previous_file(): void
     {
-        Storage::fake('public');
+        Storage::fake(media_storage_disk());
         $user = User::factory()->create(['role' => User::ROLE_USER]);
-        $oldPath = $this->photo('old.png')->store('profile-photos', 'public');
+        $oldPath = $this->photo('old.png')->store('profile-photos', media_storage_disk());
         $user->update(['profile_photo_path' => $oldPath]);
 
         $this->actingAs($user)->post(route('profile.photo.update'), [
             'profile_photo' => $this->photo('new.png'),
         ])->assertRedirect();
 
-        Storage::disk('public')->assertMissing($oldPath);
-        Storage::disk('public')->assertExists($user->fresh()->profile_photo_path);
+        Storage::disk(media_storage_disk())->assertMissing($oldPath);
+        Storage::disk(media_storage_disk())->assertExists($user->fresh()->profile_photo_path);
     }
 
     private function photo(string $name): UploadedFile

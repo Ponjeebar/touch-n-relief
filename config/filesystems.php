@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | User-uploaded Media Disk
+    |--------------------------------------------------------------------------
+    |
+    | Profile photos, therapist/receptionist photos, and payment proofs use
+    | this disk. Keep "public" locally and use "s3" for persistent hosting.
+    |
+    */
+
+    'media_disk' => env('MEDIA_DISK', 'public'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |

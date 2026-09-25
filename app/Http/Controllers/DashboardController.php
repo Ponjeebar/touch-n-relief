@@ -1560,7 +1560,7 @@ class DashboardController extends Controller
 
         $photoUrl = null;
         if ($request->hasFile('photo_file')) {
-            $path = $request->file('photo_file')->store('therapists', 'public');
+            $path = $request->file('photo_file')->store('therapists', media_storage_disk());
             $photoUrl = public_storage_url($path, false);
         }
 
@@ -1633,7 +1633,7 @@ class DashboardController extends Controller
         $validated = $this->validateTherapistProfile($request, $therapist->id);
 
         if ($request->hasFile('photo_file')) {
-            $path = $request->file('photo_file')->store('therapists', 'public');
+            $path = $request->file('photo_file')->store('therapists', media_storage_disk());
             $therapist->photo_url = public_storage_url($path, false);
             $therapist->landing_photo = null;
         }
@@ -1734,10 +1734,15 @@ class DashboardController extends Controller
         $photoUrl = trim((string) ($therapist->photo_url ?? ''));
         if ($photoUrl !== '') {
             $photoPath = parse_url($photoUrl, PHP_URL_PATH);
-            if (is_string($photoPath) && str_contains($photoPath, '/storage/')) {
-                $relative = ltrim(substr($photoPath, strpos($photoPath, '/storage/') + 9), '/');
+            if (is_string($photoPath)) {
+                $marker = str_contains($photoPath, '/media/') ? '/media/' : '/storage/';
+                $markerPosition = strpos($photoPath, $marker);
+                $relative = $markerPosition === false
+                    ? ''
+                    : ltrim(substr($photoPath, $markerPosition + strlen($marker)), '/');
+
                 if ($relative !== '') {
-                    Storage::disk('public')->delete($relative);
+                    Storage::disk(media_storage_disk())->delete($relative);
                 }
             }
         }
@@ -1951,7 +1956,7 @@ class DashboardController extends Controller
             return null;
         }
 
-        if (! Storage::disk('public')->exists($path)) {
+        if (! Storage::disk(media_storage_disk())->exists($path)) {
             return null;
         }
 
@@ -2849,7 +2854,7 @@ class DashboardController extends Controller
         $validated['receptionist_id'] = $this->generateReceptionistId();
 
         if ($request->hasFile('profile_picture')) {
-            $validated['profile_picture'] = $request->file('profile_picture')->store('receptionists', 'public');
+            $validated['profile_picture'] = $request->file('profile_picture')->store('receptionists', media_storage_disk());
         }
 
         $receptionist = Receptionist::create($validated);
@@ -2906,9 +2911,9 @@ class DashboardController extends Controller
 
         if ($request->hasFile('profile_picture')) {
             if ($receptionist->profile_picture) {
-                Storage::disk('public')->delete($receptionist->profile_picture);
+                Storage::disk(media_storage_disk())->delete($receptionist->profile_picture);
             }
-            $validated['profile_picture'] = $request->file('profile_picture')->store('receptionists', 'public');
+            $validated['profile_picture'] = $request->file('profile_picture')->store('receptionists', media_storage_disk());
         }
 
         $receptionist->update($validated);

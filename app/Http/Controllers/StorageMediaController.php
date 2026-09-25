@@ -16,7 +16,7 @@ class StorageMediaController extends Controller
             abort(404);
         }
 
-        $disk = Storage::disk('public');
+        $disk = Storage::disk(media_storage_disk());
 
         if (! $disk->exists($path)) {
             abort(404);

@@ -59,12 +59,12 @@ class ProfileController extends Controller
 
         $user = $request->user();
         $oldPath = $user->profile_photo_path;
-        $newPath = $request->file('profile_photo')->store('profile-photos', 'public');
+        $newPath = $request->file('profile_photo')->store('profile-photos', media_storage_disk());
         $user->profile_photo_path = $newPath;
         $user->save();
 
         if ($oldPath && $oldPath !== $newPath) {
-            Storage::disk('public')->delete($oldPath);
+            Storage::disk(media_storage_disk())->delete($oldPath);
         }
 
         return back()->with('status', 'Profile photo saved successfully.');
@@ -143,10 +143,10 @@ class ProfileController extends Controller
         }
 
         if ($request->hasFile('profile_photo')) {
-            if (! empty($user->profile_photo_path) && Storage::disk('public')->exists($user->profile_photo_path)) {
-                Storage::disk('public')->delete($user->profile_photo_path);
+            if (! empty($user->profile_photo_path) && Storage::disk(media_storage_disk())->exists($user->profile_photo_path)) {
+                Storage::disk(media_storage_disk())->delete($user->profile_photo_path);
             }
-            $user->profile_photo_path = $request->file('profile_photo')->store('profile-photos', 'public');
+            $user->profile_photo_path = $request->file('profile_photo')->store('profile-photos', media_storage_disk());
         }
 
         $user->save();

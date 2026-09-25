@@ -2,6 +2,16 @@
 
 use Illuminate\Support\Facades\Storage;
 
+if (! function_exists('media_storage_disk')) {
+    /**
+     * Filesystem disk used for user-uploaded media.
+     */
+    function media_storage_disk(): string
+    {
+        return (string) config('filesystems.media_disk', 'public');
+    }
+}
+
 if (! function_exists('app_public_base_path')) {
     /**
      * Web path prefix to the Laravel public directory (no trailing slash).
@@ -56,7 +66,7 @@ if (! function_exists('public_storage_url')) {
             return null;
         }
 
-        if ($checkExists && ! Storage::disk('public')->exists($path)) {
+        if ($checkExists && ! Storage::disk(media_storage_disk())->exists($path)) {
             return null;
         }
 
