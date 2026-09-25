@@ -767,8 +767,7 @@
                 }, 3500);
             }
 
-            const userMenuWrap = document.querySelector('[data-user-menu]');
-            if (userMenuWrap) {
+            document.querySelectorAll('[data-user-menu]').forEach((userMenuWrap) => {
                 const btn = userMenuWrap.querySelector('.nav-user');
                 const menu = userMenuWrap.querySelector('.nav-user-menu');
                 const close = () => {
@@ -787,7 +786,7 @@
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') close();
                 });
-            }
+            });
         })();
     </script>
     @auth

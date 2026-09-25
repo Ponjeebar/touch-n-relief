@@ -220,6 +220,10 @@ body {
     position: relative;
 }
 
+.nav-user-wrap--mobile {
+    display: none;
+}
+
 .nav-caret {
     font-size: 0.85rem;
     opacity: 0.9;
@@ -1736,6 +1740,14 @@ body {
 
     .landing-header .nav-header-actions {
         margin-left: auto;
+    }
+
+    .landing-header .nav-user-wrap--desktop {
+        display: none;
+    }
+
+    .landing-header .nav-user-wrap--mobile {
+        display: block;
     }
 
     .mobile-nav-toggle {

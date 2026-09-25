@@ -1,6 +1,14 @@
 @php
     $navMode = $navMode ?? 'full';
     $onLanding = request()->routeIs('landing');
+    $user = auth()->user();
+    $source = trim($user?->name ?: $user?->email ?: 'User');
+    $profilePhotoUrl = public_storage_url($user?->profile_photo_path);
+    $initials = collect(preg_split('/\s+/', $source) ?: [])
+        ->filter()
+        ->take(2)
+        ->map(fn (string $part) => strtoupper(substr($part, 0, 1)))
+        ->implode('') ?: 'U';
 @endphp
 <header class="landing-header {{ ($navMode === 'auth' || ($solidNav ?? false)) ? 'nav-solid' : '' }} {{ ($navMode === 'auth') ? 'auth-page-header' : '' }}">
     <div class="nav-container">
@@ -25,51 +33,7 @@
                 @endif
                 @if ($navMode === 'full')
                     @auth
-                        @php
-                            $user = auth()->user();
-                            $source = trim($user?->name ?: $user?->email ?: 'User');
-                            $profilePhotoUrl = public_storage_url($user?->profile_photo_path);
-                            $initials = collect(preg_split('/\s+/', $source) ?: [])
-                                ->filter()
-                                ->take(2)
-                                ->map(fn (string $part) => strtoupper(substr($part, 0, 1)))
-                                ->implode('');
-                            $initials = $initials ?: 'U';
-                        @endphp
-                        <div class="nav-user-wrap" data-user-menu>
-                            <button type="button" class="nav-user" title="{{ $user?->name }}" aria-haspopup="menu" aria-expanded="false">
-                                <span class="nav-avatar" aria-hidden="true">
-                                    @if ($profilePhotoUrl)
-                                        <img
-                                            src="{{ $profilePhotoUrl }}"
-                                            alt="{{ $user?->name ?: 'User' }} profile photo"
-                                            onerror="this.remove(); this.parentElement.textContent='{{ $initials }}';"
-                                        >
-                                    @else
-                                        {{ $initials }}
-                                    @endif
-                                </span>
-                                <span class="nav-username">{{ $user?->name ?: 'User' }}</span>
-                                <span class="nav-caret" aria-hidden="true">▾</span>
-                            </button>
-                            <div class="nav-user-menu" role="menu">
-                                @if (auth()->user()->isAdmin())
-                                    <a role="menuitem" href="{{ route('dashboard') }}">Dashboard</a>
-                                @endif
-                                @if (auth()->user()->isAdmin())
-                                    <button type="button" role="menuitem" class="nav-user-menu-btn" id="landing-profile-open-modal">Edit Profile</button>
-                                @else
-                                    <a role="menuitem" href="{{ route('profile.edit') }}">Edit Profile</a>
-                                @endif
-                                @if (! auth()->user()->isAdmin() && ! auth()->user()->isReceptionist())
-                                    <button type="button" role="menuitem" class="nav-user-menu-btn" data-tnr-open-transactions>Transactions</button>
-                                @endif
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" role="menuitem" class="nav-user-logout">Logout</button>
-                                </form>
-                            </div>
-                        </div>
+                        @include('partials.landing-user-menu', ['navUserWrapperClass' => 'nav-user-wrap--mobile'])
                     @else
                         <a href="{{ route('login') }}" class="btn btn-outline">Log In</a>
                     @endauth
@@ -83,9 +47,10 @@
             <div class="nav-header-actions">
                 @if ($navMode === 'full')
                     @auth
-                        @if (auth()->user()->isUser() && ! auth()->user()->isWalkIn())
+                        @if ($user->isUser() && ! $user->isWalkIn())
                             @include('partials.customer-notifications')
                         @endif
+                        @include('partials.landing-user-menu', ['navUserWrapperClass' => 'nav-user-wrap--desktop'])
                     @endauth
                 @endif
                 <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
