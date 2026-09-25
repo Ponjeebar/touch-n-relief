@@ -240,7 +240,9 @@ class PaymongoService
         }
 
         $timestamp = $parts['t'] ?? '';
-        $signature = $parts['te'] ?? ($parts['li'] ?? '');
+        $signature = ($parts['li'] ?? '') !== ''
+            ? $parts['li']
+            : ($parts['te'] ?? '');
 
         if ($timestamp === '' || $signature === '') {
             return false;
