@@ -18,7 +18,7 @@
                 @csrf
                 <h1>Forgot Password</h1>
                 <p style="margin: 0 0 12px; color: #5d768f; font-size: 14px;">
-                    Enter your email and we will send a password reset link.
+                    Enter your email and we will send a six digit verification code.
                 </p>
 
                 @if (session('status'))

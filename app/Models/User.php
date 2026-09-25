@@ -4,18 +4,17 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\Archivable;
-use App\Models\SpaBooking;
 use App\Notifications\BrandedResetPassword;
 use App\Services\ResendPasswordResetService;
 use App\Support\MailDeliveryConfiguration;
 use App\Support\WalkInSchema;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Schema;
 
 class User extends Authenticatable
 {
@@ -188,8 +187,8 @@ class User extends Authenticatable
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<User>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<User>
+     * @param  Builder<User>  $query
+     * @return Builder<User>
      */
     public function scopeWalkIn($query)
     {
@@ -208,8 +207,8 @@ class User extends Authenticatable
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<User>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<User>
+     * @param  Builder<User>  $query
+     * @return Builder<User>
      */
     public function scopeRegisteredClient($query)
     {
@@ -237,6 +236,11 @@ class User extends Authenticatable
     public function spaBookings(): HasMany
     {
         return $this->hasMany(SpaBooking::class);
+    }
+
+    public function passwordHistories(): HasMany
+    {
+        return $this->hasMany(UserPasswordHistory::class);
     }
 
     public function isReceptionist(): bool

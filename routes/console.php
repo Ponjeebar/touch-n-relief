@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuthVerificationCode;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -9,3 +10,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('appointments:send-reminders')->everyFiveMinutes();
+Schedule::call(fn () => AuthVerificationCode::query()->where('expires_at', '<', now())->delete())
+    ->hourly()
+    ->name('prune-expired-auth-verification-codes')
+    ->withoutOverlapping();

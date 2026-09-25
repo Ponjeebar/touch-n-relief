@@ -93,7 +93,7 @@ class ChatbotService
         if ($this->has($question, ['register', 'sign up', 'create an account', 'new account'])) {
             return $this->respond(
                 $user ? 'You are already signed in. Your profile is available in your account.'
-                    : 'Choose Sign Up on the login page. Enter your name, contact number, email, birthday, and password. After registering, you can book online.',
+                    : 'Choose Sign Up on the login page. Enter your details and a strong password, then verify the six digit code sent to your email. After verification, you can book online.',
                 $user ? [$this->action('Open profile', 'profile.edit')] : [['label' => 'Create an account', 'url' => route('login', ['register' => 1])]],
             );
         }
@@ -101,7 +101,7 @@ class ChatbotService
         if ($this->has($question, ['login', 'log in', 'sign in', 'password', 'forgot'])) {
             return $this->respond(
                 $user ? 'You are signed in. You can manage your account from your profile.'
-                    : 'Sign in with your username, name, or email and password. If you forgot your password, use the reset link on the login page.',
+                    : 'Sign in with your username, name, or email and password. If you forgot your password, request the six digit verification code on the login page.',
                 $user ? [$this->action('Open profile', 'profile.edit')]
                     : [$this->action('Sign in', 'login'), $this->action('Reset password', 'password.request')],
             );

@@ -46,19 +46,23 @@
                 @enderror
 
                 <label class="auth-field-label" for="reset-password">New password</label>
-                <div class="auth-password-wrap">
-                    <input
-                        id="reset-password"
-                        type="password"
-                        name="password"
-                        placeholder="New Password"
-                        autocomplete="new-password"
-                        class="@error('password') invalid @enderror"
-                        required
-                    >
-                    <button type="button" class="auth-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
-                        <i class="bi bi-eye" aria-hidden="true"></i>
-                    </button>
+                <div class="auth-password-policy-field" data-password-policy>
+                    <div class="auth-password-wrap">
+                        <input
+                            id="reset-password"
+                            type="password"
+                            name="password"
+                            placeholder="New Password"
+                            autocomplete="new-password"
+                            class="@error('password') invalid @enderror"
+                            data-password-primary
+                            required
+                        >
+                        <button type="button" class="auth-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
+                            <i class="bi bi-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    @include('partials.password-requirements')
                 </div>
                 @error('password')
                     <p class="field-msg">{{ $message }}</p>
@@ -70,6 +74,7 @@
                         id="reset-password-confirmation"
                         type="password"
                         name="password_confirmation"
+                        data-password-confirmation
                         placeholder="Confirm Password"
                         autocomplete="new-password"
                         required
@@ -79,7 +84,7 @@
                     </button>
                 </div>
 
-                <p class="auth-reset-hint"><i class="bi bi-check-circle" aria-hidden="true"></i> Use at least 8 characters and avoid a password used on another site.</p>
+                <p class="auth-reset-hint"><i class="bi bi-shield-check" aria-hidden="true"></i> Passwords found in known data breaches or previously used for this account are rejected.</p>
 
                 <button type="submit">Save new password</button>
                 <div class="mobile-toggle" style="display: flex;">
@@ -100,5 +105,6 @@
             </div>
         </div>
     </main>
+    <script src="{{ asset('js/password-requirements.js') }}?v={{ filemtime(public_path('js/password-requirements.js')) }}"></script>
 </body>
 </html>

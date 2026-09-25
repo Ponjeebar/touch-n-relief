@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuthVerificationCode;
 use App\Models\User;
-use App\Support\MailDeliveryConfiguration;
+use App\Rules\NotRecentlyUsedPassword;
 use App\Services\ActivityLogger;
+use App\Services\AuthVerificationCodeService;
 use App\Services\WalkInClientService;
+use App\Support\MailDeliveryConfiguration;
+use App\Support\StrongPassword;
 use App\Support\WalkInSchema;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,13 +24,14 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthController extends Controller
 {
     public function __construct(
         private readonly WalkInClientService $walkInClients,
+        private readonly AuthVerificationCodeService $verificationCodes,
     ) {}
 
     public function showLogin(): View
@@ -51,26 +57,31 @@ class AuthController extends Controller
         }
 
         try {
-            $status = PasswordBroker::sendResetLink([
-                'email' => $validated['email'],
-            ]);
+            $user = User::query()->whereRaw('LOWER(email) = ?', [Str::lower($validated['email'])])->first();
+            if (! $user || $user->isWalkIn() || $user->isArchived()) {
+                return redirect()->route('password.request')->with('status', 'If that account exists, a verification code has been sent.');
+            }
+
+            $verification = $this->verificationCodes->issue(
+                $user->email,
+                AuthVerificationCode::PURPOSE_PASSWORD_RESET,
+                ['user_id' => $user->id],
+                $user->name,
+            );
         } catch (\Throwable $exception) {
             Log::error('Password reset email could not be sent.', [
                 'message' => $exception->getMessage(),
             ]);
 
             return redirect()->route('password.request')->withErrors([
-                'email' => 'We could not send the reset link right now. Please try again later.',
+                'email' => 'We could not send the verification code right now. Please try again later.',
             ])->withInput($request->only('email'));
         }
 
-        if ($status === PasswordBroker::RESET_LINK_SENT) {
-            return redirect()->route('password.request')->with('status', __($status));
-        }
-
-        return redirect()->route('password.request')->withErrors([
-            'email' => __($status),
-        ])->withInput($request->only('email'));
+        return redirect()->route('verification.show', [
+            'verification' => $verification->id,
+            'purpose' => AuthVerificationCode::PURPOSE_PASSWORD_RESET,
+        ]);
     }
 
     public function showResetPassword(Request $request, string $token): View
@@ -83,19 +94,23 @@ class AuthController extends Controller
 
     public function resetPassword(Request $request): RedirectResponse
     {
+        $user = User::query()->whereRaw('LOWER(email) = ?', [Str::lower((string) $request->input('email'))])->first();
         $validated = $request->validate([
             'token' => ['required', 'string'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => array_filter(['required', 'confirmed', StrongPassword::rule(), $user ? new NotRecentlyUsedPassword($user) : null]),
         ]);
 
         $status = PasswordBroker::reset(
             $validated,
             function (User $user, string $password): void {
+                $user->passwordHistories()->create(['password' => $user->getAuthPassword()]);
                 $user->forceFill([
                     'password' => $password,
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                $user->passwordHistories()->latest()->skip(5)->take(100)->get()->each->delete();
 
                 event(new PasswordReset($user));
             }
@@ -148,7 +163,6 @@ class AuthController extends Controller
                 'login' => 'This account has been archived. Please contact the spa administrator.',
             ])->onlyInput('login', 'remember');
         }
-
 
         if ($user instanceof User && $user->isBanned()) {
             return redirect()->route('login')->withErrors([
@@ -243,11 +257,101 @@ class AuthController extends Controller
             'contact_number' => ['required', 'regex:/^09\d{9}$/'],
             'birthday' => ['required', 'date', 'before_or_equal:'.$minimumBirthday],
             'sex' => ['required', Rule::in(User::sexOptions())],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => ['required', 'confirmed', StrongPassword::rule()],
         ], [
             'birthday.before_or_equal' => 'You must be at least 15 years old to register.',
             'contact_number.regex' => 'Phone number must be 11 digits starting with 09.',
         ]);
+
+        try {
+            $verification = $this->verificationCodes->issue(
+                $validated['email'],
+                AuthVerificationCode::PURPOSE_REGISTRATION,
+                [
+                    'registration' => $validated,
+                    'matched_walk_in_id' => $matchedWalkIn?->id,
+                    'return_to' => $returnTo,
+                    'intended' => $intendedBeforeRegister,
+                ],
+                $validated['name'],
+            );
+        } catch (\Throwable $exception) {
+            Log::error('Registration verification code could not be sent.', ['message' => $exception->getMessage()]);
+
+            return back()->withErrors([
+                'email' => 'We could not send the verification code right now. Please try again later.',
+            ], 'register')->withInput();
+        }
+
+        return redirect()->route('verification.show', [
+            'verification' => $verification->id,
+            'purpose' => AuthVerificationCode::PURPOSE_REGISTRATION,
+        ]);
+    }
+
+    public function showVerification(AuthVerificationCode $verification, Request $request): View
+    {
+        abort_unless(hash_equals($verification->purpose, (string) $request->query('purpose')), 404);
+
+        return view('auth.verify-code', ['verification' => $verification]);
+    }
+
+    public function verifyCode(Request $request, AuthVerificationCode $verification): RedirectResponse
+    {
+        $validated = $request->validate([
+            'purpose' => ['required', Rule::in([AuthVerificationCode::PURPOSE_REGISTRATION, AuthVerificationCode::PURPOSE_PASSWORD_RESET])],
+            'code' => ['required', 'digits:6'],
+        ]);
+        $verification = $this->verificationCodes->verify($verification->id, $validated['purpose'], $validated['code']);
+
+        if ($verification->purpose === AuthVerificationCode::PURPOSE_PASSWORD_RESET) {
+            $user = User::query()->findOrFail($verification->payload['user_id'] ?? null);
+            $token = PasswordBroker::createToken($user);
+            $verification->delete();
+
+            return redirect()->route('password.reset', ['token' => $token, 'email' => $user->email]);
+        }
+
+        return $this->completeVerifiedRegistration($request, $verification);
+    }
+
+    public function resendCode(AuthVerificationCode $verification): RedirectResponse
+    {
+        if ($verification->last_sent_at->addSeconds(AuthVerificationCodeService::RESEND_SECONDS)->isFuture()) {
+            return back()->withErrors(['code' => 'Please wait before requesting another code.']);
+        }
+
+        $payload = $verification->payload ?? [];
+        $name = (string) ($payload['registration']['name'] ?? '');
+        if ($verification->purpose === AuthVerificationCode::PURPOSE_PASSWORD_RESET) {
+            $name = (string) User::query()->find($payload['user_id'] ?? null)?->name;
+        }
+        try {
+            $replacement = $this->verificationCodes->issue($verification->email, $verification->purpose, $payload, $name);
+        } catch (\Throwable $exception) {
+            Log::error('Verification code could not be resent.', ['message' => $exception->getMessage()]);
+
+            return back()->withErrors(['code' => 'We could not send a new code right now. Please try again later.']);
+        }
+
+        return redirect()->route('verification.show', [
+            'verification' => $replacement->id,
+            'purpose' => $replacement->purpose,
+        ])->with('status', 'A new verification code has been sent.');
+    }
+
+    private function completeVerifiedRegistration(Request $request, AuthVerificationCode $verification): RedirectResponse
+    {
+        $payload = $verification->payload ?? [];
+        $validated = (array) ($payload['registration'] ?? []);
+        $matchedWalkIn = ! empty($payload['matched_walk_in_id'])
+            ? User::query()->find($payload['matched_walk_in_id'])
+            : null;
+
+        Validator::make($validated, [
+            'username' => ['required', Rule::unique('users', 'username')->ignore($matchedWalkIn?->id)],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($matchedWalkIn?->id)],
+        ])->validate();
 
         try {
             $user = DB::transaction(function () use ($validated, $matchedWalkIn) {
@@ -282,13 +386,16 @@ class AuthController extends Controller
 
                 return $user->fresh();
             });
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             throw $exception;
-        } catch (\Illuminate\Database\QueryException) {
+        } catch (QueryException) {
             return back()
                 ->withErrors(['email' => 'Unable to complete registration. Please try again.'], 'register')
                 ->withInput();
         }
+
+        $user->forceFill(['email_verified_at' => now()])->save();
+        $verification->delete();
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -303,6 +410,8 @@ class AuthController extends Controller
             request: $request,
         );
 
+        $returnTo = (string) ($payload['return_to'] ?? '');
+        $intendedBeforeRegister = (string) ($payload['intended'] ?? '');
         $target = $returnTo !== '' ? $returnTo : $intendedBeforeRegister;
         if ($this->isSafeReturnTo($request, $target)) {
             return redirect()->to($target);

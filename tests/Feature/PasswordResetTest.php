@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuthVerificationCode;
 use App\Models\User;
+use App\Notifications\AuthVerificationCodeNotification;
 use App\Notifications\BrandedResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -34,31 +36,26 @@ class PasswordResetTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
-    public function test_reset_link_request_and_password_change(): void
+    public function test_reset_code_verification_and_password_change(): void
     {
         Notification::fake();
         $user = User::factory()->create(['password' => 'OldPassword123!']);
+        $code = null;
 
-        $this->post(route('password.email'), ['email' => $user->email])
-            ->assertRedirect(route('password.request'))
-            ->assertSessionHas('status');
+        $this->post(route('password.email'), ['email' => $user->email])->assertRedirect();
+        $verification = AuthVerificationCode::query()->firstOrFail();
+        Notification::assertSentOnDemand(AuthVerificationCodeNotification::class, function ($notification) use (&$code): bool {
+            $code = $notification->code;
 
-        $this->get(route('password.request'))
-            ->assertOk()
-            ->assertSee('sign-in-forgot-active');
+            return $notification->purpose === AuthVerificationCode::PURPOSE_PASSWORD_RESET;
+        });
 
-        Notification::assertSentTo($user, BrandedResetPassword::class);
-        $notification = Notification::sent($user, BrandedResetPassword::class)->first();
-        $token = $notification->token;
-        $mail = $notification->toMail($user);
-        $html = view($mail->view['html'], $mail->viewData)->render();
-        $text = view($mail->view['text'], $mail->viewData)->render();
+        $this->post(route('verification.verify', $verification), [
+            'purpose' => AuthVerificationCode::PURPOSE_PASSWORD_RESET,
+            'code' => $code,
+        ])->assertRedirect();
 
-        $this->assertSame('Reset your TouchNRelief password', $mail->subject);
-        $this->assertStringContainsString('TouchNRelief', $html);
-        $this->assertStringContainsString('cid:touch-n-relief-logo', $html);
-        $this->assertStringContainsString($token, $html);
-        $this->assertStringContainsString($token, $text);
+        $token = PasswordBroker::createToken($user);
 
         $this->get(route('password.reset', ['token' => $token, 'email' => $user->email]))
             ->assertOk();
@@ -124,8 +121,7 @@ class PasswordResetTest extends TestCase
         $user = User::factory()->create();
 
         $this->post(route('password.email'), ['email' => $user->email])
-            ->assertRedirect(route('password.request'))
-            ->assertSessionHas('status');
+            ->assertRedirect();
 
         Http::assertSent(function ($request) use ($user): bool {
             $payload = $request->data();
@@ -133,11 +129,8 @@ class PasswordResetTest extends TestCase
             return $request->url() === 'https://api.resend.com/emails'
                 && $request->hasHeader('Authorization', 'Bearer re_test_key')
                 && $payload['to'] === [$user->email]
-                && str_contains((string) $payload['html'], 'Reset your password')
-                && str_contains((string) $payload['html'], '/reset-password/')
-                && str_contains((string) $payload['html'], 'cid:touch-n-relief-logo')
-                && ($payload['attachments'][0]['content_id'] ?? null) === 'touch-n-relief-logo'
-                && ($payload['attachments'][0]['content_type'] ?? null) === 'image/png';
+                && str_contains((string) $payload['html'], 'Your verification code')
+                && str_contains((string) $payload['subject'], 'password reset code');
         });
     }
 

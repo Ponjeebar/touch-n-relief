@@ -122,19 +122,24 @@
                 @error('sex', 'register')
                     <p class="field-msg">{{ $message }}</p>
                 @enderror
+                <div class="auth-password-policy-field" data-password-policy>
                 <div class="auth-password-wrap">
                     <input
+                        id="register-password"
                         type="password"
                         name="password"
                         placeholder="Enter Password"
                         autocomplete="new-password"
                         minlength="8"
                         class="@error('password', 'register') invalid @enderror"
+                        data-password-primary
                         required
                     >
                     <button type="button" class="auth-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
                         <i class="bi bi-eye" aria-hidden="true"></i>
                     </button>
+                </div>
+                @include('partials.password-requirements')
                 </div>
                 @error('password', 'register')
                     <p class="field-msg">{{ $message }}</p>
@@ -146,6 +151,7 @@
                         placeholder="Confirm Password"
                         autocomplete="new-password"
                         minlength="8"
+                        data-password-confirmation
                         required
                     >
                     <button type="button" class="auth-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
@@ -209,7 +215,7 @@
             <form method="POST" action="{{ route('password.email') }}" class="auth-forgot-panel">
                 @csrf
                 <h1>Forgot Password</h1>
-                <p class="auth-forgot-copy">Enter your email and we will send a password reset link.</p>
+                <p class="auth-forgot-copy">Enter your email and we will send a six digit verification code.</p>
                 <input type="hidden" name="_auth_mode" value="forgot">
                 <input
                     type="email"
@@ -226,7 +232,7 @@
                 @if (session('status'))
                     <p class="field-msg auth-forgot-success">{{ session('status') }}</p>
                 @endif
-                <button type="submit">Send Reset Link</button>
+                <button type="submit">Send verification code</button>
                 <button type="button" class="link auth-forgot-back" data-auth-forgot-close="true" data-login-url="{{ route('login') }}">Back to Sign In</button>
             </form>
         </div>
@@ -266,5 +272,6 @@
     </div>
 
     <script src="{{ asset('js/auth-toggle.js') }}?v={{ filemtime(public_path('js/auth-toggle.js')) }}"></script>
+    <script src="{{ asset('js/password-requirements.js') }}?v={{ filemtime(public_path('js/password-requirements.js')) }}"></script>
 </body>
 </html>

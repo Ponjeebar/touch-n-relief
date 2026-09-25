@@ -27,9 +27,12 @@ Route::post('/webhooks/paymongo', [PaymongoController::class, 'webhook'])->name(
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
-    Route::post('/register', [AuthController::class, 'register'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,10')->name('register');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
-    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middleware('throttle:5,10')->name('password.email');
+    Route::get('/verify-code/{verification}', [AuthController::class, 'showVerification'])->name('verification.show');
+    Route::post('/verify-code/{verification}', [AuthController::class, 'verifyCode'])->middleware('throttle:10,1')->name('verification.verify');
+    Route::post('/verify-code/{verification}/resend', [AuthController::class, 'resendCode'])->middleware('throttle:3,10')->name('verification.resend');
 });
 
 // A reset link must remain usable when it opens in a browser with an existing session.
