@@ -66,7 +66,8 @@ class SocialAuthenticationTest extends TestCase
             'email_verified' => true,
         ]));
 
-        $this->get(route('social.callback', ['provider' => 'google']))
+        $this->withSession(['social_auth.intent' => 'signup'])
+            ->get(route('social.callback', ['provider' => 'google']))
             ->assertRedirect(route('social.complete'));
 
         $this->get(route('social.complete'))
@@ -116,5 +117,45 @@ class SocialAuthenticationTest extends TestCase
             'provider' => 'facebook',
             'provider_user_id' => 'facebook-admin-789',
         ]);
+    }
+
+    public function test_social_signup_rejects_an_existing_customer_email(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        Socialite::fake('google', ProviderUser::fake([
+            'id' => 'google-existing-signup-123',
+            'name' => $customer->name,
+            'email' => $customer->email,
+            'email_verified' => true,
+        ]));
+
+        $this->withSession(['social_auth.intent' => 'signup'])
+            ->get(route('social.callback', ['provider' => 'google']))
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('social');
+
+        $this->assertGuest();
+        $this->assertDatabaseMissing('social_accounts', [
+            'user_id' => $customer->id,
+            'provider' => 'google',
+        ]);
+    }
+
+    public function test_social_login_rejects_an_unregistered_email(): void
+    {
+        Socialite::fake('google', ProviderUser::fake([
+            'id' => 'google-unregistered-login-456',
+            'name' => 'Unknown Customer',
+            'email' => 'unknown.customer@example.com',
+            'email_verified' => true,
+        ]));
+
+        $this->withSession(['social_auth.intent' => 'login'])
+            ->get(route('social.callback', ['provider' => 'google']))
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('social');
+
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'unknown.customer@example.com']);
     }
 }

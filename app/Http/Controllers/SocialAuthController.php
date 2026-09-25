@@ -26,6 +26,8 @@ class SocialAuthController extends Controller
 
     private const PENDING_SESSION_KEY = 'social_auth.pending';
 
+    private const INTENT_SESSION_KEY = 'social_auth.intent';
+
     public function __construct(private readonly WalkInClientService $walkInClients) {}
 
     public function redirect(Request $request, string $provider): RedirectResponse|SymfonyRedirectResponse
@@ -36,6 +38,11 @@ class SocialAuthController extends Controller
             ]);
         }
 
+        $intent = in_array($request->query('intent'), ['login', 'signup'], true)
+            ? $request->query('intent')
+            : 'login';
+        $request->session()->put(self::INTENT_SESSION_KEY, $intent);
+
         return Socialite::driver($provider)->scopes(['email'])->redirect();
     }
 
@@ -44,6 +51,8 @@ class SocialAuthController extends Controller
         if (! $this->isSupportedProvider($provider) || ! $this->isConfigured($provider)) {
             return redirect()->route('login')->withErrors(['social' => 'That social login provider is unavailable.']);
         }
+
+        $intent = $request->session()->pull(self::INTENT_SESSION_KEY, 'login');
 
         try {
             /** @var ProviderUser $providerUser */
@@ -81,6 +90,10 @@ class SocialAuthController extends Controller
             ->first();
 
         if ($socialAccount instanceof SocialAccount) {
+            if ($intent === 'signup') {
+                return $this->existingAccountResponse($provider);
+            }
+
             return $this->loginCustomer($request, $socialAccount->user, $provider);
         }
 
@@ -90,6 +103,10 @@ class SocialAuthController extends Controller
                 return redirect()->route('login')->withErrors([
                     'social' => 'Social login is available only for active customer accounts.',
                 ]);
+            }
+
+            if ($intent === 'signup') {
+                return $this->existingAccountResponse($provider);
             }
 
             $providerLink = $existingUser->socialAccounts()->where('provider', $provider)->first();
@@ -105,6 +122,12 @@ class SocialAuthController extends Controller
             ]);
 
             return $this->loginCustomer($request, $existingUser, $provider);
+        }
+
+        if ($intent !== 'signup') {
+            return redirect()->route('login')->withErrors([
+                'social' => 'No customer account uses that email address. Choose Sign up with '.ucfirst($provider).' first.',
+            ]);
         }
 
         $request->session()->put(self::PENDING_SESSION_KEY, [
@@ -266,6 +289,13 @@ class SocialAuthController extends Controller
     private function canUseSocialLogin(User $user): bool
     {
         return $user->isUser() && ! $user->isWalkIn() && ! $user->isArchived() && ! $user->isBanned();
+    }
+
+    private function existingAccountResponse(string $provider): RedirectResponse
+    {
+        return redirect()->route('login')->withErrors([
+            'social' => 'That email address is already registered. Choose Sign in with '.ucfirst($provider).' instead.',
+        ]);
     }
 
     private function isSupportedProvider(string $provider): bool
