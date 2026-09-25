@@ -530,17 +530,11 @@ body.auth-page #container .auth-social-button:focus-visible {
     outline-offset: 2px;
 }
 
-.auth-social-button .bi {
-    flex: 0 0 auto;
-    font-size: 16px;
-}
-
-.auth-social-button-facebook .bi {
-    color: #1877f2;
-}
-
-.auth-social-button-google .bi {
-    color: #4285f4;
+.social-provider-icon {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 19px;
+    display: block;
 }
 
 body.auth-page #container .auth-social-button.is-disabled {
@@ -1290,8 +1284,10 @@ body.auth-page #container.active .toggle-left {
     font-weight: 700;
 }
 
-.social-complete-provider .bi {
-    font-size: 17px;
+.social-complete-provider .social-provider-icon {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
 }
 
 .social-complete-copy {

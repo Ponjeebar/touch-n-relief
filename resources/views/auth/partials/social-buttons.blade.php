@@ -2,8 +2,8 @@
     $socialIntent = $socialIntent ?? 'login';
     $socialAction = $socialIntent === 'signup' ? 'Sign up' : 'Sign in';
     $providers = [
-        'google' => ['label' => 'Google', 'icon' => 'bi-google'],
-        'facebook' => ['label' => 'Facebook', 'icon' => 'bi-facebook'],
+        'google' => ['label' => 'Google'],
+        'facebook' => ['label' => 'Facebook'],
     ];
 @endphp
 <div class="auth-social auth-social-{{ $socialIntent }}" aria-label="{{ $socialAction }} with a social account">
@@ -15,12 +15,12 @@
             @endphp
             @if ($configured)
                 <a class="auth-social-button auth-social-button-{{ $provider }}" href="{{ route('social.redirect', ['provider' => $provider, 'intent' => $socialIntent]) }}" aria-label="{{ $socialAction }} with {{ $details['label'] }}">
-                    <i class="bi {{ $details['icon'] }}" aria-hidden="true"></i>
+                    @include('auth.partials.social-provider-icon', ['provider' => $provider])
                     <span>{{ $socialAction }} with {{ $details['label'] }}</span>
                 </a>
             @else
                 <span class="auth-social-button auth-social-button-{{ $provider }} is-disabled" aria-disabled="true" title="{{ $details['label'] }} login is not configured yet">
-                    <i class="bi {{ $details['icon'] }}" aria-hidden="true"></i>
+                    @include('auth.partials.social-provider-icon', ['provider' => $provider])
                     <span>{{ $socialAction }} with {{ $details['label'] }}</span>
                 </span>
             @endif

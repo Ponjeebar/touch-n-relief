@@ -16,7 +16,7 @@
     <main class="social-complete-card">
         <header class="social-complete-header">
             <div class="social-complete-provider">
-                <i class="bi bi-{{ $pending['provider'] === 'google' ? 'google' : 'facebook' }}" aria-hidden="true"></i>
+                @include('auth.partials.social-provider-icon', ['provider' => $pending['provider']])
                 <span>{{ ucfirst($pending['provider']) }} account verified</span>
             </div>
             <h1>Complete your account</h1>
