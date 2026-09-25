@@ -17,6 +17,11 @@
         .summary strong { display: block; color: #16382d; font-size: 18px; margin-top: 4px; }
         .columns { width: 100%; border-collapse: separate; border-spacing: 10px 0; margin: 0 -10px; }
         .columns > tbody > tr > td { width: 50%; vertical-align: top; }
+        .charts { width: 100%; border-collapse: separate; border-spacing: 10px 0; margin: 0 -10px 16px; }
+        .charts td { width: 50%; vertical-align: top; border: 1px solid #dfe8eb; }
+        .chart-title { padding: 7px 9px; color: #fff; background: #04724d; font-size: 12px; font-weight: bold; }
+        .chart-image { padding: 8px; }
+        .chart-image img { display: block; width: 100%; height: auto; }
         .section { margin-bottom: 14px; page-break-inside: avoid; }
         .section h2 { padding: 7px 9px; color: #fff; background: #04724d; font-size: 12px; }
         table.data { width: 100%; border-collapse: collapse; }
@@ -48,6 +53,17 @@
         <td><span>{{ $primaryLabel ?? 'Sales' }}</span><strong>PHP {{ number_format((float) ($primaryAmount ?? 0), 2) }}</strong></td>
         <td><span>{{ $secondaryLabel ?? 'New Users' }}</span><strong>{{ number_format((int) ($secondaryUserCount ?? 0)) }}</strong></td>
         <td><span>{{ $hoursLabel ?? 'Service Hours' }}</span><strong>{{ number_format((float) ($hoursValue ?? 0), 1) }} hrs</strong></td>
+    </tr></table>
+
+    <table class="charts"><tr>
+        <td>
+            <div class="chart-title">Sales Trend</div>
+            <div class="chart-image"><img src="{{ $salesTrendChart }}" alt="Sales trend graph"></div>
+        </td>
+        <td>
+            <div class="chart-title">Service Revenue</div>
+            <div class="chart-image"><img src="{{ $serviceRevenueChart }}" alt="Service revenue graph"></div>
+        </td>
     </tr></table>
 
     <table class="columns"><tr>

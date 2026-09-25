@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\BookingSlotService;
 use App\Services\NotificationFeedService;
+use App\Services\ReportingPdfChartService;
 use App\Services\SiteSettingsService;
 use App\Services\SpaServiceCatalog;
 use App\Services\SpaSessionService;
@@ -2231,11 +2232,13 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function reportingPdf(Request $request): Response
+    public function reportingPdf(Request $request, ReportingPdfChartService $charts): Response
     {
         $period = $this->normalizeReportingPeriod($request->query('period', 'monthly'));
         $periodValue = $request->query('period_value');
         $payload = $this->reportingPayload($period, $periodValue);
+        $payload['salesTrendChart'] = $charts->salesTrend($payload['trendLabels'] ?? [], $payload['trendData'] ?? []);
+        $payload['serviceRevenueChart'] = $charts->serviceRevenue($payload['serviceLabels'] ?? [], $payload['serviceTotals'] ?? []);
         $safeSelection = preg_replace('/[^a-z0-9_-]+/i', '-', (string) ($payload['periodValue'] ?? 'current')) ?: 'current';
         $filename = 'touchnrelief-report-'.$period.'-'.$safeSelection.'.pdf';
 
