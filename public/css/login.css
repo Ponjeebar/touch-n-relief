@@ -595,6 +595,24 @@ body.auth-page #container.active .sign-up {
 .password-requirements li i { color: #91a0a7; }
 .password-requirements li.passed { color: #087b57; }
 .password-requirements li.passed i { color: #19a36d; }
+
+@media (min-width: 1200px) {
+    body.auth-page #container.active {
+        overflow: visible;
+    }
+
+    body.auth-page #container.active .sign-up .password-requirements {
+        left: calc(100% + 24px);
+        top: 50%;
+        width: 250px;
+        transform: translate(-8px, -50%);
+    }
+
+    body.auth-page #container.active .sign-up .auth-password-policy-field:focus-within .password-requirements {
+        transform: translate(0, -50%);
+    }
+}
+
 .auth-code-input { text-align: center; font-size: 26px !important; font-weight: 700; letter-spacing: 9px; font-variant-numeric: tabular-nums; }
 .auth-code-actions { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 8px; }
 .auth-code-actions .link { font-size: 13px; }
