@@ -30,6 +30,15 @@ class PaymongoService
         return (string) config('services.paymongo.webhook_secret');
     }
 
+    public function isCheckoutUrl(string $url): bool
+    {
+        $parts = parse_url(trim($url));
+
+        return is_array($parts)
+            && strtolower((string) ($parts['scheme'] ?? '')) === 'https'
+            && strtolower((string) ($parts['host'] ?? '')) === 'checkout.paymongo.com';
+    }
+
     /**
      * @param  array<string, mixed>  $attributes
      * @return array<string, mixed>
@@ -83,7 +92,7 @@ class PaymongoService
 
         $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
         $sessionId = (string) ($session['id'] ?? '');
-        if ($checkoutUrl === '' || $sessionId === '') {
+        if (! $this->isCheckoutUrl($checkoutUrl) || $sessionId === '') {
             throw new RuntimeException('PayMongo did not return a checkout link and session ID.');
         }
 
@@ -120,7 +129,7 @@ class PaymongoService
 
         $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
         $sessionId = (string) ($session['id'] ?? '');
-        if ($checkoutUrl === '' || $sessionId === '') {
+        if (! $this->isCheckoutUrl($checkoutUrl) || $sessionId === '') {
             throw new RuntimeException('PayMongo did not return a checkout link and session ID.');
         }
 

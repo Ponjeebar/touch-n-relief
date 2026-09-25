@@ -43,6 +43,36 @@ class CustomerPaymentRecoveryTest extends TestCase
             ->assertRedirect('https://checkout.paymongo.com/customer-retry');
     }
 
+    public function test_customer_gets_a_new_checkout_when_saved_session_has_an_untrusted_url(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->pendingBooking($customer);
+        $booking->forceFill(['paymongo_checkout_session_id' => 'cs_old'])->save();
+
+        $this->mock(PaymongoService::class, function ($mock) use ($booking): void {
+            $mock->shouldReceive('retrieveCheckoutSession')
+                ->once()
+                ->with('cs_old')
+                ->andReturn([
+                    'id' => 'cs_old',
+                    'attributes' => [
+                        'checkout_url' => 'https://dashboard.heroku.com/apps/buenostouche/resources',
+                        'status' => 'active',
+                    ],
+                ]);
+            $mock->shouldReceive('isCheckoutSessionPaid')->once()->andReturnFalse();
+            $mock->shouldReceive('isCheckoutUrl')->once()->andReturnFalse();
+            $mock->shouldReceive('startCustomerBookingCheckout')
+                ->once()
+                ->withArgs(fn (SpaBooking $candidate): bool => $candidate->is($booking))
+                ->andReturn('https://checkout.paymongo.com/customer-replacement');
+        });
+
+        $this->actingAs($customer)
+            ->post(route('booking.payment.retry', $booking))
+            ->assertRedirect('https://checkout.paymongo.com/customer-replacement');
+    }
+
     public function test_customer_cannot_continue_another_customers_payment(): void
     {
         $owner = User::factory()->create(['role' => User::ROLE_USER]);

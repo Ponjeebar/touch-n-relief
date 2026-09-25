@@ -184,7 +184,7 @@ class PaymongoController extends Controller
             }
 
             $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
-            if (str_starts_with($checkoutUrl, 'https://')) {
+            if ($this->paymongo->isCheckoutUrl($checkoutUrl)) {
                 return redirect()->away($checkoutUrl);
             }
         } catch (\Throwable $exception) {
@@ -229,7 +229,7 @@ class PaymongoController extends Controller
 
                 $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
                 $sessionStatus = strtolower((string) ($session['attributes']['status'] ?? ''));
-                if (str_starts_with($checkoutUrl, 'https://') && ! in_array($sessionStatus, ['expired', 'cancelled'], true)) {
+                if ($this->paymongo->isCheckoutUrl($checkoutUrl) && ! in_array($sessionStatus, ['expired', 'cancelled'], true)) {
                     return redirect()->away($checkoutUrl);
                 }
             } catch (\Throwable $exception) {
