@@ -23,6 +23,7 @@ Route::get('/media/{path}', [StorageMediaController::class, 'show'])
 Route::get('/', [BookingController::class, 'landing'])->name('landing');
 Route::view('/privacy-policy', 'legal.privacy')->name('privacy-policy');
 Route::view('/terms-and-conditions', 'legal.terms')->name('terms-and-conditions');
+Route::view('/data-deletion', 'legal.data-deletion')->name('data-deletion');
 Route::get('/landing/availability', [BookingController::class, 'landingAvailability'])->name('landing.availability');
 Route::post('/chatbot/message', [ChatbotController::class, 'reply'])->middleware('throttle:30,1')->name('chatbot.reply');
 

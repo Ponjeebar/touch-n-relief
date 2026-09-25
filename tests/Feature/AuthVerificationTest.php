@@ -94,6 +94,7 @@ class AuthVerificationTest extends TestCase
 
         $this->get(route('privacy-policy'))->assertOk()->assertSee('Privacy Policy');
         $this->get(route('terms-and-conditions'))->assertOk()->assertSee('Terms and Conditions');
+        $this->get(route('data-deletion'))->assertOk()->assertSee('User Data Deletion');
     }
 
     public function test_authentication_header_does_not_show_redundant_home_navigation(): void

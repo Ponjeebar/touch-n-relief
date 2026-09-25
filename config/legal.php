@@ -29,4 +29,16 @@ return [
             ['Changes and contact', 'Operational policies may be updated as services change. The current version will remain available on this page. Contact Buenos Touche Spa through the details on the public website with questions.'],
         ],
     ],
+    'data_deletion' => [
+        'pageTitle' => 'User Data Deletion',
+        'eyebrow' => 'Account and social login data',
+        'intro' => 'These instructions explain how TouchNRelief customers can request deletion of their account and information received through Google or Facebook login.',
+        'sections' => [
+            ['Submit a deletion request', 'Contact Buenos Touche Spa using the email address or phone number shown on the public website. State that you want your TouchNRelief account deleted and provide the email address used for the account.'],
+            ['Identity confirmation', 'The spa may ask for information needed to confirm that the request belongs to the account owner before deleting or changing account information. Never send your password or social account password.'],
+            ['Social login information', 'After a verified deletion request is processed, TouchNRelief removes the connection between the customer account and the Google or Facebook account used to sign in. TouchNRelief does not store social provider access tokens.'],
+            ['Information that may be retained', 'Booking, payment, refund, fraud-prevention, and legal business records may be retained when required for legitimate operational or legal purposes. Information that is no longer required will be deleted or anonymized where appropriate.'],
+            ['Confirmation', 'The spa will respond to the contact details provided with the request and confirm when the account deletion review has been completed.'],
+        ],
+    ],
 ];
