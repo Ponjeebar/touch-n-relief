@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\SpaBooking;
+use App\Services\StaffNotificationService;
 use App\Services\UserActivityService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
@@ -22,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        SpaBooking::created(fn (SpaBooking $booking) => app(StaffNotificationService::class)->bookingCreated($booking));
+        SpaBooking::updated(fn (SpaBooking $booking) => app(StaffNotificationService::class)->bookingUpdated($booking));
+
         View::composer([
             'partials.topbar-profile',
             'partials.profile-transactions-modal',

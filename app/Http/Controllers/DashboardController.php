@@ -361,10 +361,12 @@ class DashboardController extends Controller
     public function staffFeedPoll(SpaSessionService $sessions): JsonResponse
     {
         $live = $sessions->dashboardSnapshot();
+        $notificationFeed = app(NotificationFeedService::class);
 
         return response()->json([
             'server_time' => now()->toIso8601String(),
-            'notifications' => app(NotificationFeedService::class)->recentBookingNotifications(6),
+            'notifications' => $notificationFeed->recentBookingNotifications(6),
+            'notification_unread_count' => $notificationFeed->unreadCount(),
             'today_appointments' => $live['today_appointments'],
             'appointments_today' => $live['appointments_today'],
             'upcoming_appointments' => $live['upcoming_appointments'],

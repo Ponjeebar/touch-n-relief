@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
     @include('partials.staff-mobile-style')
 </head>
-<body data-staff-feed-poll-url="{{ route('staff-feed.poll') }}">
+<body data-staff-feed-poll-url="{{ route('staff-feed.poll') }}" data-staff-notifications-mark-all-url="{{ route('staff-notifications.mark-all-read') }}" data-staff-notification-read-url-template="{{ route('staff-notifications.read', ['staffNotification' => '__ID__']) }}">
     <div class="app-shell">
         <div class="dashboard">
             <aside class="sidebar">
@@ -87,7 +87,8 @@
                                     @forelse (collect($notifications ?? [])->take(4) as $note)
                                         @php($type = $note['type'] ?? 'system')
                                         <a
-                                            class="dashboard-note dashboard-note-{{ $type }} note-unread"
+                                            class="dashboard-note dashboard-note-{{ $type }} {{ ($note['is_read'] ?? false) ? 'note-read' : 'note-unread' }}"
+                                            data-notification-id="{{ $note['id'] ?? '' }}"
                                             role="menuitem"
                                             data-notif-at="{{ $note['notification_at'] ?? '' }}"
                                             data-notif-key="{{ $note['notification_key'] ?? '' }}"
@@ -1889,9 +1890,6 @@
         const markAppointmentsDropdownReadBtn = document.querySelector('[data-mark-appointments-dropdown-read="true"]');
         const pageBadge = document.querySelector('[data-page-notif-badge="true"], [data-page-notif-badge]');
 
-        const NOTIF_ALL_READ_KEY = 'tnrNotificationsAllReadAtV1';
-        const NOTIF_READ_KEYS_KEY = 'tnrNotificationsReadKeysV1';
-
         function updatePageBadge() {
             if (!pageBadge) return;
             const unreadEls = Array.from(document.querySelectorAll('.note.note-unread[data-notif-at], .dashboard-note.note-unread[data-notif-at]'));
@@ -1903,82 +1901,14 @@
             if (markAppointmentsDropdownReadBtn) markAppointmentsDropdownReadBtn.disabled = unreadCount === 0;
         }
 
-        function getReadKeys() {
-            try {
-                const raw = localStorage.getItem(NOTIF_READ_KEYS_KEY);
-                const parsed = raw ? JSON.parse(raw) : [];
-                return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
-            } catch (e) {
-                return new Set();
-            }
-        }
-
-        function saveReadKeys(keys) {
-            try {
-                localStorage.setItem(NOTIF_READ_KEYS_KEY, JSON.stringify(Array.from(keys)));
-            } catch (e) {}
-        }
-
-        function markNotificationReadByElement(el) {
-            if (!(el instanceof HTMLElement)) return;
-            const key = el.dataset.notifKey ?? '';
-            if (!key) return;
-            const keys = getReadKeys();
-            keys.add(key);
-            saveReadKeys(keys);
-        }
-
-        function applyReadStateFromLocalStorage() {
-            const readKeys = getReadKeys();
-            const raw = (() => {
-                try {
-                    return localStorage.getItem(NOTIF_ALL_READ_KEY);
-                } catch (e) {
-                    return null;
-                }
-            })();
-
-            // If user never marked anything read, keep server-rendered classes.
-            if (!raw && readKeys.size === 0) {
-                updatePageBadge();
-                return;
-            }
-
-            const readAtMs = raw ? new Date(raw).getTime() : Number.NaN;
-
-            document.querySelectorAll('[data-notif-at]').forEach((el) => {
-                const atRaw = el instanceof HTMLElement ? el.dataset.notifAt : '';
-                const key = el instanceof HTMLElement ? (el.dataset.notifKey ?? '') : '';
-                const atMs = atRaw ? new Date(atRaw).getTime() : Number.NaN;
-                const byTime = Number.isFinite(readAtMs) && Number.isFinite(atMs) && atMs <= readAtMs;
-
-                if (readKeys.has(key) || byTime) {
-                    el.classList.remove('note-unread');
-                    el.classList.add('note-read');
-                } else {
-                    el.classList.remove('note-read');
-                    el.classList.add('note-unread');
-                }
-            });
-
-            updatePageBadge();
-        }
-
         function markSingleNotificationAsRead(noteEl) {
             if (!(noteEl instanceof HTMLElement)) return;
-            markNotificationReadByElement(noteEl);
             noteEl.classList.remove('note-unread');
             noteEl.classList.add('note-read');
             updatePageBadge();
         }
 
-        // Sync with other tabs/windows (Appointment <-> Dashboard, Admin <-> Receptionist).
-        window.addEventListener('storage', (event) => {
-            if (event.key !== NOTIF_ALL_READ_KEY) return;
-            applyReadStateFromLocalStorage();
-        });
-
-        applyReadStateFromLocalStorage();
+        updatePageBadge();
 
         const fromNotifParams = new URLSearchParams(window.location.search);
         const fromNotif = (fromNotifParams.get('from_notification') ?? '') === '1';
@@ -2061,10 +1991,7 @@
 
         if (markAppointmentsDropdownReadBtn && notificationsDropdown) {
             markAppointmentsDropdownReadBtn.addEventListener('click', () => {
-                try {
-                    localStorage.setItem(NOTIF_ALL_READ_KEY, new Date().toISOString());
-                } catch (e) {}
-                applyReadStateFromLocalStorage();
+                document.querySelectorAll('.dashboard-note.note-unread').forEach(markSingleNotificationAsRead);
                 markAppointmentsDropdownReadBtn.disabled = true;
                 markAppointmentsDropdownReadBtn.setAttribute('aria-label', 'All notifications read');
                 markAppointmentsDropdownReadBtn.title = 'All notifications read';
@@ -2073,10 +2000,7 @@
 
         if (markAllReadBtn && notificationsList) {
             markAllReadBtn.addEventListener('click', () => {
-                try {
-                    localStorage.setItem(NOTIF_ALL_READ_KEY, new Date().toISOString());
-                } catch (e) {}
-                applyReadStateFromLocalStorage();
+                document.querySelectorAll('.note.note-unread').forEach(markSingleNotificationAsRead);
                 markAllReadBtn.disabled = true;
                 markAllReadBtn.setAttribute('aria-label', 'All notifications read');
                 markAllReadBtn.title = 'All notifications read';

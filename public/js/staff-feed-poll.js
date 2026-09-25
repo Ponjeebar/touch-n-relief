@@ -1,38 +1,13 @@
 (function () {
     const pollUrl = document.body?.dataset?.staffFeedPollUrl;
+    const markAllUrl = document.body?.dataset?.staffNotificationsMarkAllUrl;
+    const readUrlTemplate = document.body?.dataset?.staffNotificationReadUrlTemplate;
     if (!pollUrl) return;
 
-    const NOTIF_ALL_READ_KEY = 'tnrNotificationsAllReadAtV1';
-    const NOTIF_READ_KEYS_KEY = 'tnrNotificationsReadKeysV1';
     const POLL_INTERVAL_MS = 30000;
 
-    function getReadKeys() {
-        try {
-            const raw = localStorage.getItem(NOTIF_READ_KEYS_KEY);
-            const parsed = raw ? JSON.parse(raw) : [];
-            return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
-        } catch (e) {
-            return new Set();
-        }
-    }
-
-    function getReadAtMs() {
-        try {
-            const raw = localStorage.getItem(NOTIF_ALL_READ_KEY);
-            return raw ? new Date(raw).getTime() : Number.NaN;
-        } catch (e) {
-            return Number.NaN;
-        }
-    }
-
     function isNotificationRead(note) {
-        const readKeys = getReadKeys();
-        const readAtMs = getReadAtMs();
-        const key = String(note.notification_key ?? '');
-        const atMs = note.notification_at ? new Date(note.notification_at).getTime() : Number.NaN;
-        const byTime = Number.isFinite(readAtMs) && Number.isFinite(atMs) && atMs <= readAtMs;
-
-        return readKeys.has(key) || byTime;
+        return note.is_read === true;
     }
 
     function iconForType(type) {
@@ -72,6 +47,7 @@
                 class="dashboard-note dashboard-note-${type} ${readClass}"
                 data-notif-at="${notificationAt}"
                 data-notif-key="${notificationKey}"
+                data-notification-id="${escapeHtml(note.id ?? '')}"
                 href="${url}"
             >
                 <div class="dashboard-note-icon">
@@ -85,7 +61,7 @@
         `;
     }
 
-    function renderNotifications(notifications) {
+    function renderNotifications(notifications, serverUnreadCount) {
         const items = Array.isArray(notifications) ? notifications : [];
 
         document.querySelectorAll('[data-staff-notifications-list]').forEach((list) => {
@@ -99,16 +75,18 @@
             list.innerHTML = items.map(renderNotification).join('');
         });
 
-        const unreadCount = items.filter((note) => !isNotificationRead(note)).length;
+        const unreadCount = Number.isInteger(serverUnreadCount)
+            ? serverUnreadCount
+            : items.filter((note) => !isNotificationRead(note)).length;
 
         document.querySelectorAll('[data-staff-notif-badge]').forEach((badge) => {
             badge.textContent = String(unreadCount);
-            badge.hidden = false;
+            badge.hidden = unreadCount === 0;
         });
 
         document.querySelectorAll('[data-notif-badge]').forEach((badge) => {
             badge.textContent = String(unreadCount);
-            badge.hidden = false;
+            badge.hidden = unreadCount === 0;
         });
 
         document.querySelectorAll('[data-mark-dashboard-read="true"], [data-notif-mark-read]').forEach((btn) => {
@@ -185,7 +163,7 @@
             if (!response.ok) return;
 
             const data = await response.json();
-            renderNotifications(data.notifications ?? []);
+            renderNotifications(data.notifications ?? [], data.notification_unread_count);
             renderTodayAppointments(data.today_appointments ?? []);
             updateMetricValue('[data-upcoming-appointments-count]', data.upcoming_appointments ?? 0);
             updateMetricValue('[data-ongoing-sessions-count]', data.ongoing_sessions ?? 0);
@@ -195,4 +173,36 @@
     }
 
     window.setInterval(pollStaffFeed, POLL_INTERVAL_MS);
+    window.setTimeout(pollStaffFeed, 0);
+
+    async function post(url) {
+        if (!url) return;
+        await fetch(url, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    ?? document.querySelector('input[name="_token"]')?.value
+                    ?? '',
+            },
+            credentials: 'same-origin',
+            keepalive: true,
+        });
+    }
+
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const markAll = target.closest('[data-notif-mark-read], [data-mark-dashboard-read="true"], [data-mark-appointments-dropdown-read="true"], [data-mark-all-read="true"]');
+        if (markAll) {
+            post(markAllUrl).then(pollStaffFeed).catch(() => {});
+            return;
+        }
+        const note = target.closest('[data-notification-id]');
+        const id = note instanceof HTMLElement ? note.dataset.notificationId : '';
+        if (id && readUrlTemplate) {
+            post(readUrlTemplate.replace('__ID__', id)).catch(() => {});
+        }
+    });
 })();

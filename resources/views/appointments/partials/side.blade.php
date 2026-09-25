@@ -71,7 +71,8 @@
         <div class="notifications" aria-label="Notifications list">
             @forelse (($notifications ?? []) as $note)
                 <a
-                    class="note note-{{ $note['type'] ?? 'system' }} note-unread"
+                    class="note note-{{ $note['type'] ?? 'system' }} {{ ($note['is_read'] ?? false) ? 'note-read' : 'note-unread' }}"
+                    data-notification-id="{{ $note['id'] ?? '' }}"
                     href="{{ $note['url'] ?? route('appointments.index') }}"
                     data-notif-at="{{ $note['notification_at'] ?? '' }}"
                     data-notif-key="{{ $note['notification_key'] ?? '' }}"
@@ -103,4 +104,3 @@
         </div>
     </article>
 </aside>
-

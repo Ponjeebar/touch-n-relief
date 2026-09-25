@@ -11,6 +11,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PaymongoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StaffAppointmentController;
+use App\Http\Controllers\StaffNotificationController;
 use App\Http\Controllers\StorageMediaController;
 use Illuminate\Support\Facades\Route;
 
@@ -93,6 +94,8 @@ Route::middleware(['auth', 'staff.activity'])->group(function () {
         Route::get('/ongoing-sessions', [DashboardController::class, 'ongoingSessions'])->name('ongoing-sessions.index');
         Route::get('/ongoing-sessions/poll', [DashboardController::class, 'ongoingSessionsPoll'])->name('ongoing-sessions.poll');
         Route::get('/staff-feed/poll', [DashboardController::class, 'staffFeedPoll'])->name('staff-feed.poll');
+        Route::post('/staff-notifications/mark-all-read', [StaffNotificationController::class, 'markAllRead'])->name('staff-notifications.mark-all-read');
+        Route::post('/staff-notifications/{staffNotification}/read', [StaffNotificationController::class, 'markRead'])->name('staff-notifications.read');
         Route::patch('/ongoing-sessions/{spaBooking}/complete', [DashboardController::class, 'completeSession'])->name('ongoing-sessions.complete');
         Route::get('/completed-sessions', [DashboardController::class, 'completedSessions'])->name('completed-sessions.index');
         Route::get('/therapist-tracking', [DashboardController::class, 'therapistTracking'])->name('therapist-tracking.index');

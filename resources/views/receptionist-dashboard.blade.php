@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
     @include('partials.staff-mobile-style')
 </head>
-<body data-staff-feed-poll-url="{{ route('staff-feed.poll') }}">
+<body data-staff-feed-poll-url="{{ route('staff-feed.poll') }}" data-staff-notifications-mark-all-url="{{ route('staff-notifications.mark-all-read') }}" data-staff-notification-read-url-template="{{ route('staff-notifications.read', ['staffNotification' => '__ID__']) }}">
     <div class="app-shell">
         <div class="dashboard">
             <aside class="sidebar">
@@ -76,7 +76,8 @@
                                     @forelse (collect($notifications ?? [])->take(6) as $note)
                                         @php($type = $note['type'] ?? 'system')
                                         <a
-                                            class="dashboard-note dashboard-note-{{ $type }} note-unread"
+                                            class="dashboard-note dashboard-note-{{ $type }} {{ ($note['is_read'] ?? false) ? 'note-read' : 'note-unread' }}"
+                                            data-notification-id="{{ $note['id'] ?? '' }}"
                                             data-notif-at="{{ $note['notification_at'] ?? '' }}"
                                             data-notif-key="{{ $note['notification_key'] ?? '' }}"
                                             href="{{ $note['url'] ?? route('appointments.index') }}"
@@ -311,9 +312,6 @@
 
         const pageBadge = document.querySelector('[data-page-notif-badge="true"], [data-page-notif-badge]');
 
-        const NOTIF_ALL_READ_KEY = 'tnrNotificationsAllReadAtV1';
-        const NOTIF_READ_KEYS_KEY = 'tnrNotificationsReadKeysV1';
-
         function updatePageBadge() {
             if (!pageBadge) return;
             const unreadCount = document.querySelectorAll('.dashboard-note.note-unread').length;
@@ -324,79 +322,13 @@
             }
         }
 
-        function getReadKeys() {
-            try {
-                const raw = localStorage.getItem(NOTIF_READ_KEYS_KEY);
-                const parsed = raw ? JSON.parse(raw) : [];
-                return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
-            } catch (e) {
-                return new Set();
-            }
-        }
-
-        function saveReadKeys(keys) {
-            try {
-                localStorage.setItem(NOTIF_READ_KEYS_KEY, JSON.stringify(Array.from(keys)));
-            } catch (e) {}
-        }
-
-        function markNotificationReadByElement(el) {
-            if (!(el instanceof HTMLElement)) return;
-            const key = el.dataset.notifKey ?? '';
-            if (!key) return;
-            const keys = getReadKeys();
-            keys.add(key);
-            saveReadKeys(keys);
-        }
-
-        function applyReadStateFromLocalStorage() {
-            const readKeys = getReadKeys();
-            const raw = (() => {
-                try {
-                    return localStorage.getItem(NOTIF_ALL_READ_KEY);
-                } catch (e) {
-                    return null;
-                }
-            })();
-
-            if (!raw && readKeys.size === 0) {
-                updatePageBadge();
-                return;
-            }
-
-            const readAtMs = raw ? new Date(raw).getTime() : Number.NaN;
-
-            document.querySelectorAll('[data-notif-at]').forEach((el) => {
-                const atRaw = el instanceof HTMLElement ? el.dataset.notifAt : '';
-                const key = el instanceof HTMLElement ? (el.dataset.notifKey ?? '') : '';
-                const atMs = atRaw ? new Date(atRaw).getTime() : Number.NaN;
-                const byTime = Number.isFinite(readAtMs) && Number.isFinite(atMs) && atMs <= readAtMs;
-
-                if (readKeys.has(key) || byTime) {
-                    el.classList.remove('note-unread');
-                    el.classList.add('note-read');
-                } else {
-                    el.classList.remove('note-read');
-                    el.classList.add('note-unread');
-                }
-            });
-
-            updatePageBadge();
-        }
-
-        window.addEventListener('storage', (event) => {
-            if (event.key !== NOTIF_ALL_READ_KEY) return;
-            applyReadStateFromLocalStorage();
-        });
-
-        applyReadStateFromLocalStorage();
+        updatePageBadge();
 
         dashboardNotificationsPanel?.addEventListener('click', (event) => {
             const target = event.target;
             if (!(target instanceof HTMLElement)) return;
             const note = target.closest('[data-notif-key]');
             if (!(note instanceof HTMLElement)) return;
-            markNotificationReadByElement(note);
             note.classList.remove('note-unread');
             note.classList.add('note-read');
             updatePageBadge();
@@ -430,11 +362,11 @@
         });
 
         markDashboardReadBtn?.addEventListener('click', () => {
-            try {
-                localStorage.setItem(NOTIF_ALL_READ_KEY, new Date().toISOString());
-            } catch (e) {}
-
-            applyReadStateFromLocalStorage();
+            dashboardNotificationsPanel?.querySelectorAll('.dashboard-note').forEach((note) => {
+                note.classList.remove('note-unread');
+                note.classList.add('note-read');
+            });
+            updatePageBadge();
             markDashboardReadBtn.disabled = true;
             markDashboardReadBtn.setAttribute('aria-label', 'All notifications read');
             markDashboardReadBtn.title = 'All notifications read';
