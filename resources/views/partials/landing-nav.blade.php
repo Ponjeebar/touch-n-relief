@@ -17,7 +17,8 @@
                 <img src="{{ asset('images/dashboard/logo.png') }}" alt="Buenos Touche logo" class="brand-logo">
                 <div class="brand">TouchNRelief</div>
             </a>
-            <nav class="nav-links" id="public-mobile-navigation">
+            @if ($navMode !== 'auth')
+                <nav class="nav-links" id="public-mobile-navigation">
                 @if ($navMode === 'full')
                     <a href="{{ $onLanding ? '#services' : route('landing').'#services' }}">Services</a>
                     <a href="{{ $onLanding ? '#therapists' : route('landing').'#therapists' }}">Therapists</a>
@@ -28,8 +29,6 @@
                     <a href="{{ route('profile.edit') }}">Profile</a>
                     <button type="button" class="nav-txn-link" data-tnr-open-transactions>Transactions</button>
                     @include('partials.customer-notifications')
-                @else
-                    <a href="{{ route('landing') }}">Home</a>
                 @endif
                 @if ($navMode === 'full')
                     @auth
@@ -43,7 +42,8 @@
                         <button type="submit" class="btn btn-outline" style="cursor:pointer">Logout</button>
                     </form>
                 @endif
-            </nav>
+                </nav>
+            @endif
             <div class="nav-header-actions">
                 @if ($navMode === 'full')
                     @auth
@@ -53,10 +53,12 @@
                         @include('partials.landing-user-menu', ['navUserWrapperClass' => 'nav-user-wrap--desktop'])
                     @endauth
                 @endif
-                <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
-                    <span class="mobile-nav-icon" aria-hidden="true"></span>
-                    <span>Menu</span>
-                </button>
+                @if ($navMode !== 'auth')
+                    <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
+                        <span class="mobile-nav-icon" aria-hidden="true"></span>
+                        <span>Menu</span>
+                    </button>
+                @endif
             </div>
         </div>
     </div>

@@ -96,6 +96,19 @@ class AuthVerificationTest extends TestCase
         $this->get(route('terms-and-conditions'))->assertOk()->assertSee('Terms and Conditions');
     }
 
+    public function test_authentication_header_does_not_show_redundant_home_navigation(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertDontSee('>Home<', false)
+            ->assertDontSee('aria-label="Open navigation menu"', false);
+
+        $this->get(route('password.request'))
+            ->assertOk()
+            ->assertDontSee('>Home<', false)
+            ->assertDontSee('aria-label="Open navigation menu"', false);
+    }
+
     public function test_password_reset_rejects_current_and_recent_passwords(): void
     {
         $user = User::factory()->create(['password' => 'OriginalPass1']);
