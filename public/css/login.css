@@ -198,7 +198,6 @@ body.auth-page #container button.hidden {
     margin-top: 12px;
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
-    min-width: 200px;
 }
 
 body.auth-page #container button[type="submit"]:hover {
@@ -933,10 +932,6 @@ body.auth-page #container.active .toggle-left {
         height: clamp(600px, calc(100vh - 7.25rem), 700px);
     }
 
-    .toggle-right {
-        transform: translateY(-42px);
-    }
-
     .toggle-panel-logo-wrap {
         margin-bottom: 12px;
     }
@@ -944,6 +939,52 @@ body.auth-page #container.active .toggle-left {
     .auth-toggle-logo {
         width: clamp(160px, 22vw, 220px);
         max-height: min(180px, 24vh);
+    }
+}
+
+@media (min-width: 901px) and (max-height: 820px) {
+    body.auth-page #container .sign-up form {
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+
+    body.auth-page #container .sign-up form h1 {
+        margin-bottom: 3px;
+        font-size: 26px;
+    }
+
+    body.auth-page #container .sign-up form input {
+        margin: 3px 0;
+        padding-top: 9px;
+        padding-bottom: 9px;
+    }
+
+    body.auth-page #container .sign-up form .auth-field-block {
+        margin: 3px 0;
+    }
+
+    body.auth-page #container .sign-up form .auth-field-hint {
+        margin-top: 2px;
+    }
+
+    body.auth-page #container .sign-up form .auth-gender-field {
+        margin: 3px 0;
+    }
+
+    body.auth-page #container .sign-up form .auth-gender-option span {
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    body.auth-page #container .auth-terms-option {
+        margin-top: 4px;
+        line-height: 1.35;
+    }
+
+    body.auth-page #container .sign-up form button[type="submit"] {
+        margin-top: 6px;
+        padding-top: 10px;
+        padding-bottom: 10px;
     }
 }
 
