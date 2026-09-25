@@ -2323,7 +2323,7 @@ class DashboardController extends Controller
 
     private function normalizeReportingPeriod(?string $period): string
     {
-        if (! in_array($period, ['daily', 'monthly', 'yearly'], true)) {
+        if (! in_array($period, ['daily', 'weekly', 'monthly', 'yearly'], true)) {
             return 'monthly';
         }
 
@@ -2348,6 +2348,26 @@ class DashboardController extends Controller
         $minYear = max(2020, $minYear);
 
         return range($current, $minYear);
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function availableReportingWeeks(): array
+    {
+        $weekStart = now()->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
+
+        return collect(range(0, 12))
+            ->map(function (int $weeksAgo) use ($weekStart): array {
+                $start = $weekStart->copy()->subWeeks($weeksAgo);
+                $end = $start->copy()->endOfWeek(Carbon::SUNDAY);
+
+                return [
+                    'value' => $start->toDateString(),
+                    'label' => $start->format('M j').' - '.$end->format('M j, Y'),
+                ];
+            })
+            ->all();
     }
 
     /**
@@ -2386,6 +2406,33 @@ class DashboardController extends Controller
                 'start' => $date->toDateString(),
                 'end' => $date->toDateString(),
                 'dateLabel' => $date->format('M j, Y'),
+            ];
+        }
+
+        if ($period === 'weekly') {
+            $currentWeekStart = $now->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
+
+            try {
+                $start = Carbon::createFromFormat('Y-m-d', trim((string) $periodValue))->startOfWeek(Carbon::MONDAY)->startOfDay();
+            } catch (\Throwable) {
+                $start = $currentWeekStart->copy();
+            }
+
+            if ($start->gt($currentWeekStart)) {
+                $start = $currentWeekStart->copy();
+            }
+
+            $displayEnd = $start->copy()->endOfWeek(Carbon::SUNDAY)->startOfDay();
+            $rangeEnd = $displayEnd->gt($now) ? $now->copy()->startOfDay() : $displayEnd;
+            $label = $start->format('M j').' - '.$displayEnd->format('M j, Y');
+
+            return [
+                'value' => $start->toDateString(),
+                'selectionLabel' => $label,
+                'badge' => 'Week '.$start->isoWeek(),
+                'start' => $start->toDateString(),
+                'end' => $rangeEnd->toDateString(),
+                'dateLabel' => $label,
             ];
         }
 
@@ -2490,6 +2537,21 @@ class DashboardController extends Controller
             $hoursLabel = 'Total Service Hours';
             $hoursBadge = $selectionBadge;
             $hoursSub = 'Service time logged on '.$dateLabel;
+            $hoursIcon = 'clock';
+            $pageSubtitle = $dateLabel.' — sales and new user signups';
+            $serviceLabel = $dateLabel;
+        } elseif ($period === 'weekly') {
+            $primaryLabel = 'Weekly Sales';
+            $primaryBadge = $selectionBadge;
+            $primarySub = 'Total for '.$dateLabel;
+            $primaryIcon = 'calendar-week';
+            $secondaryLabel = 'New Users';
+            $secondaryBadge = $selectionBadge;
+            $secondarySub = 'New users during '.$dateLabel;
+            $secondaryIcon = 'people';
+            $hoursLabel = 'Total Service Hours';
+            $hoursBadge = $selectionBadge;
+            $hoursSub = 'Service time logged during '.$dateLabel;
             $hoursIcon = 'clock';
             $pageSubtitle = $dateLabel.' — sales and new user signups';
             $serviceLabel = $dateLabel;
@@ -2664,6 +2726,7 @@ class DashboardController extends Controller
             'periodValue' => $periodValue,
             'periodValueLabel' => $selectionLabel,
             'availableYears' => $this->availableReportingYears(),
+            'availableWeeks' => $this->availableReportingWeeks(),
             'serviceLabel' => $serviceLabel,
             'primaryAmount' => $primaryAmount,
             'primaryLabel' => $primaryLabel,

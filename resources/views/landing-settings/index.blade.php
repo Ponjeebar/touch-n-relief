@@ -142,6 +142,34 @@
 
                                 <article class="ls-section">
                                     <header class="ls-section-head">
+                                        <span class="ls-section-icon social" aria-hidden="true"><i class="bi bi-share"></i></span>
+                                        <div>
+                                            <h2 class="ls-section-title">Social Media Links</h2>
+                                            <p class="ls-section-desc">Set where the Facebook and Instagram links in the public footer open. Leave a field blank to hide that link.</p>
+                                        </div>
+                                    </header>
+                                    <div class="ls-fields">
+                                        <div class="ls-field">
+                                            <label for="facebook_url">Facebook page URL</label>
+                                            <div class="ls-input-wrap">
+                                                <i class="bi bi-facebook" aria-hidden="true"></i>
+                                                <input id="facebook_url" name="facebook_url" type="url" value="{{ old('facebook_url', $footer['facebook_url']) }}" maxlength="2048" placeholder="https://www.facebook.com/your-page" autocomplete="url" data-social-preview="preview-facebook">
+                                            </div>
+                                            @error('facebook_url')<span class="field-error">{{ $message }}</span>@enderror
+                                        </div>
+                                        <div class="ls-field">
+                                            <label for="instagram_url">Instagram profile URL</label>
+                                            <div class="ls-input-wrap">
+                                                <i class="bi bi-instagram" aria-hidden="true"></i>
+                                                <input id="instagram_url" name="instagram_url" type="url" value="{{ old('instagram_url', $footer['instagram_url']) }}" maxlength="2048" placeholder="https://www.instagram.com/your-profile" autocomplete="url" data-social-preview="preview-instagram">
+                                            </div>
+                                            @error('instagram_url')<span class="field-error">{{ $message }}</span>@enderror
+                                        </div>
+                                    </div>
+                                </article>
+
+                                <article class="ls-section">
+                                    <header class="ls-section-head">
                                         <span class="ls-section-icon hours" aria-hidden="true"><i class="bi bi-calendar-x"></i></span>
                                         <div>
                                             <h2 class="ls-section-title">Booking Cancellation Policy</h2>
@@ -203,6 +231,10 @@
                                             </ul>
                                         </div>
                                     </div>
+                                    <div class="ls-footer-mock-social" aria-label="Social link preview">
+                                        <a id="preview-facebook" href="{{ old('facebook_url', $footer['facebook_url']) ?: '#' }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook" aria-hidden="true"></i> Facebook</a>
+                                        <a id="preview-instagram" href="{{ old('instagram_url', $footer['instagram_url']) ?: '#' }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram" aria-hidden="true"></i> Instagram</a>
+                                    </div>
                                     <div class="ls-footer-mock-bottom">© {{ date('Y') }} TOUCHnRELIEF. All rights reserved.</div>
                                 </div>
                                 <p class="ls-preview-note">This is a simplified preview of the footer section. Open the full landing page to see the complete layout.</p>
@@ -223,6 +255,20 @@
 
             const sync = () => {
                 previewEl.textContent = input.value.trim() || '—';
+            };
+
+            input.addEventListener('input', sync);
+            sync();
+        });
+
+        document.querySelectorAll('[data-social-preview]').forEach((input) => {
+            const preview = document.getElementById(input.dataset.socialPreview);
+            if (!preview) return;
+
+            const sync = () => {
+                const url = input.value.trim();
+                preview.hidden = url === '';
+                preview.href = url || '#';
             };
 
             input.addEventListener('input', sync);

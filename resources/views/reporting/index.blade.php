@@ -48,6 +48,7 @@
                     <div class="rep-toolbar">
                         <div class="rep-period" id="repPeriod">
                             <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'daily' ? 'active' : '' }}" data-period="daily" aria-pressed="{{ ($period ?? 'monthly') === 'daily' ? 'true' : 'false' }}">Daily</button>
+                            <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'weekly' ? 'active' : '' }}" data-period="weekly" aria-pressed="{{ ($period ?? 'monthly') === 'weekly' ? 'true' : 'false' }}">Weekly</button>
                             <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'monthly' ? 'active' : '' }}" data-period="monthly" aria-pressed="{{ ($period ?? 'monthly') === 'monthly' ? 'true' : 'false' }}">Monthly</button>
                             <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'yearly' ? 'active' : '' }}" data-period="yearly" aria-pressed="{{ ($period ?? 'monthly') === 'yearly' ? 'true' : 'false' }}">Yearly</button>
                             <span class="rep-period-divider" aria-hidden="true"></span>
@@ -244,6 +245,7 @@
         let currentPeriod = @json($period ?? 'monthly');
         let currentPeriodValue = @json($periodValue ?? null);
         let availableYears = @json($availableYears ?? []);
+        let availableWeeks = @json($availableWeeks ?? []);
 
         function copyPrintText(targetId, sourceId) {
             const target = document.getElementById(targetId);
@@ -343,11 +345,15 @@
             if (period === 'monthly') {
                 return monthOptions[new Date().getMonth()][0];
             }
+            if (period === 'weekly') {
+                return availableWeeks[0]?.value || '';
+            }
             return String(new Date().getFullYear());
         }
 
         function periodValueOptions(period) {
             if (period === 'daily') return weekdayOptions;
+            if (period === 'weekly') return availableWeeks.map((week) => [week.value, week.label]);
             if (period === 'monthly') return monthOptions;
             const years = Array.isArray(availableYears) && availableYears.length
                 ? availableYears
@@ -658,6 +664,9 @@
             if (d.periodValue) currentPeriodValue = d.periodValue;
             if (Array.isArray(d.availableYears) && d.availableYears.length) {
                 availableYears = d.availableYears;
+            }
+            if (Array.isArray(d.availableWeeks) && d.availableWeeks.length) {
+                availableWeeks = d.availableWeeks;
             }
             populatePeriodSelect(currentPeriod, currentPeriodValue);
             setText('repPageSubtitle', d.pageSubtitle || '');

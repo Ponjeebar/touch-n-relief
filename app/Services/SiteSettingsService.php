@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\SiteSetting;
+use App\Models\Therapist;
+use Illuminate\Support\Facades\Schema;
 
 class SiteSettingsService
 {
@@ -17,6 +19,10 @@ class SiteSettingsService
     public const KEY_HOURS_WEEKEND = 'footer_hours_weekend';
 
     public const KEY_HOURS_HOLIDAYS = 'footer_hours_holidays';
+
+    public const KEY_FACEBOOK_URL = 'footer_facebook_url';
+
+    public const KEY_INSTAGRAM_URL = 'footer_instagram_url';
 
     public const KEY_THERAPIST_SCHEDULE_AUTOMATION = 'therapist_schedule_automation';
 
@@ -46,6 +52,8 @@ class SiteSettingsService
             'hours_weekday' => 'Mon - Fri: 9:00 AM - 9:00 PM',
             'hours_weekend' => 'Sat - Sun: 10:00 AM - 10:00 PM',
             'hours_holidays' => 'Holidays: By Appointment',
+            'facebook_url' => '',
+            'instagram_url' => '',
         ];
     }
 
@@ -63,6 +71,8 @@ class SiteSettingsService
             'hours_weekday' => SiteSetting::valueFor(self::KEY_HOURS_WEEKDAY, $defaults['hours_weekday']) ?? $defaults['hours_weekday'],
             'hours_weekend' => SiteSetting::valueFor(self::KEY_HOURS_WEEKEND, $defaults['hours_weekend']) ?? $defaults['hours_weekend'],
             'hours_holidays' => SiteSetting::valueFor(self::KEY_HOURS_HOLIDAYS, $defaults['hours_holidays']) ?? $defaults['hours_holidays'],
+            'facebook_url' => SiteSetting::valueFor(self::KEY_FACEBOOK_URL, $defaults['facebook_url']) ?? $defaults['facebook_url'],
+            'instagram_url' => SiteSetting::valueFor(self::KEY_INSTAGRAM_URL, $defaults['instagram_url']) ?? $defaults['instagram_url'],
         ];
     }
 
@@ -77,6 +87,8 @@ class SiteSettingsService
         SiteSetting::put(self::KEY_HOURS_WEEKDAY, trim($data['hours_weekday'] ?? ''));
         SiteSetting::put(self::KEY_HOURS_WEEKEND, trim($data['hours_weekend'] ?? ''));
         SiteSetting::put(self::KEY_HOURS_HOLIDAYS, trim($data['hours_holidays'] ?? ''));
+        SiteSetting::put(self::KEY_FACEBOOK_URL, trim($data['facebook_url'] ?? ''));
+        SiteSetting::put(self::KEY_INSTAGRAM_URL, trim($data['instagram_url'] ?? ''));
     }
 
     /**
@@ -119,7 +131,7 @@ class SiteSettingsService
 
     public function ensureSeeded(): void
     {
-        if (! \Illuminate\Support\Facades\Schema::hasTable('site_settings')) {
+        if (! Schema::hasTable('site_settings')) {
             return;
         }
 
@@ -168,8 +180,8 @@ class SiteSettingsService
 
         SiteSetting::put(self::KEY_THERAPIST_DEFAULT_WORKING_DAYS, json_encode($days));
 
-        if (! empty($data['apply_working_days_to_all']) && \Illuminate\Support\Facades\Schema::hasTable('therapists')) {
-            \App\Models\Therapist::query()->update(['working_days' => $days]);
+        if (! empty($data['apply_working_days_to_all']) && Schema::hasTable('therapists')) {
+            Therapist::query()->update(['working_days' => $days]);
         }
     }
 }

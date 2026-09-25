@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\SiteSetting;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\User;
 use App\Services\BookingSlotService;
+use App\Services\SiteSettingsService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -54,6 +56,61 @@ class RevisionAdjustmentsTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('appointments-2026-09-24.csv', (string) $response->headers->get('content-disposition'));
         $this->assertStringContainsString('Swedish Massage', $response->streamedContent());
+    }
+
+    public function test_weekly_reporting_returns_the_selected_monday_to_sunday_range(): void
+    {
+        Carbon::setTestNow('2026-09-25 10:00:00');
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $response = $this->actingAs($admin)->getJson(route('reporting.data', [
+            'period' => 'weekly',
+            'period_value' => '2026-09-14',
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('period', 'weekly')
+            ->assertJsonPath('periodValue', '2026-09-14')
+            ->assertJsonPath('periodValueLabel', 'Sep 14 - Sep 20, 2026')
+            ->assertJsonPath('primaryLabel', 'Weekly Sales')
+            ->assertJsonCount(7, 'trendLabels');
+    }
+
+    public function test_landing_settings_save_and_render_social_links(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $settings = app(SiteSettingsService::class);
+        $footer = $settings->footer();
+
+        $response = $this->actingAs($admin)->put(route('landing-settings.update'), [
+            ...$footer,
+            'facebook_url' => 'https://www.facebook.com/buenostouche',
+            'instagram_url' => 'https://www.instagram.com/buenostouche',
+            'cancellation_cutoff_hours' => 24,
+        ]);
+
+        $response->assertRedirect(route('landing-settings.edit'));
+        $this->assertSame(
+            'https://www.facebook.com/buenostouche',
+            SiteSetting::valueFor(SiteSettingsService::KEY_FACEBOOK_URL),
+        );
+        $this->get(route('landing'))
+            ->assertOk()
+            ->assertSee('https://www.facebook.com/buenostouche', false)
+            ->assertSee('https://www.instagram.com/buenostouche', false);
+    }
+
+    public function test_landing_settings_reject_non_web_social_links(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $footer = app(SiteSettingsService::class)->footer();
+
+        $this->actingAs($admin)->put(route('landing-settings.update'), [
+            ...$footer,
+            'facebook_url' => 'javascript:alert(1)',
+            'instagram_url' => '',
+            'cancellation_cutoff_hours' => 24,
+        ])->assertSessionHasErrors('facebook_url');
     }
 
     public function test_staff_downpayment_is_rejected_inside_one_hour_cutoff(): void

@@ -27,6 +27,8 @@ class LandingSettingsController extends Controller
             'hours_weekday' => ['required', 'string', 'max:120'],
             'hours_weekend' => ['required', 'string', 'max:120'],
             'hours_holidays' => ['required', 'string', 'max:120'],
+            'facebook_url' => ['nullable', 'url:http,https', 'max:2048'],
+            'instagram_url' => ['nullable', 'url:http,https', 'max:2048'],
             'cancellation_cutoff_hours' => ['required', 'integer', 'min:0', 'max:8760'],
         ]);
 
@@ -35,7 +37,7 @@ class LandingSettingsController extends Controller
 
         ActivityLogger::log(
             'landing.footer_updated',
-            'Updated landing page footer contact and opening hours',
+            'Updated landing page footer contact, opening hours, and social links',
             $validated,
             request: $request,
         );

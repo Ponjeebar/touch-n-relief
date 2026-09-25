@@ -263,11 +263,16 @@
         </div>
         <div class="container footer-bottom">
             <p>&copy; {{ date('Y') }} Buenos Touche Spa. Powered by TouchNRelief.</p>
-            <div class="footer-social">
-                <a href="#" aria-label="Facebook">Facebook</a>
-                <a href="#" aria-label="Instagram">Instagram</a>
-                <a href="#" aria-label="TikTok">TikTok</a>
-            </div>
+            @if (! empty($footer['facebook_url']) || ! empty($footer['instagram_url']))
+                <div class="footer-social">
+                    @if (! empty($footer['facebook_url']))
+                        <a href="{{ $footer['facebook_url'] }}" target="_blank" rel="noopener noreferrer" aria-label="Open Buenos Touche Spa on Facebook">Facebook</a>
+                    @endif
+                    @if (! empty($footer['instagram_url']))
+                        <a href="{{ $footer['instagram_url'] }}" target="_blank" rel="noopener noreferrer" aria-label="Open Buenos Touche Spa on Instagram">Instagram</a>
+                    @endif
+                </div>
+            @endif
         </div>
     </footer>
 

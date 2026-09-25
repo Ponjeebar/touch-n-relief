@@ -351,6 +351,31 @@
     color: #b6aaa4;
 }
 
+.ls-footer-mock-social {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.ls-footer-mock-social a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #e8dfd8;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.ls-footer-mock-social a:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.ls-footer-mock-social a[hidden] {
+    display: none;
+}
+
 .ls-preview-note {
     margin: 12px 16px 16px;
     font-size: 12px;
