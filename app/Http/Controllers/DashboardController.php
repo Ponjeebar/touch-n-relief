@@ -2039,14 +2039,14 @@ class DashboardController extends Controller
                 'transactions.duration',
                 'transactions.amount',
                 'transactions.notes',
-                DB::raw('COALESCE(therapists.name, "—") as therapist_name'),
+                'therapists.name as therapist_name',
             ])
             ->orderByDesc('date')
             ->orderByDesc('time')
             ->get()
             ->map(function ($row) {
                 $duration = (int) ($row->duration ?? 0);
-                $date = (string) $row->date;
+                $date = Carbon::parse((string) $row->date)->toDateString();
                 $time = Carbon::parse((string) $row->time)->format('g:i A');
 
                 return [
