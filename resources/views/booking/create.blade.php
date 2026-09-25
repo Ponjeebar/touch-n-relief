@@ -50,19 +50,35 @@
             @endif
 
             <div class="booking-layout">
-            <div class="booking-grid" id="booking-grid">
+            <div class="booking-grid" id="booking-grid" data-mobile-step="date">
+                <div class="booking-mobile-progress" aria-label="Booking progress">
+                    <button type="button" class="booking-mobile-back" id="booking-mobile-back" aria-label="Go to the previous booking step">
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        Back
+                    </button>
+                    <ol>
+                        <li data-booking-progress="date"><span>1</span>Date</li>
+                        <li data-booking-progress="service"><span>2</span>Service</li>
+                        <li data-booking-progress="therapist"><span>3</span>Therapist</li>
+                        <li data-booking-progress="time"><span>4</span>Time</li>
+                    </ol>
+                </div>
                 <section class="booking-panel booking-panel-schedule" id="booking-panel-schedule">
-                    <h2>1. Your Schedule</h2>
+                    <h2>
+                        <span class="booking-heading-desktop">1. Your Schedule</span>
+                        <span class="booking-heading-mobile booking-heading-mobile-date">1. Choose a Date</span>
+                        <span class="booking-heading-mobile booking-heading-mobile-time">4. Choose a Time</span>
+                    </h2>
                     <form id="booking-form" method="POST" action="{{ route('booking.store') }}" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="payment_method" id="payment_method" value="paymongo">
                         <input type="hidden" name="payment_type" id="payment_type" value="{{ old('payment_type', 'downpayment') }}">
-                        <div class="booking-field">
+                        <div class="booking-field booking-field-date">
                             <label for="booking_date">Date</label>
                             <input id="booking_date" name="booking_date" type="date" min="{{ $today }}" value="{{ old('booking_date', request('date')) }}" required>
                         </div>
 
-                        <div class="booking-field">
+                        <div class="booking-field booking-field-time">
                             <label>Available Time Slots</label>
                             <p class="time-slots-hint" id="time-slots-hint">Select a date, service, and therapist to view available time slots.</p>
                             <div class="time-slots" id="time-slots"></div>
@@ -76,7 +92,7 @@
                             <input type="hidden" name="time_slot" id="time_slot" value="{{ old('time_slot') }}">
                         </div>
 
-                        <div class="booking-field">
+                        <div class="booking-field booking-field-notes">
                             <label for="notes">Notes (optional)</label>
                             <textarea id="notes" name="notes" rows="3" placeholder="Any preference or request...">{{ old('notes') }}</textarea>
                         </div>
@@ -382,6 +398,13 @@
             var notesInput = document.getElementById('notes');
             var panelService = document.getElementById('booking-panel-service');
             var panelTherapist = document.getElementById('booking-panel-therapist');
+            var bookingGrid = document.getElementById('booking-grid');
+            var panelSchedule = document.getElementById('booking-panel-schedule');
+            var mobileBackButton = document.getElementById('booking-mobile-back');
+            var mobileProgressItems = Array.from(document.querySelectorAll('[data-booking-progress]'));
+            var mobileBookingQuery = window.matchMedia('(max-width: 760px)');
+            var mobileSteps = ['date', 'service', 'therapist', 'time'];
+            var currentMobileStep = 'date';
 
             var modal = document.getElementById('bkConfirmModal');
             var sumService = document.getElementById('bkSumService');
@@ -444,6 +467,72 @@
                 var checked = therapistInputs.find(function (i) { return i.checked; });
                 return checked ? checked.value : '';
             }
+
+            function suggestedMobileStep() {
+                if (!(dateInput && dateInput.value)) return 'date';
+                if (!selectedService()) return 'service';
+                if (!selectedTherapist()) return 'therapist';
+                return 'time';
+            }
+
+            function panelForMobileStep(step) {
+                if (step === 'service') return panelService;
+                if (step === 'therapist') return panelTherapist;
+                return panelSchedule;
+            }
+
+            function updateMobileProgress() {
+                var activeIndex = mobileSteps.indexOf(currentMobileStep);
+                mobileProgressItems.forEach(function (item, index) {
+                    item.classList.toggle('is-active', index === activeIndex);
+                    item.classList.toggle('is-complete', index < activeIndex);
+                    if (index === activeIndex) {
+                        item.setAttribute('aria-current', 'step');
+                    } else {
+                        item.removeAttribute('aria-current');
+                    }
+                });
+                if (mobileBackButton) mobileBackButton.hidden = activeIndex <= 0;
+            }
+
+            function showMobileStep(step, direction) {
+                if (!bookingGrid || mobileSteps.indexOf(step) === -1) return;
+                var previousStep = currentMobileStep;
+                currentMobileStep = step;
+                bookingGrid.dataset.mobileStep = step;
+                updateMobileProgress();
+
+                if (!mobileBookingQuery.matches) return;
+
+                [panelSchedule, panelService, panelTherapist].forEach(function (panel) {
+                    if (!panel) return;
+                    panel.classList.toggle('is-mobile-active', panel === panelForMobileStep(step));
+                    panel.classList.remove('is-mobile-entering-forward', 'is-mobile-entering-back');
+                });
+
+                var activePanel = panelForMobileStep(step);
+                if (activePanel && previousStep !== step) {
+                    void activePanel.offsetWidth;
+                    activePanel.classList.add(direction === 'back' ? 'is-mobile-entering-back' : 'is-mobile-entering-forward');
+                }
+
+                bookingGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            function initializeMobileWizard() {
+                if (!bookingGrid) return;
+                bookingGrid.classList.add('booking-mobile-wizard-ready');
+                showMobileStep(suggestedMobileStep(), 'forward');
+            }
+
+            mobileBackButton?.addEventListener('click', function () {
+                var activeIndex = mobileSteps.indexOf(currentMobileStep);
+                if (activeIndex > 0) showMobileStep(mobileSteps[activeIndex - 1], 'back');
+            });
+
+            mobileBookingQuery.addEventListener?.('change', function () {
+                showMobileStep(mobileBookingQuery.matches ? suggestedMobileStep() : currentMobileStep, 'forward');
+            });
 
             function clearServiceSelection() {
                 serviceInputs.forEach(function (input) {
@@ -1080,6 +1169,9 @@
                 syncBookingSteps();
                 syncTherapistRecommendations();
                 renderSlots();
+                if (selectedService() && mobileBookingQuery.matches) {
+                    showMobileStep('therapist', 'forward');
+                }
             }
 
             document.querySelectorAll('.service-item').forEach(function (label) {
@@ -1115,6 +1207,9 @@
                     input.checked = !input.checked;
                     applyTherapistCardStates();
                     renderSlots();
+                    if (input.checked && mobileBookingQuery.matches) {
+                        showMobileStep('time', 'forward');
+                    }
                 });
             });
 
@@ -1128,6 +1223,9 @@
             dateInput?.addEventListener('change', function () {
                 therapistScheduleDateKey = '';
                 syncBookingSteps();
+                if (dateInput.value && mobileBookingQuery.matches) {
+                    showMobileStep('service', 'forward');
+                }
                 fetchTherapistSchedule(dateInput.value).finally(function () {
                     syncTherapistRecommendations();
                     renderSlots();
@@ -1224,6 +1322,7 @@
 
             syncBookingSteps();
             paintServiceCards();
+            initializeMobileWizard();
 
             if (dateInput && dateInput.value) {
                 fetchTherapistSchedule(dateInput.value).finally(function () {
