@@ -26,9 +26,9 @@
             </div>
 
             <div class="txn-reschedule-field">
-                <label class="txn-sort-label" for="tnr-reschedule-slots">New time</label>
+                <span class="txn-sort-label" id="tnr-reschedule-slots-label">New time</span>
                 <p class="txn-reschedule-slots-hint" id="tnr-reschedule-slots-hint">Select a date to see available times.</p>
-                <div class="txn-reschedule-slots" id="tnr-reschedule-slots" role="listbox" aria-label="Available time slots"></div>
+                <div class="txn-reschedule-slots" id="tnr-reschedule-slots" role="listbox" aria-labelledby="tnr-reschedule-slots-label" aria-describedby="tnr-reschedule-slots-hint"></div>
                 <input type="hidden" id="tnr-reschedule-time-slot" value="">
             </div>
 
