@@ -10,6 +10,7 @@ use App\Http\Controllers\LandingSettingsController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PaymongoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\StaffAppointmentController;
 use App\Http\Controllers\StaffNotificationController;
 use App\Http\Controllers\StorageMediaController;
@@ -36,6 +37,14 @@ Route::middleware('guest')->group(function () {
     Route::get('/verify-code/{verification}', [AuthController::class, 'showVerification'])->name('verification.show');
     Route::post('/verify-code/{verification}', [AuthController::class, 'verifyCode'])->middleware('throttle:10,1')->name('verification.verify');
     Route::post('/verify-code/{verification}/resend', [AuthController::class, 'resendCode'])->middleware('throttle:3,10')->name('verification.resend');
+    Route::get('/auth/social/complete', [SocialAuthController::class, 'complete'])->name('social.complete');
+    Route::post('/auth/social/complete', [SocialAuthController::class, 'store'])->middleware('throttle:5,10')->name('social.store');
+    Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+        ->whereIn('provider', ['google', 'facebook'])
+        ->name('social.redirect');
+    Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
+        ->whereIn('provider', ['google', 'facebook'])
+        ->name('social.callback');
 });
 
 // A reset link must remain usable when it opens in a browser with an existing session.

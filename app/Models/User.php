@@ -130,6 +130,12 @@ class User extends Authenticatable
         return $this->hasOne(Registration::class);
     }
 
+    /** @return HasMany<SocialAccount, User> */
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;

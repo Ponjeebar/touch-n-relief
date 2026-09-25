@@ -31,6 +31,7 @@
                 @csrf
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <h1 tabindex="-1">Create Account</h1>
+                @include('auth.partials.social-buttons', ['socialIntent' => 'signup'])
                 <input
                     type="text"
                     name="name"
@@ -177,6 +178,10 @@
             <form method="POST" action="{{ route('login.attempt') }}" novalidate class="auth-login-panel">
                 @csrf
                 <h1 tabindex="-1">Sign In</h1>
+                @error('social')
+                    <p class="field-msg auth-social-error">{{ $message }}</p>
+                @enderror
+                @include('auth.partials.social-buttons', ['socialIntent' => 'login'])
                 <input
                     type="text"
                     name="login"
