@@ -779,6 +779,10 @@ body.auth-page #container.active .sign-up {
     pointer-events: auto;
 }
 
+body.auth-page #container .auth-login-panel > button[type="submit"] {
+    margin-top: 26px;
+}
+
 .auth-forgot-panel {
     transform: translateX(10%);
     opacity: 0;
