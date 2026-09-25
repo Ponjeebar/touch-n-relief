@@ -197,6 +197,31 @@ body {
     transform: translateY(-2px);
 }
 
+.landing-section-link > span {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 5px;
+}
+
+.landing-section-link > span::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    border-radius: 999px;
+    background: #70e2bd;
+    content: '';
+    opacity: 0;
+    transform: scaleX(0.35);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.landing-section-link.is-active > span::after {
+    opacity: 1;
+    transform: scaleX(1);
+}
+
 .nav-user {
     display: inline-flex;
     align-items: center;
@@ -498,6 +523,10 @@ body {
 .landing-header.scrolled .brand,
 .landing-header.scrolled .nav-links a {
     color: #111;
+}
+
+.landing-header.scrolled .landing-section-link > span::after {
+    background: #04724d;
 }
 
 .landing-header.scrolled .btn-outline {

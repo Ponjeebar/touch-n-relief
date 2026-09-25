@@ -14,6 +14,10 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertSee('data-landing-section="services"', false)
+            ->assertSee('data-landing-section="therapists"', false)
+            ->assertSee('data-landing-section="about"', false)
+            ->assertSee('data-landing-section="contact"', false);
     }
 }

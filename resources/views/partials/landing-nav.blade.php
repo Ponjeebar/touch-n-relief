@@ -20,10 +20,10 @@
             @if ($navMode !== 'auth')
                 <nav class="nav-links" id="public-mobile-navigation">
                 @if ($navMode === 'full')
-                    <a href="{{ $onLanding ? '#services' : route('landing').'#services' }}">Services</a>
-                    <a href="{{ $onLanding ? '#therapists' : route('landing').'#therapists' }}">Therapists</a>
-                    <a href="{{ $onLanding ? '#about' : route('landing').'#about' }}">About</a>
-                    <a href="{{ $onLanding ? '#contact' : route('landing').'#contact' }}">Contact</a>
+                    <a href="{{ $onLanding ? '#services' : route('landing').'#services' }}" class="landing-section-link" data-landing-section="services"><span>Services</span></a>
+                    <a href="{{ $onLanding ? '#therapists' : route('landing').'#therapists' }}" class="landing-section-link" data-landing-section="therapists"><span>Therapists</span></a>
+                    <a href="{{ $onLanding ? '#about' : route('landing').'#about' }}" class="landing-section-link" data-landing-section="about"><span>About</span></a>
+                    <a href="{{ $onLanding ? '#contact' : route('landing').'#contact' }}" class="landing-section-link" data-landing-section="contact"><span>Contact</span></a>
                 @elseif ($navMode === 'booking')
                     <a href="{{ route('landing') }}">Home</a>
                     <a href="{{ route('profile.edit') }}">Profile</a>
