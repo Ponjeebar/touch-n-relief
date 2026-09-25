@@ -417,6 +417,12 @@
     border: 1px solid #efc5c5;
 }
 
+.txn-badge-pending {
+    color: #7a5a12;
+    background: #fff7e3;
+    border: 1px solid #f0d998;
+}
+
 .txn-service {
     margin: 0;
     font-size: 1.05rem;
@@ -558,6 +564,23 @@
     cursor: pointer;
     transition: background 0.14s ease, border-color 0.14s ease;
 }
+
+.txn-card-actions form { margin: 0; }
+.txn-payment-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid #087b57;
+    background: #087b57;
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.47rem 0.95rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+}
+.txn-payment-btn:hover { background: #066746; border-color: #066746; }
 
 .txn-reschedule-btn:hover {
     background: #dff0fa;

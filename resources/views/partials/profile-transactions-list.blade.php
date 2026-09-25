@@ -37,13 +37,16 @@
                 $statusLower = strtolower($txn['status'] ?? '');
                 $badgeClass = str_contains($statusLower, 'cancelled')
                     ? 'cancelled'
-                    : (str_contains($statusLower, 'confirmed')
+                    : (str_contains($statusLower, 'payment pending')
+                        ? 'pending'
+                        : (str_contains($statusLower, 'confirmed')
                         ? 'booked'
                         : (str_contains($statusLower, 'in session')
                             ? 'active'
-                            : (str_contains($statusLower, 'completed session') ? 'paid' : 'done')));
+                            : (str_contains($statusLower, 'completed session') ? 'paid' : 'done'))));
                 $statusAccent = match ($badgeClass) {
                     'cancelled' => 'is-cancelled',
+                    'pending' => 'is-pending',
                     'booked' => 'is-booked',
                     'active' => 'is-active',
                     'paid', 'done' => 'is-completed',
@@ -163,8 +166,17 @@
                         {{ $txn['cancellation_reason'] }}
                     </p>
                 @endif
-                @if ((! empty($txn['can_cancel']) || ! empty($txn['can_reschedule'])) && ! empty($txn['booking_id']))
+                @if ((! empty($txn['can_cancel']) || ! empty($txn['can_reschedule']) || ! empty($txn['can_resume_payment'])) && ! empty($txn['booking_id']))
                     <div class="txn-card-actions">
+                        @if (! empty($txn['can_resume_payment']))
+                            <form method="POST" action="{{ route('booking.payment.retry', ['spaBooking' => $txn['booking_id']]) }}">
+                                @csrf
+                                <button type="submit" class="txn-payment-btn">
+                                    <i class="bi bi-credit-card" aria-hidden="true"></i>
+                                    Continue payment
+                                </button>
+                            </form>
+                        @endif
                         @if (! empty($txn['can_reschedule']))
                             <button
                                 type="button"

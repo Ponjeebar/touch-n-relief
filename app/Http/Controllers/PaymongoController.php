@@ -6,6 +6,7 @@ use App\Models\SpaBooking;
 use App\Services\BookingRefundService;
 use App\Services\PaymongoService;
 use App\Support\PaymentMethodCatalog;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -195,6 +196,60 @@ class PaymongoController extends Controller
 
         return redirect()->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
             ->with('status', 'PayMongo checkout could not be resumed. Please contact an administrator.');
+    }
+
+    public function customerRetry(Request $request, SpaBooking $spaBooking): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user || (int) $spaBooking->user_id !== (int) $user->id) {
+            abort(403);
+        }
+
+        if ($spaBooking->booking_source !== SpaBooking::SOURCE_ONLINE
+            || $spaBooking->payment_method !== PaymentMethodCatalog::METHOD_PAYMONGO
+            || $spaBooking->payment_status !== PaymentMethodCatalog::STATUS_PENDING
+            || $spaBooking->cancelled_at !== null
+            || $spaBooking->completed_at !== null) {
+            abort(404);
+        }
+
+        $appointmentAt = Carbon::parse($spaBooking->booking_date->format('Y-m-d').' '.$spaBooking->time_slot);
+        if ($appointmentAt->lte(now())) {
+            return back()->withErrors(['payment' => 'Payment can no longer be continued because the appointment time has passed.']);
+        }
+
+        if (filled($spaBooking->paymongo_checkout_session_id)) {
+            try {
+                $session = $this->paymongo->retrieveCheckoutSession($spaBooking->paymongo_checkout_session_id);
+                if ($this->paymongo->isCheckoutSessionPaid($session)) {
+                    $this->markBookingPaid($spaBooking, $session);
+
+                    return back()->with('status', 'Your payment is confirmed.');
+                }
+
+                $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
+                $sessionStatus = strtolower((string) ($session['attributes']['status'] ?? ''));
+                if (str_starts_with($checkoutUrl, 'https://') && ! in_array($sessionStatus, ['expired', 'cancelled'], true)) {
+                    return redirect()->away($checkoutUrl);
+                }
+            } catch (\Throwable $exception) {
+                Log::info('Customer PayMongo checkout will be replaced.', [
+                    'booking_id' => $spaBooking->id,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            return redirect()->away($this->paymongo->startCustomerBookingCheckout($spaBooking));
+        } catch (\Throwable $exception) {
+            Log::warning('Customer PayMongo checkout could not be resumed.', [
+                'booking_id' => $spaBooking->id,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return back()->withErrors(['payment' => 'PayMongo checkout could not be opened right now. Please try again later.']);
+        }
     }
 
     private function verifyPendingCheckout(SpaBooking $spaBooking): void

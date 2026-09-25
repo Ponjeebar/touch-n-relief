@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SpaBooking;
 use App\Support\PaymentMethodCatalog;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -75,6 +76,43 @@ class PaymongoService
             'metadata' => [
                 'booking_id' => (string) $booking->id,
                 'user_id' => (string) $booking->user_id,
+                'payment_type' => (string) $booking->payment_type,
+            ],
+            'description' => 'Touch N Relief booking #'.$booking->id,
+        ]);
+
+        $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
+        $sessionId = (string) ($session['id'] ?? '');
+        if ($checkoutUrl === '' || $sessionId === '') {
+            throw new RuntimeException('PayMongo did not return a checkout link and session ID.');
+        }
+
+        $booking->forceFill(['paymongo_checkout_session_id' => $sessionId])->save();
+
+        return $checkoutUrl;
+    }
+
+    public function startCustomerBookingCheckout(SpaBooking $booking): string
+    {
+        $session = $this->createCheckoutSession([
+            'billing' => [
+                'name' => (string) ($booking->user?->name ?: $booking->client_name),
+                'email' => (string) $booking->user?->email,
+            ],
+            'line_items' => [[
+                'name' => $booking->service_name.' - '.PaymentMethodCatalog::typeLabelFor($booking->payment_type),
+                'amount' => (int) round((float) $booking->payment_amount * 100),
+                'currency' => 'PHP',
+                'quantity' => 1,
+            ]],
+            'payment_method_types' => $this->paymentMethodTypes(),
+            'success_url' => route('paymongo.success', $booking),
+            'cancel_url' => route('paymongo.cancel', $booking),
+            'reference_number' => (string) $booking->id,
+            'metadata' => [
+                'booking_id' => (string) $booking->id,
+                'user_id' => (string) $booking->user_id,
+                'service_name' => (string) $booking->service_name,
                 'payment_type' => (string) $booking->payment_type,
             ],
             'description' => 'Touch N Relief booking #'.$booking->id,
@@ -503,7 +541,7 @@ class PaymongoService
         return '';
     }
 
-    private function request(): \Illuminate\Http\Client\PendingRequest
+    private function request(): PendingRequest
     {
         return Http::withBasicAuth($this->secretKey(), '')
             ->acceptJson()

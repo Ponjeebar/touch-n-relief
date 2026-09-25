@@ -109,11 +109,18 @@ class SpaSessionService
             'amount' => $displayAmountRaw > 0 ? '₱'.number_format($displayAmountRaw, 2) : '—',
             'amount_raw' => $displayAmountRaw,
             ...$this->paymentMeta($booking),
-            'status' => $this->userTransactionLabel($status),
+            'status' => $status === SpaBooking::STATUS_CONFIRMED
+                && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING
+                ? 'Payment pending'
+                : $this->userTransactionLabel($status),
             'session_status' => $status,
             'sort_ts' => $this->sortTimestamp($date, (string) $booking->time_slot),
             'activity_ts' => $this->activityTimestamp($booking),
             'can_cancel' => false,
+            'can_resume_payment' => $status === SpaBooking::STATUS_CONFIRMED
+                && $booking->booking_source === SpaBooking::SOURCE_ONLINE
+                && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
+                && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING,
             'is_booking' => true,
             'cancellation_reason' => $booking->cancellation_reason,
         ];

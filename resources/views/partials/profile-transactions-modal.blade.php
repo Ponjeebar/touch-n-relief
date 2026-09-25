@@ -23,7 +23,7 @@
             <button type="button" class="txn-modal-close" data-tnr-txn-close="true" aria-label="Close">&times;</button>
         </header>
         <div class="txn-modal-body">
-            <p class="txn-modal-sub">Your confirmed bookings and completed spa sessions — most recent activity shown first.</p>
+            <p class="txn-modal-sub">Your bookings, payment status, and completed spa sessions — most recent activity shown first.</p>
             <p class="txn-modal-note">
                 <i class="bi bi-info-circle" aria-hidden="true"></i>
                 <span class="txn-modal-note-text"><strong>Late note:</strong> your session will be automatically cancelled if you are <strong>10 minutes late</strong>.</span>

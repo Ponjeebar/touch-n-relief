@@ -49,6 +49,7 @@ Route::middleware(['auth', 'staff.activity'])->group(function () {
     Route::get('/booking/paymongo/success/{spaBooking}', [PaymongoController::class, 'success'])->name('paymongo.success');
     Route::get('/booking/paymongo/cancel/{spaBooking}', [PaymongoController::class, 'cancel'])->name('paymongo.cancel');
     Route::post('/bookings/{spaBooking}/cancel', [BookingController::class, 'cancel'])->name('booking.cancel');
+    Route::post('/bookings/{spaBooking}/continue-payment', [PaymongoController::class, 'customerRetry'])->middleware('throttle:10,1')->name('booking.payment.retry');
     Route::patch('/bookings/{spaBooking}/reschedule', [BookingController::class, 'reschedule'])->name('booking.reschedule');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
