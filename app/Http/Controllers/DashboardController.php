@@ -2243,7 +2243,17 @@ class DashboardController extends Controller
         $periodValue = $request->query('period_value');
         $payload = $this->reportingPayload($period, $periodValue);
         $payload['salesTrendChart'] = $charts->salesTrend($payload['trendLabels'] ?? [], $payload['trendData'] ?? []);
-        $payload['serviceRevenueChart'] = $charts->serviceRevenue($payload['serviceLabels'] ?? [], $payload['serviceTotals'] ?? []);
+        $serviceChartRows = collect($payload['serviceLabels'] ?? [])
+            ->map(fn ($label, $index): array => [
+                'label' => (string) $label,
+                'total' => (float) ($payload['serviceTotals'][$index] ?? 0),
+            ])
+            ->filter(fn (array $row): bool => $row['total'] > 0)
+            ->values();
+        $payload['serviceRevenueChart'] = $charts->serviceRevenue(
+            $serviceChartRows->pluck('label')->all(),
+            $serviceChartRows->pluck('total')->all(),
+        );
         $safeSelection = preg_replace('/[^a-z0-9_-]+/i', '-', (string) ($payload['periodValue'] ?? 'current')) ?: 'current';
         $filename = 'touchnrelief-report-'.$period.'-'.$safeSelection.'.pdf';
 
