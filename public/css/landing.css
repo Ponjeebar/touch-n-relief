@@ -107,7 +107,7 @@ body {
 .nav-shell {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 1.3rem;
     background: linear-gradient(120deg, rgba(17, 14, 13, 0.72), rgba(17, 14, 13, 0.35));
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -171,6 +171,7 @@ body {
     display: flex;
     align-items: center;
     gap: 1.1rem;
+    margin-left: auto;
 }
 
 .mobile-nav-toggle {
