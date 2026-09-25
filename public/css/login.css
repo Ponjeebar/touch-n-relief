@@ -198,6 +198,7 @@ body.auth-page #container button.hidden {
     margin-top: 12px;
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    min-width: 200px;
 }
 
 body.auth-page #container button[type="submit"]:hover {
@@ -924,6 +925,26 @@ body.auth-page #container.active .toggle-left {
 .toggle-right {
     right: 0;
     transform: translateX(0);
+}
+
+@media (min-width: 901px) {
+    body.auth-page #container {
+        min-height: clamp(600px, calc(100vh - 7.25rem), 700px);
+        height: clamp(600px, calc(100vh - 7.25rem), 700px);
+    }
+
+    .toggle-right {
+        transform: translateY(-42px);
+    }
+
+    .toggle-panel-logo-wrap {
+        margin-bottom: 12px;
+    }
+
+    .auth-toggle-logo {
+        width: clamp(160px, 22vw, 220px);
+        max-height: min(180px, 24vh);
+    }
 }
 
 @media (max-width: 900px) {
