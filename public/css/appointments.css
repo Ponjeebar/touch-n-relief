@@ -925,7 +925,20 @@
 
 .view-modal-content {
     width: min(760px, calc(100vw - 40px));
+    max-height: calc(92vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    max-height: calc(92dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     border-radius: 26px;
+    overflow-y: auto;
+}
+
+.view-modal-actions {
+    position: sticky;
+    z-index: 2;
+    bottom: -22px;
+    margin: 6px -26px -22px;
+    padding: 14px 26px 22px;
+    border-top: 1px solid #dce9e7;
+    background: #fff;
 }
 
 .reschedule-modal-content .profile-modal-title,
@@ -2053,6 +2066,14 @@
     .add-appointment-modal-actions {
         display: flex;
         gap: 10px;
+    }
+
+    .view-modal-actions {
+        bottom: -14px;
+        margin: 6px -14px -14px;
+        padding:
+            12px 14px
+            calc(14px + env(safe-area-inset-bottom, 0px));
     }
 
     .appt-payment-summary-row {

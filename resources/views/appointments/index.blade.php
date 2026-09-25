@@ -1840,6 +1840,7 @@
                     return;
                 }
 
+                const completedBookingId = activeViewBookingId;
                 hideViewModal();
                 const toast = document.getElementById('status-toast');
                 if (toast) {
@@ -1848,7 +1849,7 @@
                     if (span) span.textContent = data.message || 'Refund marked complete.';
                 }
 
-                if (activeViewBookingId) {
+                if (completedBookingId) {
                     loadAppointments({
                         dateIso: currentSelectedDateIso,
                         statusSort: currentStatusSort,

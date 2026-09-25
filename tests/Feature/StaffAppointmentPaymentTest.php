@@ -6,6 +6,7 @@ use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\User;
 use App\Services\BookingSlotService;
+use App\Services\BookingRefundService;
 use App\Services\PaymongoService;
 use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
@@ -266,6 +267,39 @@ class StaffAppointmentPaymentTest extends TestCase
         ])->assertForbidden();
 
         $this->assertNull($booking->fresh()->balance_paid_at);
+    }
+
+    public function test_receptionist_can_complete_a_pending_manual_refund(): void
+    {
+        $receptionist = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $client->id,
+            'service_name' => 'Massage',
+            'booking_date' => now()->addDay()->toDateString(),
+            'time_slot' => '10:00 AM',
+            'amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'cancelled_at' => now(),
+            'refund_status' => BookingRefundService::STATUS_PENDING,
+            'refund_amount' => 50,
+            'refund_reference' => 'RF-PND-ABC123',
+        ]);
+
+        $this->actingAs($client)
+            ->patchJson(route('appointments.refund.complete', $booking))
+            ->assertForbidden();
+
+        $this->actingAs($receptionist)
+            ->patchJson(route('appointments.refund.complete', $booking))
+            ->assertOk()
+            ->assertJsonPath('refund_status', BookingRefundService::STATUS_PROCESSED);
+
+        $booking->refresh();
+        $this->assertSame(BookingRefundService::STATUS_PROCESSED, $booking->refund_status);
+        $this->assertNotNull($booking->refunded_at);
+        $this->assertStringStartsWith('RF-MAN-', (string) $booking->refund_reference);
     }
 
     public function test_unstarted_past_appointment_is_not_auto_completed(): void
