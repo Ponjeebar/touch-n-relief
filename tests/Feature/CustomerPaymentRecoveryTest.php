@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\SpaBooking;
 use App\Models\User;
+use App\Services\BookingCancellationService;
+use App\Services\BookingRescheduleService;
 use App\Services\PaymongoService;
 use App\Support\PaymentMethodCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,7 +25,12 @@ class CustomerPaymentRecoveryTest extends TestCase
             ->assertSee('Payment pending')
             ->assertSee('Continue payment')
             ->assertSee(route('booking.payment.retry', $booking), false)
+            ->assertDontSee(route('booking.cancel', $booking), false)
+            ->assertDontSee(route('booking.reschedule', $booking), false)
             ->assertDontSee('Confirmed booking');
+
+        $this->assertFalse(app(BookingCancellationService::class)->canCancel($booking));
+        $this->assertFalse(app(BookingRescheduleService::class)->canReschedule($booking));
     }
 
     public function test_customer_can_start_a_new_checkout_for_their_pending_booking(): void

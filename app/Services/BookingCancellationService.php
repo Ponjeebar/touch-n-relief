@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SpaBooking;
 use App\Models\User;
+use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -13,6 +14,7 @@ class BookingCancellationService
     public function __construct(
         private readonly BookingRefundService $refunds,
     ) {}
+
     /** @var array<string, string|null> */
     public const REASON_OPTIONS = [
         'schedule_conflict' => 'My schedule changed / I\'m no longer available.',
@@ -26,6 +28,12 @@ class BookingCancellationService
 
     public function canCancel(SpaBooking $booking): bool
     {
+        if ($booking->booking_source === SpaBooking::SOURCE_ONLINE
+            && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
+            && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING) {
+            return false;
+        }
+
         if ($booking->cancelled_at !== null || in_array($booking->session_status, [SpaBooking::STATUS_CANCELLED, SpaBooking::STATUS_NO_SHOW], true)) {
             return false;
         }
