@@ -87,8 +87,10 @@ class AuthVerificationTest extends TestCase
     {
         $this->get(route('login'))
             ->assertOk()
-            ->assertSee(route('privacy-policy'), false)
-            ->assertSee(route('terms-and-conditions'), false);
+            ->assertSee('data-auth-legal-open="privacy"', false)
+            ->assertSee('data-auth-legal-open="terms"', false)
+            ->assertSee('Information we collect')
+            ->assertSee('Account responsibility');
 
         $this->get(route('privacy-policy'))->assertOk()->assertSee('Privacy Policy');
         $this->get(route('terms-and-conditions'))->assertOk()->assertSee('Terms and Conditions');

@@ -160,7 +160,7 @@
                 </div>
                 <label class="auth-terms-option @error('terms_accepted', 'register') invalid @enderror">
                     <input type="checkbox" name="terms_accepted" value="1" @checked(old('terms_accepted')) required>
-                    <span>I agree to the <a href="{{ route('terms-and-conditions') }}" target="_blank" rel="noopener">Terms and Conditions</a> and acknowledge the <a href="{{ route('privacy-policy') }}" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                    <span>I agree to the <button type="button" class="auth-legal-link" data-auth-legal-open="terms">Terms and Conditions</button> and acknowledge the <button type="button" class="auth-legal-link" data-auth-legal-open="privacy">Privacy Policy</button>.</span>
                 </label>
                 @error('terms_accepted', 'register')
                     <p class="field-msg">{{ $message }}</p>
@@ -214,9 +214,9 @@
                 </div>
                 <button type="submit">Sign In</button>
                 <div class="auth-legal-links" aria-label="Legal information">
-                    <a href="{{ route('privacy-policy') }}">Privacy Policy</a>
+                    <button type="button" class="auth-legal-link" data-auth-legal-open="privacy">Privacy Policy</button>
                     <span aria-hidden="true">·</span>
-                    <a href="{{ route('terms-and-conditions') }}">Terms and Conditions</a>
+                    <button type="button" class="auth-legal-link" data-auth-legal-open="terms">Terms and Conditions</button>
                 </div>
                 <div class="mobile-toggle">
                     <span>No account yet?</span>
@@ -283,7 +283,10 @@
         </div>
     </div>
 
+    @include('partials.auth-legal-modal')
+
     <script src="{{ asset('js/auth-toggle.js') }}?v={{ filemtime(public_path('js/auth-toggle.js')) }}"></script>
     <script src="{{ asset('js/password-requirements.js') }}?v={{ filemtime(public_path('js/password-requirements.js')) }}"></script>
+    <script src="{{ asset('js/auth-legal-modal.js') }}?v={{ filemtime(public_path('js/auth-legal-modal.js')) }}"></script>
 </body>
 </html>
