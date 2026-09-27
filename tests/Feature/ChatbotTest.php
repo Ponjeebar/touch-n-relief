@@ -42,7 +42,11 @@ class ChatbotTest extends TestCase
         ]);
 
         $this->actingAs($customer)->postJson(route('chatbot.reply'), ['message' => 'My appointments'])
-            ->assertOk()->assertSee('Own Service')->assertDontSee('Private Service');
+            ->assertOk()
+            ->assertSee('Own Service')
+            ->assertDontSee('Private Service')
+            ->assertJsonPath('actions.0.label', 'Manage bookings')
+            ->assertJsonPath('actions.0.url', route('profile.edit', ['appointments' => 1]));
 
         $this->actingAs($customer)->postJson(route('chatbot.reply'), ['message' => 'booking #'.$stranger->id])
             ->assertOk()->assertSee('could not find')->assertDontSee('Private Service');

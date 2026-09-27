@@ -17,12 +17,23 @@
         document.body.appendChild(rescheduleModal);
     }
 
+    function syncTransactionsUrl(open) {
+        var url = new URL(window.location.href);
+        if (open) {
+            url.searchParams.set('appointments', '1');
+        } else {
+            url.searchParams.delete('appointments');
+        }
+        window.history.replaceState(window.history.state, '', url.toString());
+    }
+
     function closeTransactionsModal() {
         if (!transactionsModal) return;
         transactionsModal.classList.add('txn-modal-hidden');
         transactionsModal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('txn-modal-open');
         document.body.classList.remove('modal-open');
+        syncTransactionsUrl(false);
     }
 
     function openTransactionsModal() {
@@ -30,6 +41,7 @@
         transactionsModal.classList.remove('txn-modal-hidden');
         transactionsModal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('txn-modal-open');
+        syncTransactionsUrl(true);
         transactionsModal.querySelector('.txn-modal-close')?.focus();
     }
 
@@ -56,6 +68,10 @@
             openTransactionsModal();
         });
     });
+
+    if (new URLSearchParams(window.location.search).get('appointments') === '1') {
+        openTransactionsModal();
+    }
 
     document.querySelectorAll('[data-tnr-txn-close]').forEach(function (el) {
         el.addEventListener('click', function (e) {

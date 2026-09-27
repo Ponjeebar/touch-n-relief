@@ -57,7 +57,7 @@ class ChatbotService
                 'Customers can cancel or reschedule a booking before its appointment time, provided the session has not started or finished. '
                 .'Paid cancellations may need a refund; the method and processing status depend on the payment channel. '
                 .'For a specific booking, sign in and ask about your appointment.',
-                $user ? [$this->action('View my bookings', 'profile.edit')] : $this->guestActions(),
+                $user ? [$this->appointmentsAction('View my bookings')] : $this->guestActions(),
             );
         }
 
@@ -163,7 +163,7 @@ class ChatbotService
                 return $this->respond('I could not find that booking in your account.', [$this->action('Open profile', 'profile.edit')]);
             }
 
-            return $this->respond($this->bookingSummary($booking), [$this->action('View booking', 'profile.edit')]);
+            return $this->respond($this->bookingSummary($booking), [$this->appointmentsAction('View booking')]);
         }
 
         $bookings = SpaBooking::query()->where('user_id', $user->id)
@@ -173,11 +173,11 @@ class ChatbotService
 
         if ($bookings->isEmpty()) {
             return $this->respond('I found no upcoming appointments in your account. You can review past bookings in your profile or make a new booking.',
-                [$this->action('Open profile', 'profile.edit'), $this->action('Book now', 'booking.index')]);
+                [$this->appointmentsAction('View appointments'), $this->action('Book now', 'booking.index')]);
         }
 
         return $this->respond('Your next appointments: '.$bookings->map(fn (SpaBooking $booking): string => $this->bookingSummary($booking))->implode(' '),
-            [$this->action('Manage bookings', 'profile.edit')]);
+            [$this->appointmentsAction('Manage bookings')]);
     }
 
     private function changeRules(string $question, ?User $user, bool $cancel): array
@@ -207,7 +207,7 @@ class ChatbotService
         }
 
         if (! $booking) {
-            return $this->respond($general.'I found no upcoming booking in your account.', [$this->action('Open profile', 'profile.edit')]);
+            return $this->respond($general.'I found no upcoming booking in your account.', [$this->appointmentsAction('View appointments')]);
         }
 
         $allowed = $cancel ? $this->cancellations->canCancel($booking) : $this->reschedules->canReschedule($booking);
@@ -219,7 +219,7 @@ class ChatbotService
             $reply .= ' If you paid, any refund depends on the payment method and will be shown during cancellation.';
         }
 
-        return $this->respond($reply, [$this->action('Manage bookings', 'profile.edit')]);
+        return $this->respond($reply, [$this->appointmentsAction('Manage bookings')]);
     }
 
     private function roleHelp(?User $user): array
@@ -330,6 +330,11 @@ class ChatbotService
     private function servicesAction(): array
     {
         return ['label' => 'View services', 'url' => route('landing').'#services'];
+    }
+
+    private function appointmentsAction(string $label): array
+    {
+        return ['label' => $label, 'url' => route('profile.edit', ['appointments' => 1])];
     }
 
     private function guestActions(): array
