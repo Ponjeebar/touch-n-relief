@@ -3,13 +3,17 @@
 namespace App\Models;
 
 use App\Services\SpaServiceCatalog;
+use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SpaBooking extends Model
 {
+    public const PAYMENT_HOLD_MINUTES = 15;
+
     public const STATUS_CONFIRMED = 'confirmed';
 
     public const STATUS_IN_SESSION = 'in_session';
@@ -104,17 +108,17 @@ class SpaBooking extends Model
 
     public function isCompleted(): bool
     {
-        return app(\App\Services\SpaSessionService::class)->isCompleted($this);
+        return app(SpaSessionService::class)->isCompleted($this);
     }
 
     public function isOngoing(): bool
     {
-        return app(\App\Services\SpaSessionService::class)->isOngoing($this);
+        return app(SpaSessionService::class)->isOngoing($this);
     }
 
     public function initialPaidAmount(): float
     {
-        return $this->payment_status === \App\Support\PaymentMethodCatalog::STATUS_PAID
+        return $this->payment_status === PaymentMethodCatalog::STATUS_PAID
             ? max((float) ($this->payment_amount ?? 0), 0)
             : 0.0;
     }
@@ -146,6 +150,29 @@ class SpaBooking extends Model
             ], true);
     }
 
+    public function paymentHoldExpiresAt(): ?CarbonInterface
+    {
+        if (! $this->isAwaitingOnlinePayment() || $this->created_at === null) {
+            return null;
+        }
+
+        return $this->created_at->copy()->addMinutes(self::PAYMENT_HOLD_MINUTES);
+    }
+
+    public function hasActivePaymentHold(): bool
+    {
+        $expiresAt = $this->paymentHoldExpiresAt();
+
+        return $this->payment_status === PaymentMethodCatalog::STATUS_PENDING
+            && $expiresAt !== null
+            && now()->lt($expiresAt);
+    }
+
+    public function isPaymentHoldExpired(): bool
+    {
+        return $this->isAwaitingOnlinePayment() && ! $this->hasActivePaymentHold();
+    }
+
     public function scopeActive($query)
     {
         return $query->whereNull('cancelled_at');
@@ -173,6 +200,8 @@ class SpaBooking extends Model
      */
     public function scopeBlocksAvailability($query)
     {
+        $holdCutoff = now()->subMinutes(self::PAYMENT_HOLD_MINUTES);
+
         return $query
             ->whereNull('cancelled_at')
             ->whereNull('completed_at')
@@ -182,6 +211,23 @@ class SpaBooking extends Model
                         self::STATUS_CONFIRMED,
                         self::STATUS_IN_SESSION,
                     ]);
+            })
+            ->where(function ($query) use ($holdCutoff): void {
+                $query->where(function ($query): void {
+                    $query->where('booking_source', '!=', self::SOURCE_ONLINE)
+                        ->orWhereNull('booking_source')
+                        ->orWhere('payment_method', '!=', PaymentMethodCatalog::METHOD_PAYMONGO)
+                        ->orWhereNull('payment_method')
+                        ->orWhereNotIn('payment_status', [
+                            PaymentMethodCatalog::STATUS_PENDING,
+                            PaymentMethodCatalog::STATUS_FAILED,
+                        ]);
+                })->orWhere(function ($query) use ($holdCutoff): void {
+                    $query->where('booking_source', self::SOURCE_ONLINE)
+                        ->where('payment_method', PaymentMethodCatalog::METHOD_PAYMONGO)
+                        ->where('payment_status', PaymentMethodCatalog::STATUS_PENDING)
+                        ->where('created_at', '>', $holdCutoff);
+                });
             });
     }
 

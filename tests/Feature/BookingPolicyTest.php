@@ -167,6 +167,34 @@ class BookingPolicyTest extends TestCase
         $this->assertFalse($slots->therapistSlotTaken('Liza Reyes', '2026-09-25', '01:00 PM', 30));
     }
 
+    public function test_unpaid_online_booking_releases_its_slot_after_fifteen_minutes(): void
+    {
+        Carbon::setTestNow('2026-09-24 09:00:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $customer->id,
+            'client_name' => $customer->name,
+            'booking_source' => SpaBooking::SOURCE_ONLINE,
+            'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
+            'booking_date' => '2026-09-25',
+            'time_slot' => '10:00 AM',
+            'duration_minutes' => 60,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_status' => PaymentMethodCatalog::STATUS_PENDING,
+            'session_status' => SpaBooking::STATUS_CONFIRMED,
+        ]);
+        $slots = app(BookingSlotService::class);
+
+        $this->assertTrue($booking->hasActivePaymentHold());
+        $this->assertTrue($slots->therapistSlotTaken('Liza Reyes', '2026-09-25', '10:00 AM', 60));
+
+        Carbon::setTestNow('2026-09-24 09:15:00');
+
+        $this->assertTrue($booking->fresh()->isPaymentHoldExpired());
+        $this->assertFalse($slots->therapistSlotTaken('Liza Reyes', '2026-09-25', '10:00 AM', 60));
+    }
+
     private function booking(User $customer, string $date, string $time): SpaBooking
     {
         return SpaBooking::create([

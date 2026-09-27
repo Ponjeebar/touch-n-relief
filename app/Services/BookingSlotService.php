@@ -450,6 +450,26 @@ class BookingSlotService
         return false;
     }
 
+    public function bookingHasConflict(SpaBooking $booking): bool
+    {
+        $durationMinutes = $this->resolvedBookingDurationMinutes($booking);
+        $bookingDate = $booking->booking_date->format('Y-m-d');
+
+        return $this->userConflictAt(
+            (int) $booking->user_id,
+            $bookingDate,
+            (string) $booking->time_slot,
+            $durationMinutes,
+            (int) $booking->id,
+        ) !== null || $this->therapistSlotTaken(
+            (string) $booking->therapist_name,
+            $bookingDate,
+            (string) $booking->time_slot,
+            $durationMinutes,
+            (int) $booking->id,
+        );
+    }
+
     /**
      * Offered slots that overlap an existing booking for the therapist (given proposed service duration).
      *

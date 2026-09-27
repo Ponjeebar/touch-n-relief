@@ -5,15 +5,24 @@ namespace Tests\Feature;
 use App\Models\SpaBooking;
 use App\Models\User;
 use App\Services\BookingCancellationService;
+use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
 use App\Services\PaymongoService;
+use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class CustomerPaymentRecoveryTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
 
     public function test_unpaid_online_booking_is_shown_as_payment_pending_with_continue_button(): void
     {
@@ -118,6 +127,118 @@ class CustomerPaymentRecoveryTest extends TestCase
         $this->actingAs($otherCustomer)
             ->post(route('booking.payment.retry', $booking))
             ->assertForbidden();
+    }
+
+    public function test_expired_payment_hold_cannot_be_continued(): void
+    {
+        Carbon::setTestNow('2026-09-24 09:00:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->pendingBooking($customer);
+        $booking->forceFill([
+            'created_at' => now()->subMinutes(15),
+            'updated_at' => now()->subMinutes(15),
+        ])->saveQuietly();
+
+        $this->mock(PaymongoService::class, function ($mock): void {
+            $mock->shouldNotReceive('startCustomerBookingCheckout');
+        });
+
+        $this->actingAs($customer)
+            ->from(route('landing'))
+            ->post(route('booking.payment.retry', $booking))
+            ->assertRedirect(route('landing'))
+            ->assertSessionHasErrors('payment');
+
+        $row = app(SpaSessionService::class)->toUserTransactionRow($booking->fresh());
+        $this->assertSame('Payment hold expired', $row['status']);
+        $this->assertFalse($row['can_resume_payment']);
+    }
+
+    public function test_late_payment_is_cancelled_and_refunded_when_released_slot_was_taken(): void
+    {
+        Carbon::setTestNow('2026-09-24 09:30:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->pendingBooking($customer);
+        $booking->forceFill([
+            'paymongo_checkout_session_id' => 'cs_expired_hold',
+            'created_at' => now()->subMinutes(16),
+            'updated_at' => now()->subMinutes(16),
+        ])->saveQuietly();
+
+        SpaBooking::create([
+            'user_id' => User::factory()->create(['role' => User::ROLE_USER])->id,
+            'client_name' => 'Second Customer',
+            'booking_source' => SpaBooking::SOURCE_ONLINE,
+            'service_name' => $booking->service_name,
+            'therapist_name' => $booking->therapist_name,
+            'booking_date' => $booking->booking_date,
+            'time_slot' => $booking->time_slot,
+            'duration_minutes' => $booking->duration_minutes,
+            'payment_method' => PaymentMethodCatalog::CHANNEL_GCASH,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_status' => SpaBooking::STATUS_CONFIRMED,
+        ]);
+
+        $session = ['id' => 'cs_expired_hold'];
+        $this->mock(PaymongoService::class, function ($mock) use ($session): void {
+            $mock->shouldReceive('retrieveCheckoutSession')->once()->with('cs_expired_hold')->andReturn($session);
+            $mock->shouldReceive('isCheckoutSessionPaid')->once()->with($session)->andReturnTrue();
+            $mock->shouldReceive('extractPaidPaymentIdFromSession')->once()->with($session)->andReturn('pay_late');
+            $mock->shouldReceive('extractPaymentChannelFromSession')->once()->with($session)->andReturn('gcash');
+        });
+        $this->mock(BookingRefundService::class, function ($mock): void {
+            $mock->shouldReceive('processRefund')->once()->andReturnUsing(function (SpaBooking $booking): SpaBooking {
+                $booking->forceFill([
+                    'payment_status' => PaymentMethodCatalog::STATUS_REFUNDED,
+                    'refund_status' => BookingRefundService::STATUS_PROCESSED,
+                ])->saveQuietly();
+
+                return $booking->fresh();
+            });
+        });
+
+        $this->actingAs($customer)
+            ->from(route('landing'))
+            ->post(route('booking.payment.retry', $booking))
+            ->assertRedirect(route('landing'))
+            ->assertSessionHasErrors('payment');
+
+        $booking->refresh();
+        $this->assertNotNull($booking->cancelled_at);
+        $this->assertSame(SpaBooking::STATUS_CANCELLED, $booking->session_status);
+        $this->assertSame(PaymentMethodCatalog::STATUS_REFUNDED, $booking->payment_status);
+    }
+
+    public function test_late_payment_is_confirmed_when_released_slot_is_still_available(): void
+    {
+        Carbon::setTestNow('2026-09-24 09:30:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->pendingBooking($customer);
+        $booking->forceFill([
+            'paymongo_checkout_session_id' => 'cs_late_available',
+            'created_at' => now()->subMinutes(16),
+            'updated_at' => now()->subMinutes(16),
+        ])->saveQuietly();
+
+        $session = ['id' => 'cs_late_available'];
+        $this->mock(PaymongoService::class, function ($mock) use ($session): void {
+            $mock->shouldReceive('retrieveCheckoutSession')->once()->with('cs_late_available')->andReturn($session);
+            $mock->shouldReceive('isCheckoutSessionPaid')->once()->with($session)->andReturnTrue();
+            $mock->shouldReceive('extractPaidPaymentIdFromSession')->once()->with($session)->andReturn('pay_late_available');
+            $mock->shouldReceive('extractPaymentChannelFromSession')->once()->with($session)->andReturn('gcash');
+        });
+        $this->mock(BookingRefundService::class, function ($mock): void {
+            $mock->shouldNotReceive('processRefund');
+        });
+
+        $this->actingAs($customer)
+            ->post(route('booking.payment.retry', $booking))
+            ->assertSessionHas('status', 'Your payment is confirmed.');
+
+        $booking->refresh();
+        $this->assertNull($booking->cancelled_at);
+        $this->assertSame(PaymentMethodCatalog::STATUS_PAID, $booking->payment_status);
+        $this->assertSame('pay_late_available', $booking->payment_transaction_id);
     }
 
     private function pendingBooking(User $customer): SpaBooking

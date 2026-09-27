@@ -37,7 +37,7 @@
                 $statusLower = strtolower($txn['status'] ?? '');
                 $badgeClass = str_contains($statusLower, 'cancelled')
                     ? 'cancelled'
-                    : (str_contains($statusLower, 'payment pending')
+                    : (str_contains($statusLower, 'payment pending') || str_contains($statusLower, 'payment hold expired')
                         ? 'pending'
                         : (str_contains($statusLower, 'confirmed')
                         ? 'booked'

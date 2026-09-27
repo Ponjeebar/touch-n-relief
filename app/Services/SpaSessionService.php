@@ -109,12 +109,14 @@ class SpaSessionService
             'amount' => $displayAmountRaw > 0 ? '₱'.number_format($displayAmountRaw, 2) : '—',
             'amount_raw' => $displayAmountRaw,
             ...$this->paymentMeta($booking),
-            'status' => $status === SpaBooking::STATUS_COMPLETED && ! $booking->isFullyPaid()
+            'status' => $booking->isPaymentHoldExpired()
+                ? 'Payment hold expired'
+                : ($status === SpaBooking::STATUS_COMPLETED && ! $booking->isFullyPaid()
                 ? ($booking->totalPaidAmount() > 0 ? 'Payment incomplete' : 'Payment not received')
                 : ($status === SpaBooking::STATUS_CONFIRMED
                     && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING
                     ? 'Payment pending'
-                    : $this->userTransactionLabel($status)),
+                    : $this->userTransactionLabel($status))),
             'session_status' => $status,
             'sort_ts' => $this->sortTimestamp($date, (string) $booking->time_slot),
             'activity_ts' => $this->activityTimestamp($booking),
@@ -122,7 +124,8 @@ class SpaSessionService
             'can_resume_payment' => $status === SpaBooking::STATUS_CONFIRMED
                 && $booking->booking_source === SpaBooking::SOURCE_ONLINE
                 && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
-                && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING,
+                && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING
+                && $booking->hasActivePaymentHold(),
             'is_booking' => true,
             'cancellation_reason' => $booking->cancellation_reason,
         ];

@@ -4,18 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Models\SpaBooking;
 use App\Services\BookingRefundService;
+use App\Services\BookingSlotService;
 use App\Services\PaymongoService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PaymongoController extends Controller
 {
     public function __construct(
         private readonly PaymongoService $paymongo,
+        private readonly BookingSlotService $slots,
+        private readonly BookingRefundService $refunds,
     ) {}
 
     public function success(Request $request, SpaBooking $spaBooking): RedirectResponse
@@ -69,7 +73,9 @@ class PaymongoController extends Controller
 
         $statusMessage = $isPaid
             ? 'Your booking is confirmed with '.$spaBooking->therapist_name.' for '.$spaBooking->service_name.' on '.$dateFormatted.' at '.$spaBooking->time_slot.'. Payment: PayMongo · '.$typeLabel.' · ₱'.number_format($paymentAmount, 2).'.'
-            : 'Your booking is reserved. Complete payment on PayMongo to confirm your appointment.';
+            : ($spaBooking->cancelled_at !== null
+                ? 'Your payment arrived after the 15-minute hold expired and the time was already taken. The appointment was cancelled and the refund is being processed.'
+                : 'Your booking is reserved. Complete payment on PayMongo to confirm your appointment.');
 
         if ($isPaid) {
             $receipt = [
@@ -219,6 +225,31 @@ class PaymongoController extends Controller
         $appointmentAt = Carbon::parse($spaBooking->booking_date->format('Y-m-d').' '.$spaBooking->time_slot);
         if ($appointmentAt->lte(now())) {
             return back()->withErrors(['payment' => 'Payment can no longer be continued because the appointment time has passed.']);
+        }
+
+        if ($spaBooking->isPaymentHoldExpired()) {
+            if (filled($spaBooking->paymongo_checkout_session_id)) {
+                try {
+                    $session = $this->paymongo->retrieveCheckoutSession($spaBooking->paymongo_checkout_session_id);
+                    if ($this->paymongo->isCheckoutSessionPaid($session)) {
+                        $this->markBookingPaid($spaBooking, $session);
+                        $spaBooking->refresh();
+
+                        return $spaBooking->payment_status === PaymentMethodCatalog::STATUS_PAID
+                            ? back()->with('status', 'Your payment is confirmed.')
+                            : back()->withErrors(['payment' => 'The 15-minute payment hold expired and the selected time was taken. Your refund is being processed.']);
+                    }
+                } catch (\Throwable $exception) {
+                    Log::info('Expired customer payment hold could not be verified.', [
+                        'booking_id' => $spaBooking->id,
+                        'message' => $exception->getMessage(),
+                    ]);
+                }
+            }
+
+            return back()->withErrors([
+                'payment' => 'The 15-minute payment hold has expired. Please choose an available appointment time again.',
+            ]);
         }
 
         if (filled($spaBooking->paymongo_checkout_session_id)) {
@@ -583,11 +614,51 @@ class PaymongoController extends Controller
             return;
         }
 
-        $booking->forceFill([
+        $paidValues = [
             'payment_status' => PaymentMethodCatalog::STATUS_PAID,
             'payment_method' => $paymentMethod,
             'payment_transaction_id' => $resolvedPaymentId !== '' ? $resolvedPaymentId : $booking->payment_transaction_id,
             'paymongo_checkout_session_id' => $sessionId ?? $booking->paymongo_checkout_session_id,
-        ])->save();
+        ];
+
+        if (! $booking->isPaymentHoldExpired()) {
+            $booking->forceFill($paidValues)->save();
+
+            return;
+        }
+
+        $hasConflict = DB::transaction(function () use ($booking, $paidValues): bool {
+            // Keep the same therapist-first lock order used while creating bookings.
+            $this->slots->lockTherapistBookingsForUpdate(
+                (string) $booking->therapist_name,
+                $booking->booking_date->format('Y-m-d'),
+            );
+
+            $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
+
+            if ($locked->payment_status === PaymentMethodCatalog::STATUS_PAID) {
+                return false;
+            }
+
+            $hasConflict = $this->slots->bookingHasConflict($locked);
+            if ($hasConflict) {
+                $paidValues['cancelled_at'] = now();
+                $paidValues['session_status'] = SpaBooking::STATUS_CANCELLED;
+                $paidValues['cancellation_reason'] = 'Automatically cancelled because payment arrived after the 15-minute hold expired and the selected time was no longer available.';
+            }
+
+            $locked->forceFill($paidValues)->save();
+
+            return $hasConflict;
+        });
+
+        if ($hasConflict) {
+            $refunded = $this->refunds->processRefund($booking->fresh());
+
+            Log::warning('Late PayMongo payment conflicted with a booking made after the hold expired.', [
+                'booking_id' => $booking->id,
+                'refund_status' => $refunded->refund_status,
+            ]);
+        }
     }
 }
