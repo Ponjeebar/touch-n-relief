@@ -15,6 +15,10 @@ class ExampleTest extends TestCase
         $response = $this->get('/');
 
         $response->assertStatus(200)
+            ->assertSee('<link rel="icon" type="image/png" sizes="64x64"', false)
+            ->assertSee('<link rel="canonical"', false)
+            ->assertSee('"@type":"WebSite"', false)
+            ->assertSee('"name":"TouchNRelief"', false)
             ->assertSee('data-landing-section="services"', false)
             ->assertSee('data-landing-section="therapists"', false)
             ->assertSee('data-landing-section="about"', false)

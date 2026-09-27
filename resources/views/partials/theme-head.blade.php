@@ -1,6 +1,6 @@
 {{-- Apply saved theme before paint to avoid flash --}}
-<link rel="icon" type="image/png" sizes="64x64" href="{{ asset('favicon-64.png') }}?v={{ filemtime(public_path('favicon-64.png')) }}">
-<link rel="shortcut icon" href="{{ asset('favicon.ico') }}?v={{ filemtime(public_path('favicon.ico')) }}">
+<link rel="icon" type="image/png" sizes="64x64" href="{{ asset('favicon-64.png') }}">
+<link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 <link rel="stylesheet" href="{{ asset('css/password-capslock.css') }}">
 <link rel="stylesheet" href="{{ asset('css/password-toggle.css') }}">
 <script src="{{ asset('js/password-capslock.js') }}" defer></script>

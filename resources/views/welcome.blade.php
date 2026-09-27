@@ -4,7 +4,49 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Buenos Touche Spa</title>
+    @php
+        $siteUrl = rtrim((string) config('app.url'), '/') . '/';
+        $siteLogoUrl = asset('images/dashboard/logo.png');
+        $siteIdentity = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'WebSite',
+                    '@id' => $siteUrl . '#website',
+                    'url' => $siteUrl,
+                    'name' => 'TouchNRelief',
+                    'alternateName' => ['Touch N Relief', 'touchnrelief.app'],
+                    'description' => 'The official online appointment and customer wellness management system of Buenos Touche Spa.',
+                    'publisher' => ['@id' => $siteUrl . '#organization'],
+                ],
+                [
+                    '@type' => 'Organization',
+                    '@id' => $siteUrl . '#organization',
+                    'name' => 'Buenos Touche Spa',
+                    'url' => $siteUrl,
+                    'logo' => [
+                        '@type' => 'ImageObject',
+                        'url' => $siteLogoUrl,
+                        'contentUrl' => $siteLogoUrl,
+                        'width' => 277,
+                        'height' => 278,
+                    ],
+                ],
+            ],
+        ];
+    @endphp
+    <title>TouchNRelief — Buenos Touche Spa Online Booking</title>
+    <meta name="description" content="TouchNRelief is the official online appointment and customer wellness management system of Buenos Touche Spa.">
+    <link rel="canonical" href="{{ $siteUrl }}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ asset('favicon-64.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ $siteUrl }}">
+    <meta property="og:site_name" content="TouchNRelief">
+    <meta property="og:title" content="TouchNRelief — Buenos Touche Spa Online Booking">
+    <meta property="og:description" content="Book personalized spa services through TouchNRelief, the official appointment system of Buenos Touche Spa.">
+    <meta property="og:image" content="{{ $siteLogoUrl }}">
+    <script type="application/ld+json">{!! json_encode($siteIdentity, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -28,10 +70,10 @@
     <section class="hero">
         <div class="hero-overlay"></div>
         <div class="container hero-content reveal">
-            <p class="eyebrow reveal delay-1">WELCOME TO BUENOS TOUCHE SPA</p>
+            <p class="eyebrow reveal delay-1">TOUCHNRELIEF · BUENOS TOUCHE SPA</p>
             <h1 class="reveal delay-2">Your Sanctuary of Relaxation and Rejuvenation</h1>
             <p class="hero-text reveal delay-3">
-                At Buenos Touche, every treatment is crafted to ease stress, restore balance, and help you feel renewed.
+                TouchNRelief makes it simple to book personalized treatments with Buenos Touche Spa, where every session is crafted to ease stress and restore balance.
             </p>
             <div class="hero-actions reveal delay-4">
                 <a href="#services" class="btn btn-light">View Our Services</a>
