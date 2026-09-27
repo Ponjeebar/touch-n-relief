@@ -68,6 +68,7 @@ class CustomerPaymentRecoveryTest extends TestCase
                     ],
                 ]);
             $mock->shouldReceive('isCheckoutSessionPaid')->once()->andReturnFalse();
+            $mock->shouldReceive('checkoutSessionHasUsablePaymentMethods')->once()->andReturnTrue();
             $mock->shouldReceive('isCheckoutUrl')->once()->andReturnFalse();
             $mock->shouldReceive('startCustomerBookingCheckout')
                 ->once()
@@ -78,6 +79,34 @@ class CustomerPaymentRecoveryTest extends TestCase
         $this->actingAs($customer)
             ->post(route('booking.payment.retry', $booking))
             ->assertRedirect('https://checkout.paymongo.com/customer-replacement');
+    }
+
+    public function test_customer_gets_a_new_checkout_when_saved_session_has_no_usable_payment_method(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->pendingBooking($customer);
+        $booking->forceFill(['paymongo_checkout_session_id' => 'cs_bad_methods'])->save();
+
+        $this->mock(PaymongoService::class, function ($mock) use ($booking): void {
+            $mock->shouldReceive('retrieveCheckoutSession')->once()->with('cs_bad_methods')->andReturn([
+                'id' => 'cs_bad_methods',
+                'attributes' => [
+                    'checkout_url' => 'https://checkout.paymongo.com/no-methods',
+                    'payment_method_types' => ['gcash qrph'],
+                    'status' => 'active',
+                ],
+            ]);
+            $mock->shouldReceive('isCheckoutSessionPaid')->once()->andReturnFalse();
+            $mock->shouldReceive('checkoutSessionHasUsablePaymentMethods')->once()->andReturnFalse();
+            $mock->shouldReceive('startCustomerBookingCheckout')
+                ->once()
+                ->withArgs(fn (SpaBooking $candidate): bool => $candidate->is($booking))
+                ->andReturn('https://checkout.paymongo.com/replacement-methods');
+        });
+
+        $this->actingAs($customer)
+            ->post(route('booking.payment.retry', $booking))
+            ->assertRedirect('https://checkout.paymongo.com/replacement-methods');
     }
 
     public function test_customer_cannot_continue_another_customers_payment(): void

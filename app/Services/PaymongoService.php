@@ -260,11 +260,45 @@ class PaymongoService
     {
         $configured = config('services.paymongo.payment_method_types');
 
-        if (is_array($configured) && $configured !== []) {
-            return array_values(array_filter(array_map('strval', $configured)));
+        $values = is_array($configured) ? $configured : [$configured];
+        $methods = [];
+
+        foreach ($values as $value) {
+            $tokens = preg_split('/[\s,]+/', strtolower(trim((string) $value))) ?: [];
+
+            foreach ($tokens as $method) {
+                if ($method !== '' && preg_match('/^[a-z][a-z0-9_]*$/', $method) === 1) {
+                    $methods[] = $method;
+                }
+            }
+        }
+
+        $methods = array_values(array_unique($methods));
+        if ($methods !== []) {
+            return $methods;
         }
 
         return ['gcash', 'qrph'];
+    }
+
+    /**
+     * Confirm that a saved checkout still offers at least one currently configured method.
+     *
+     * @param  array<string, mixed>  $session
+     */
+    public function checkoutSessionHasUsablePaymentMethods(array $session): bool
+    {
+        $attributes = is_array($session['attributes'] ?? null) ? $session['attributes'] : [];
+        $sessionMethods = is_array($attributes['payment_method_types'] ?? null)
+            ? $attributes['payment_method_types']
+            : [];
+
+        $sessionMethods = array_values(array_unique(array_filter(array_map(
+            fn (mixed $method): string => strtolower(trim((string) $method)),
+            $sessionMethods,
+        ))));
+
+        return array_intersect($this->paymentMethodTypes(), $sessionMethods) !== [];
     }
 
     /**

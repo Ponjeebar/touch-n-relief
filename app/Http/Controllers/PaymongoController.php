@@ -184,9 +184,12 @@ class PaymongoController extends Controller
             }
 
             $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
-            if ($this->paymongo->isCheckoutUrl($checkoutUrl)) {
+            if ($this->paymongo->checkoutSessionHasUsablePaymentMethods($session)
+                && $this->paymongo->isCheckoutUrl($checkoutUrl)) {
                 return redirect()->away($checkoutUrl);
             }
+
+            return redirect()->away($this->paymongo->startStaffBookingCheckout($spaBooking));
         } catch (\Throwable $exception) {
             Log::warning('Staff PayMongo checkout could not be resumed.', [
                 'booking_id' => $spaBooking->id,
@@ -229,7 +232,9 @@ class PaymongoController extends Controller
 
                 $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
                 $sessionStatus = strtolower((string) ($session['attributes']['status'] ?? ''));
-                if ($this->paymongo->isCheckoutUrl($checkoutUrl) && ! in_array($sessionStatus, ['expired', 'cancelled'], true)) {
+                if ($this->paymongo->checkoutSessionHasUsablePaymentMethods($session)
+                    && $this->paymongo->isCheckoutUrl($checkoutUrl)
+                    && ! in_array($sessionStatus, ['expired', 'cancelled'], true)) {
                     return redirect()->away($checkoutUrl);
                 }
             } catch (\Throwable $exception) {
