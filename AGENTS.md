@@ -8,10 +8,6 @@ The goal is to avoid generic designs, unnecessary rewrites, blind code changes, 
 
 The assistant must always inspect the project first, understand how it currently works, plan the change, and only then modify the code.
 
-## Project Context Library
-
-Before working on this project, read [`docs/ai/00_READ_FIRST.md`](docs/ai/00_READ_FIRST.md) and the task-specific documents it identifies. These files contain TouchNRelief product, architecture, business, design, testing, security, and deployment context. Source code remains the final source of truth when documentation is stale.
-
 ---
 
 # 1. Inspect Before Editing
