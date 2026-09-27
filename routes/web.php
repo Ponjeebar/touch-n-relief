@@ -25,6 +25,7 @@ Route::view('/privacy-policy', 'legal.privacy')->name('privacy-policy');
 Route::view('/terms-and-conditions', 'legal.terms')->name('terms-and-conditions');
 Route::view('/data-deletion', 'legal.data-deletion')->name('data-deletion');
 Route::get('/landing/availability', [BookingController::class, 'landingAvailability'])->name('landing.availability');
+Route::get('/chatbot/session', [ChatbotController::class, 'session'])->middleware('throttle:60,1')->name('chatbot.session');
 Route::post('/chatbot/message', [ChatbotController::class, 'reply'])->middleware('throttle:30,1')->name('chatbot.reply');
 
 Route::post('/webhooks/paymongo', [PaymongoController::class, 'webhook'])->name('paymongo.webhook');

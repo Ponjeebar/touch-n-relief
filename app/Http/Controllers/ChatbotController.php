@@ -8,6 +8,11 @@ use Illuminate\Http\Request;
 
 class ChatbotController extends Controller
 {
+    public function session(): JsonResponse
+    {
+        return response()->json(['token' => csrf_token()]);
+    }
+
     public function reply(Request $request, ChatbotService $chatbot): JsonResponse
     {
         $validated = $request->validate(['message' => ['required', 'string', 'min:2', 'max:500']]);

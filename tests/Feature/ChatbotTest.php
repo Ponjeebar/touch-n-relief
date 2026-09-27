@@ -57,6 +57,13 @@ class ChatbotTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('message');
     }
 
+    public function test_chatbot_session_endpoint_returns_a_fresh_csrf_token(): void
+    {
+        $this->getJson(route('chatbot.session'))
+            ->assertOk()
+            ->assertJsonStructure(['token']);
+    }
+
     public function test_chatbot_is_hidden_on_auth_pages_but_present_on_the_public_landing_page(): void
     {
         $this->get(route('login'))->assertOk()->assertDontSee('chatbot.js');
@@ -91,5 +98,9 @@ class ChatbotTest extends TestCase
 
         $this->actingAs($customer)->get(route('booking.index'))
             ->assertOk()->assertSee('data-chatbot-role="customer"', false);
+
+        $profile = $this->actingAs($customer)->get(route('profile.edit'));
+        $profile->assertOk()->assertSee('data-chatbot-role="customer"', false);
+        $this->assertSame(1, substr_count($profile->getContent(), 'src="'.asset('js/chatbot.js')));
     }
 }
