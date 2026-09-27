@@ -23,7 +23,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse
 
 class SocialAuthController extends Controller
 {
-    private const PROVIDERS = ['google', 'facebook'];
+    private const PROVIDERS = ['google'];
 
     private const PENDING_SESSION_KEY = 'social_auth.pending';
 

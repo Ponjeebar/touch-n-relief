@@ -21,20 +21,20 @@ class SocialAuthenticationTest extends TestCase
             'services.google.client_id' => 'google-client',
             'services.google.client_secret' => 'google-secret',
             'services.google.redirect' => '/auth/google/callback',
-            'services.facebook.client_id' => 'facebook-client',
-            'services.facebook.client_secret' => 'facebook-secret',
-            'services.facebook.redirect' => '/auth/facebook/callback',
         ]);
     }
 
-    public function test_login_and_signup_panels_offer_google_and_facebook(): void
+    public function test_login_and_signup_panels_offer_only_google(): void
     {
         $this->get(route('login'))
             ->assertOk()
             ->assertSee('Sign in with Google')
-            ->assertSee('Sign in with Facebook')
             ->assertSee('Sign up with Google')
-            ->assertSee('Sign up with Facebook');
+            ->assertDontSee('Sign in with Facebook')
+            ->assertDontSee('Sign up with Facebook');
+
+        $this->get('/auth/facebook/redirect')->assertNotFound();
+        $this->get('/auth/facebook/callback')->assertNotFound();
     }
 
     public function test_existing_customer_can_sign_in_and_link_a_verified_google_account(): void
@@ -109,8 +109,8 @@ class SocialAuthenticationTest extends TestCase
     public function test_social_signup_requires_a_strong_confirmed_password(): void
     {
         $pending = [
-            'provider' => 'facebook',
-            'provider_user_id' => 'facebook-password-123',
+            'provider' => 'google',
+            'provider_user_id' => 'google-password-123',
             'name' => 'Password Customer',
             'email' => 'password.customer@example.com',
             'created_at' => now()->timestamp,
@@ -133,20 +133,21 @@ class SocialAuthenticationTest extends TestCase
     public function test_social_login_cannot_link_a_staff_or_admin_account(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-        Socialite::fake('facebook', ProviderUser::fake([
-            'id' => 'facebook-admin-789',
+        Socialite::fake('google', ProviderUser::fake([
+            'id' => 'google-admin-789',
             'name' => $admin->name,
             'email' => $admin->email,
+            'email_verified' => true,
         ]));
 
-        $this->get(route('social.callback', ['provider' => 'facebook']))
+        $this->get(route('social.callback', ['provider' => 'google']))
             ->assertRedirect(route('login'))
             ->assertSessionHasErrors('social');
 
         $this->assertGuest();
         $this->assertDatabaseMissing('social_accounts', [
-            'provider' => 'facebook',
-            'provider_user_id' => 'facebook-admin-789',
+            'provider' => 'google',
+            'provider_user_id' => 'google-admin-789',
         ]);
     }
 

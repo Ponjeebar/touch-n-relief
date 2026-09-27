@@ -42,10 +42,10 @@ Route::middleware('guest')->group(function () {
     Route::get('/auth/social/complete', [SocialAuthController::class, 'complete'])->name('social.complete');
     Route::post('/auth/social/complete', [SocialAuthController::class, 'store'])->middleware('throttle:5,10')->name('social.store');
     Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
-        ->whereIn('provider', ['google', 'facebook'])
+        ->whereIn('provider', ['google'])
         ->name('social.redirect');
     Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
-        ->whereIn('provider', ['google', 'facebook'])
+        ->whereIn('provider', ['google'])
         ->name('social.callback');
 });
 

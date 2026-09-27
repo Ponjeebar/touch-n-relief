@@ -3,7 +3,6 @@
     $socialAction = $socialIntent === 'signup' ? 'Sign up' : 'Sign in';
     $providers = [
         'google' => ['label' => 'Google'],
-        'facebook' => ['label' => 'Facebook'],
     ];
 @endphp
 <div class="auth-social auth-social-{{ $socialIntent }}" aria-label="{{ $socialAction }} with a social account">
