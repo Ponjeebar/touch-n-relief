@@ -96,4 +96,27 @@ class RememberMeTest extends TestCase
         $this->assertNotNull($sessionCookie);
         $this->assertSame(0, $sessionCookie->getExpiresTime());
     }
+
+    public function test_authenticated_staff_opening_the_site_root_are_sent_to_their_dashboard(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $receptionist = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+
+        $this->actingAs($admin)
+            ->get(route('landing'))
+            ->assertRedirect(route('dashboard'));
+
+        $this->actingAs($receptionist)
+            ->get(route('landing'))
+            ->assertRedirect(route('receptionist.dashboard'));
+    }
+
+    public function test_authenticated_customer_can_still_open_the_landing_page(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+
+        $this->actingAs($customer)
+            ->get(route('landing'))
+            ->assertOk();
+    }
 }

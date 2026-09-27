@@ -11,6 +11,7 @@ use App\Services\SiteSettingsService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -140,6 +141,8 @@ class RevisionAdjustmentsTest extends TestCase
             'https://www.facebook.com/buenostouche',
             SiteSetting::valueFor(SiteSettingsService::KEY_FACEBOOK_URL),
         );
+        Auth::logout();
+
         $this->get(route('landing'))
             ->assertOk()
             ->assertSee('https://www.facebook.com/buenostouche', false)

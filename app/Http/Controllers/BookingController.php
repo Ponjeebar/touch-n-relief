@@ -42,11 +42,20 @@ class BookingController extends Controller
     /**
      * Show landing page.
      */
-    public function landing(): View
+    public function landing(Request $request): View|RedirectResponse
     {
+        $user = $request->user();
+
+        if ($user?->isAdmin()) {
+            return redirect()->route('dashboard');
+        }
+
+        if ($user?->isReceptionist()) {
+            return redirect()->route('receptionist.dashboard');
+        }
+
         $this->ensureSlotsSeeded();
 
-        $user = auth()->user();
         $services = $this->servicesWithSlotTimes($user instanceof User ? $user : null);
         $slotMap = $this->slots->slotMapByService();
         $hidePrenatalRefs = $user instanceof User && $user->isMale();
