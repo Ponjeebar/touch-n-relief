@@ -43,6 +43,24 @@ class PackageMembershipCatalogTest extends TestCase
         $this->assertNotEmpty(app(BookingSlotService::class)->slotMapByService()['THERA #2'] ?? []);
     }
 
+    public function test_booking_page_back_link_uses_the_correct_role_destination(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($customer)
+            ->get(route('booking.index'))
+            ->assertOk()
+            ->assertSee('Back to home')
+            ->assertSee('href="'.route('landing').'"', false);
+
+        $this->actingAs($admin)
+            ->get(route('booking.index'))
+            ->assertOk()
+            ->assertSee('Back to dashboard')
+            ->assertSee('href="'.route('dashboard').'"', false);
+    }
+
     public function test_staff_can_create_a_package_without_turning_it_into_an_individual_service(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);

@@ -21,9 +21,23 @@
         <div class="container booking-wrap">
             <section class="booking-head-shell">
                 <div class="booking-head">
-                    <p class="booking-eyebrow">Appointment Booking</p>
-                    <h1>Secure Your Wellness Session</h1>
-                    <p>Pick your service, therapist, date, and time slot. We keep this simple so booking takes less than a minute.</p>
+                    @php
+                        $bookingReturnUrl = auth()->user()?->isAdmin()
+                            ? route('dashboard')
+                            : (auth()->user()?->isReceptionist() ? route('receptionist.dashboard') : route('landing'));
+                        $bookingReturnLabel = auth()->user()?->isAdmin() || auth()->user()?->isReceptionist()
+                            ? 'Back to dashboard'
+                            : 'Back to home';
+                    @endphp
+                    <a class="booking-return-link" href="{{ $bookingReturnUrl }}">
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                        <span>{{ $bookingReturnLabel }}</span>
+                    </a>
+                    <div class="booking-head-copy">
+                        <p class="booking-eyebrow">Appointment Booking</p>
+                        <h1>Secure Your Wellness Session</h1>
+                        <p>Choose your date, service, therapist, and available time. Each step unlocks after you complete the one before it.</p>
+                    </div>
                 </div>
             </section>
 
@@ -122,7 +136,7 @@
                                 >
                                 <span class="service-main">
                                     <span class="service-name">{{ $service['name'] }}</span>
-                                    <span class="service-meta">{{ $service['duration'] }} · {{ $service['best_for'] }}</span>
+                                    <span class="service-meta">{{ $service['duration'] }} &middot; {{ $service['best_for'] }}</span>
                                 </span>
                                 <span class="service-price">{{ $service['price'] }}</span>
                             </label>
@@ -136,7 +150,7 @@
                                     <input type="radio" name="service" value="{{ $service['name'] }}" form="booking-form" {{ $active ? 'checked' : '' }} disabled>
                                     <span class="service-main">
                                         <span class="service-name">{{ $service['name'] }}</span>
-                                        <span class="service-meta">{{ $service['duration'] }} Â· {{ $service['inclusions'] }}</span>
+                                        <span class="service-meta">{{ $service['duration'] }} &middot; {{ $service['inclusions'] }}</span>
                                     </span>
                                     <span class="service-price">{{ $service['price'] }}</span>
                                 </label>
