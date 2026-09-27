@@ -1129,9 +1129,9 @@ html[data-theme="dark"] .auth-legal-modal-footer button {
     color: #06271f;
 }
 
-/* Login / register page theme switch (fixed) */
+/* Login / register page theme switch */
 .auth-theme-float {
-    position: fixed;
+    position: absolute;
     top: 18px;
     right: 18px;
     z-index: 3000;
