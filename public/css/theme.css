@@ -5,6 +5,7 @@
 
 /* —— Dark: global tokens (inherit into all feature CSS) —— */
 html[data-theme="dark"] {
+    color-scheme: dark;
     --bg: #0f1419;
     --shell: #151c24;
     --card: #1a2330;
@@ -50,6 +51,7 @@ html[data-theme="dark"] {
     --auth-accent-teal: #5ed4c8;
     --auth-line: #334155;
     --auth-input-bg: #151d26;
+    --auth-panel: #1e2835;
     --auth-toggle-gradient: linear-gradient(155deg, #3d5a78 0%, #2a7d72 48%, #1f8a6a 100%);
     --auth-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
 }
@@ -1025,8 +1027,106 @@ html[data-theme="dark"] .social-icons a:hover {
     border-color: rgba(62, 226, 188, 0.35);
 }
 
+html[data-theme="dark"] body.auth-page #container .auth-social-button {
+    background: var(--auth-input-bg);
+    border-color: var(--auth-line);
+    color: var(--auth-text);
+}
+
+html[data-theme="dark"] body.auth-page #container .auth-social-button:hover {
+    background: rgba(62, 226, 188, 0.08);
+    border-color: rgba(62, 226, 188, 0.45);
+    color: var(--auth-text);
+}
+
+html[data-theme="dark"] body.auth-page #container .auth-social-button.is-disabled {
+    background: #18212b;
+    border-color: #2c3947;
+    color: #8092a0;
+}
+
+html[data-theme="dark"] .auth-divider {
+    color: var(--auth-muted);
+}
+
+html[data-theme="dark"] .auth-divider::before,
+html[data-theme="dark"] .auth-divider::after {
+    background: var(--auth-line);
+}
+
+html[data-theme="dark"] .auth-social-error,
+html[data-theme="dark"] .social-complete-errors {
+    background: rgba(253, 164, 175, 0.08);
+    border-color: rgba(253, 164, 175, 0.45);
+    color: #fda4af;
+}
+
 html[data-theme="dark"] .mobile-toggle .link {
     color: var(--auth-accent-teal);
+}
+
+html[data-theme="dark"] .auth-reset-icon,
+html[data-theme="dark"] .auth-gender-option input:checked + span {
+    background: rgba(62, 226, 188, 0.12);
+    border-color: rgba(62, 226, 188, 0.42);
+    color: #b6ffe9;
+}
+
+html[data-theme="dark"] .auth-reset-page #reset-email[readonly] {
+    color: var(--auth-text);
+}
+
+html[data-theme="dark"] .password-requirements,
+html[data-theme="dark"] .social-complete-card .social-password-fields .password-requirements {
+    background: var(--auth-panel);
+    border-color: var(--auth-line);
+    color: var(--auth-muted);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme="dark"] .password-requirements strong {
+    color: var(--auth-text);
+}
+
+html[data-theme="dark"] .password-requirements li i {
+    color: #8196a6;
+}
+
+html[data-theme="dark"] .password-requirements li.passed,
+html[data-theme="dark"] .password-requirements li.passed i,
+html[data-theme="dark"] .auth-forgot-success {
+    color: #8ef0c8 !important;
+}
+
+html[data-theme="dark"] body.auth-page #container form .field-msg,
+html[data-theme="dark"] .auth-gender-field.invalid legend,
+html[data-theme="dark"] body.auth-page #container .auth-terms-option.invalid,
+html[data-theme="dark"] .social-field-error {
+    color: #fda4af;
+}
+
+html[data-theme="dark"] .social-complete-provider {
+    background: rgba(62, 226, 188, 0.1);
+    border-color: rgba(62, 226, 188, 0.3);
+    color: #b6ffe9;
+}
+
+html[data-theme="dark"] .social-complete-card .auth-terms-option {
+    background: var(--auth-input-bg);
+    border-color: var(--auth-line);
+    color: var(--auth-muted);
+}
+
+html[data-theme="dark"] .social-complete-card .auth-terms-option.invalid {
+    background: rgba(253, 164, 175, 0.08);
+    border-color: rgba(253, 164, 175, 0.55);
+    color: #fda4af;
+}
+
+html[data-theme="dark"] body.auth-page #container button[type="submit"],
+html[data-theme="dark"] .social-complete-card button[type="submit"],
+html[data-theme="dark"] .auth-legal-modal-footer button {
+    color: #06271f;
 }
 
 /* Login / register page theme switch (fixed) */

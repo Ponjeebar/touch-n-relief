@@ -1916,6 +1916,31 @@ body {
         color: #fff;
     }
 
+    .landing-header .nav-user-menu,
+    .landing-header.scrolled .nav-user-menu {
+        background: #0f2421;
+        border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .landing-header .nav-user-menu a,
+    .landing-header.scrolled .nav-user-menu a,
+    .landing-header .nav-user-menu button,
+    .landing-header.scrolled .nav-user-menu button {
+        color: #f5fbf8;
+    }
+
+    .landing-header .nav-user-menu a:hover,
+    .landing-header.scrolled .nav-user-menu a:hover,
+    .landing-header .nav-user-menu button:hover,
+    .landing-header.scrolled .nav-user-menu button:hover {
+        background: rgba(255, 255, 255, 0.09);
+    }
+
+    .landing-header .nav-user-menu .nav-user-logout,
+    .landing-header.scrolled .nav-user-menu .nav-user-logout {
+        color: #ffd1cc;
+    }
+
     .landing-header .nav-user-menu {
         position: static;
         min-width: 0;
