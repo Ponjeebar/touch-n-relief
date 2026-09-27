@@ -120,6 +120,8 @@
             align-items:center;
             gap:1rem;
             min-height:0;
+            min-width:0;
+            width:100%;
         }
         .profile-avatar-shell{
             position:relative;
@@ -133,6 +135,7 @@
             display:flex;
             align-items:center;
             min-height:124px;
+            min-width:0;
         }
         .profile-avatar{
             width:124px;
@@ -226,6 +229,9 @@
             font-weight:800;
             letter-spacing:-.02em;
             line-height:1.08;
+            max-width:100%;
+            overflow-wrap:anywhere;
+            text-wrap:balance;
         }
         .profile-body{
             padding:2rem 2.25rem 2.5rem;
@@ -680,6 +686,33 @@
             .profile-txn-head>:nth-child(6),
             .profile-txn-row>:nth-child(5),
             .profile-txn-row>:nth-child(6){display:none}
+        }
+        @media (max-width:600px){
+            .profile-head{
+                margin-top:-46px;
+                padding:0 1rem 1.2rem;
+            }
+            .profile-id{
+                flex-direction:column;
+                align-items:center;
+                gap:.8rem;
+                text-align:center;
+            }
+            .profile-avatar-shell{
+                flex:0 0 auto;
+            }
+            .profile-meta{
+                width:100%;
+                min-height:0;
+                padding-top:0;
+                justify-content:center;
+            }
+            .profile-title{
+                margin:0;
+                width:100%;
+                font-size:clamp(1.35rem,6vw,1.65rem);
+                line-height:1.16;
+            }
         }
     </style>
     @include('partials.chatbot-assets')
