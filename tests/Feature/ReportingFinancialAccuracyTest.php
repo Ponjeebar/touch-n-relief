@@ -104,7 +104,7 @@ class ReportingFinancialAccuracyTest extends TestCase
         $this->assertSame(-50, (int) $payload['trendData'][11]);
     }
 
-    public function test_csv_contains_complete_payment_ledger(): void
+    public function test_excel_workbook_is_formatted_and_contains_complete_payment_ledger(): void
     {
         Carbon::setTestNow('2026-09-27 18:00:00');
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
@@ -123,14 +123,21 @@ class ReportingFinancialAccuracyTest extends TestCase
             'occurred_at' => '2026-09-27 12:00:00',
         ]);
 
-        $csv = $this->actingAs($admin)->get(route('reporting.export', [
+        $response = $this->actingAs($admin)->get(route('reporting.export', [
             'period' => 'daily', 'period_value' => '2026-09-27',
-        ]))->assertOk()->streamedContent();
+        ]))->assertOk()
+            ->assertHeader('content-type', 'application/vnd.ms-excel; charset=UTF-8');
 
-        $this->assertStringContainsString('Payment ledger', $csv);
-        $this->assertStringContainsString('COT-LEDGER-1', $csv);
-        $this->assertStringContainsString('Ledger Client', $csv);
-        $this->assertStringContainsString('THERA #1', $csv);
+        $workbook = $response->streamedContent();
+
+        $this->assertNotFalse(simplexml_load_string($workbook));
+        $this->assertStringContainsString('ss:Name="Report Summary"', $workbook);
+        $this->assertStringContainsString('ss:Name="Payment Ledger"', $workbook);
+        $this->assertStringContainsString('ss:Width="190"', $workbook);
+        $this->assertStringContainsString('<FreezePanes', $workbook);
+        $this->assertStringContainsString('COT-LEDGER-1', $workbook);
+        $this->assertStringContainsString('Ledger Client', $workbook);
+        $this->assertStringContainsString('THERA #1', $workbook);
     }
 
     public function test_payment_ledger_recording_is_idempotent_and_preserves_collection_time(): void

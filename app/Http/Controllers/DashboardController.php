@@ -16,6 +16,7 @@ use App\Services\BookingSlotService;
 use App\Services\NotificationFeedService;
 use App\Services\PaymentLedgerService;
 use App\Services\ReportingPdfChartService;
+use App\Services\ReportingSpreadsheetService;
 use App\Services\SiteSettingsService;
 use App\Services\SpaServiceCatalog;
 use App\Services\SpaSessionService;
@@ -2214,103 +2215,26 @@ class DashboardController extends Controller
         return response()->json($this->reportingPayload($period, $periodValue));
     }
 
-    public function reportingExport(Request $request): StreamedResponse
+    public function reportingExport(Request $request, ReportingSpreadsheetService $spreadsheet): StreamedResponse
     {
         $period = $this->normalizeReportingPeriod($request->query('period', 'monthly'));
         $periodValue = $request->query('period_value');
         $payload = $this->reportingPayload($period, $periodValue);
         $safePeriod = preg_replace('/[^a-z0-9_-]+/i', '', $period) ?: 'monthly';
-        $filename = 'touchnrelief-report-'.$safePeriod.'-'.now()->format('Y-m-d-His').'.csv';
+        $filename = 'touchnrelief-report-'.$safePeriod.'-'.now()->format('Y-m-d-His').'.xml';
+        $workbook = $spreadsheet->build($payload);
 
         ActivityLogger::log(
             'report.exported',
-            'Exported reporting data ('.$period.')',
+            'Exported formatted Excel reporting workbook ('.$period.')',
             ['period' => $period, 'filename' => $filename],
             request: $request,
         );
 
-        return response()->streamDownload(function () use ($payload): void {
-            $out = fopen('php://output', 'w');
-            if ($out === false) {
-                return;
-            }
-
-            fwrite($out, "\xEF\xBB\xBF");
-
-            fputcsv($out, ['TOUCHnRELIEF — Reporting export']);
-            fputcsv($out, ['Generated', now()->toDateTimeString()]);
-            fputcsv($out, ['Period view', (string) ($payload['period'] ?? '')]);
-            fputcsv($out, ['Selection', (string) ($payload['periodValueLabel'] ?? '')]);
-            fputcsv($out, []);
-
-            fputcsv($out, ['Summary']);
-            fputcsv($out, ['Metric', 'Value']);
-            fputcsv($out, [
-                (string) ($payload['primaryLabel'] ?? ''),
-                number_format((float) ($payload['primaryAmount'] ?? 0), 2, '.', ''),
-            ]);
-            fputcsv($out, ['Gross collections', number_format((float) ($payload['grossCollections'] ?? 0), 2, '.', '')]);
-            fputcsv($out, ['Processed refunds', number_format((float) ($payload['refundTotal'] ?? 0), 2, '.', '')]);
-            fputcsv($out, [
-                (string) ($payload['secondaryLabel'] ?? ''),
-                (string) (int) ($payload['secondaryUserCount'] ?? 0),
-            ]);
-            fputcsv($out, [
-                (string) ($payload['hoursLabel'] ?? 'Total Service Hours'),
-                number_format((float) ($payload['hoursValue'] ?? 0), 1, '.', '').' hrs',
-            ]);
-            fputcsv($out, []);
-
-            fputcsv($out, ['Sales trend', (string) ($payload['trendSubtitle'] ?? '')]);
-            fputcsv($out, ['Period', 'Sales (PHP)']);
-            $trendLabels = $payload['trendLabels'] ?? [];
-            $trendData = $payload['trendData'] ?? [];
-            foreach ($trendLabels as $i => $label) {
-                fputcsv($out, [
-                    (string) $label,
-                    number_format((float) ($trendData[$i] ?? 0), 2, '.', ''),
-                ]);
-            }
-            fputcsv($out, []);
-
-            fputcsv($out, ['Service sales', (string) ($payload['serviceLabel'] ?? '')]);
-            fputcsv($out, ['Service', 'Amount (PHP)']);
-            $serviceLabels = $payload['serviceLabels'] ?? [];
-            $serviceTotals = $payload['serviceTotals'] ?? [];
-            foreach ($serviceLabels as $i => $label) {
-                fputcsv($out, [
-                    (string) $label,
-                    number_format((float) ($serviceTotals[$i] ?? 0), 2, '.', ''),
-                ]);
-            }
-            fputcsv($out, []);
-
-            fputcsv($out, ['Payment ledger']);
-            fputcsv($out, [
-                'Collected/refunded at', 'Entry type', 'Booking', 'Client', 'Service or package',
-                'Therapist', 'Payment method', 'Payment reference', 'Amount (PHP)', 'Net amount (PHP)',
-                'Historical time estimated', 'Recorded by',
-            ]);
-            foreach ($payload['ledgerRows'] ?? [] as $entry) {
-                fputcsv($out, [
-                    (string) ($entry['occurredAt'] ?? ''),
-                    (string) ($entry['typeLabel'] ?? ''),
-                    (string) ($entry['bookingReference'] ?? ''),
-                    (string) ($entry['client'] ?? ''),
-                    (string) ($entry['service'] ?? ''),
-                    (string) ($entry['therapist'] ?? ''),
-                    (string) ($entry['paymentMethod'] ?? ''),
-                    (string) ($entry['reference'] ?? ''),
-                    number_format((float) ($entry['amount'] ?? 0), 2, '.', ''),
-                    number_format((float) ($entry['netAmount'] ?? 0), 2, '.', ''),
-                    ! empty($entry['isEstimated']) ? 'Yes' : 'No',
-                    (string) ($entry['recordedBy'] ?? ''),
-                ]);
-            }
-
-            fclose($out);
+        return response()->streamDownload(function () use ($workbook): void {
+            echo $workbook;
         }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
         ]);
     }
 

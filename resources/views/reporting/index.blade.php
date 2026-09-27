@@ -56,7 +56,7 @@
                         </div>
                         <a href="{{ route('reporting.export', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-export-btn" id="repExportLink">
                             <i class="bi bi-download" aria-hidden="true"></i>
-                            <span>Export report</span>
+                            <span>Export Excel</span>
                         </a>
                         <a href="{{ route('reporting.pdf', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-print-btn" id="repPdfLink">
                             <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
