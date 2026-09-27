@@ -12,6 +12,10 @@ class StaffNotificationService
 {
     public function bookingCreated(SpaBooking $booking): void
     {
+        if ($booking->isAwaitingOnlinePayment()) {
+            return;
+        }
+
         if ($booking->payment_status === PaymentMethodCatalog::STATUS_PAID) {
             $type = 'confirmed';
             $title = $booking->payment_type === PaymentMethodCatalog::TYPE_DOWNPAYMENT ? 'Down payment received' : 'Appointment confirmed';

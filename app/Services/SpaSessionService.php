@@ -279,6 +279,7 @@ class SpaSessionService
         $this->autoCompleteAllExpired($now);
 
         SpaBooking::query()
+            ->visibleToStaff()
             ->whereNull('cancelled_at')
             ->whereNull('completed_at')
             ->where(function (Builder $query): void {
@@ -369,6 +370,7 @@ class SpaSessionService
         $cancelled = collect();
 
         SpaBooking::query()
+            ->visibleToStaff()
             ->whereNull('cancelled_at')
             ->whereNull('completed_at')
             ->whereNull('session_started_at')
@@ -803,6 +805,7 @@ class SpaSessionService
         $today = $now->copy()->startOfDay();
 
         $bookingsToday = SpaBooking::query()
+            ->visibleToStaff()
             ->with('user')
             ->whereDate('booking_date', $today)
             ->orderBy('time_slot')
@@ -836,6 +839,7 @@ class SpaSessionService
             ->count();
 
         $upcomingAppointmentsCount = SpaBooking::query()
+            ->visibleToStaff()
             ->active()
             ->whereNull('completed_at')
             ->whereDate('booking_date', '>=', $today)

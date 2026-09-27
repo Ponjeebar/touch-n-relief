@@ -154,6 +154,7 @@ class CustomerNotificationService
         $sent = [];
 
         SpaBooking::query()
+            ->visibleToStaff()
             ->with('user')
             ->whereNull('cancelled_at')
             ->where('session_status', SpaBooking::STATUS_CONFIRMED)

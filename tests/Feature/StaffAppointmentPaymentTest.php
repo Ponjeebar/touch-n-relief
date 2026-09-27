@@ -35,6 +35,54 @@ class StaffAppointmentPaymentTest extends TestCase
         }
     }
 
+    public function test_unpaid_online_checkout_is_hidden_from_staff_appointments_until_payment_is_confirmed(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $date = now()->addDay()->toDateString();
+        $pending = SpaBooking::create([
+            'user_id' => $customer->id,
+            'client_name' => 'Pending Online Customer',
+            'booking_source' => SpaBooking::SOURCE_ONLINE,
+            'service_name' => 'Aromatherapy (Special)',
+            'therapist_name' => 'Liza Reyes',
+            'booking_date' => $date,
+            'time_slot' => '12:30 PM',
+            'amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_type' => PaymentMethodCatalog::TYPE_FULL,
+            'payment_amount' => 100,
+            'payment_status' => PaymentMethodCatalog::STATUS_PENDING,
+            'session_status' => SpaBooking::STATUS_CONFIRMED,
+        ]);
+        $paid = SpaBooking::create([
+            'user_id' => $customer->id,
+            'client_name' => 'Paid Online Customer',
+            'booking_source' => SpaBooking::SOURCE_ONLINE,
+            'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Angela Fernandez',
+            'booking_date' => $date,
+            'time_slot' => '02:00 PM',
+            'amount' => 100,
+            'payment_method' => PaymentMethodCatalog::CHANNEL_QRPH,
+            'payment_type' => PaymentMethodCatalog::TYPE_FULL,
+            'payment_amount' => 100,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_status' => SpaBooking::STATUS_CONFIRMED,
+        ]);
+
+        foreach ([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST] as $role) {
+            $staff = User::factory()->create(['role' => $role]);
+            $this->actingAs($staff)
+                ->get(route('appointments.index', ['date' => $date]))
+                ->assertOk()
+                ->assertDontSee('Pending Online Customer')
+                ->assertSee('Paid Online Customer');
+        }
+
+        $this->assertTrue($pending->fresh()->isAwaitingOnlinePayment());
+        $this->assertFalse($paid->fresh()->isAwaitingOnlinePayment());
+    }
+
     public function test_staff_paymongo_return_confirms_payment_only_after_gateway_verification(): void
     {
         $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);

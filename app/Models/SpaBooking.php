@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\SpaServiceCatalog;
+use App\Support\PaymentMethodCatalog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -135,9 +136,36 @@ class SpaBooking extends Model
         return (float) ($this->amount ?? 0) > 0 && $this->remainingBalance() < 0.01;
     }
 
+    public function isAwaitingOnlinePayment(): bool
+    {
+        return $this->booking_source === self::SOURCE_ONLINE
+            && $this->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
+            && in_array($this->payment_status, [
+                PaymentMethodCatalog::STATUS_PENDING,
+                PaymentMethodCatalog::STATUS_FAILED,
+            ], true);
+    }
+
     public function scopeActive($query)
     {
         return $query->whereNull('cancelled_at');
+    }
+
+    /**
+     * Exclude online checkout records that have not produced a confirmed payment.
+     */
+    public function scopeVisibleToStaff($query)
+    {
+        return $query->where(function ($query): void {
+            $query->where('booking_source', '!=', self::SOURCE_ONLINE)
+                ->orWhereNull('booking_source')
+                ->orWhere('payment_method', '!=', PaymentMethodCatalog::METHOD_PAYMONGO)
+                ->orWhereNull('payment_method')
+                ->orWhereNotIn('payment_status', [
+                    PaymentMethodCatalog::STATUS_PENDING,
+                    PaymentMethodCatalog::STATUS_FAILED,
+                ]);
+        });
     }
 
     /**

@@ -141,6 +141,7 @@ class DashboardController extends Controller
         ]);
         $date = $validated['date'] ?? now()->toDateString();
         $bookings = SpaBooking::query()
+            ->visibleToStaff()
             ->with('user:id,name,email')
             ->whereDate('booking_date', $date)
             ->orderBy('time_slot')
@@ -791,13 +792,14 @@ class DashboardController extends Controller
             ],
         ]);
 
+        $usesDatabase = SpaBooking::query()->exists();
+
         $bookings = SpaBooking::query()
+            ->visibleToStaff()
             ->with('user')
             ->orderBy('booking_date')
             ->orderBy('time_slot')
             ->get();
-
-        $usesDatabase = $bookings->isNotEmpty();
 
         if ($usesDatabase) {
             $now = now();
@@ -954,6 +956,7 @@ class DashboardController extends Controller
         });
 
         $activeClientsThisMonth = SpaBooking::query()
+            ->visibleToStaff()
             ->whereYear('booking_date', $selectedDate->year)
             ->whereMonth('booking_date', $selectedDate->month)
             ->distinct('user_id')

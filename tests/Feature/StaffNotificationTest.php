@@ -36,6 +36,37 @@ class StaffNotificationTest extends TestCase
         $this->assertDatabaseHas('staff_notifications', ['staff_user_id' => $receptionist->id, 'title' => 'Booking awaiting payment']);
     }
 
+    public function test_online_checkout_notifies_staff_only_after_payment_is_verified(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $customer->id,
+            'client_name' => $customer->name,
+            'booking_source' => SpaBooking::SOURCE_ONLINE,
+            'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
+            'booking_date' => now()->addDay()->toDateString(),
+            'time_slot' => '10:00 AM',
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_status' => PaymentMethodCatalog::STATUS_PENDING,
+            'payment_type' => PaymentMethodCatalog::TYPE_FULL,
+        ]);
+
+        $this->assertDatabaseCount('staff_notifications', 0);
+
+        $booking->update([
+            'payment_method' => PaymentMethodCatalog::CHANNEL_QRPH,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+        ]);
+
+        $this->assertDatabaseHas('staff_notifications', [
+            'staff_user_id' => $admin->id,
+            'spa_booking_id' => $booking->id,
+            'title' => 'Payment verified',
+        ]);
+    }
+
     public function test_staff_read_state_is_persistent_and_account_specific(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
