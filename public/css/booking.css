@@ -260,6 +260,149 @@ body:has(.booking-page) {
     display: none;
 }
 
+.booking-grid.booking-mobile-wizard-ready {
+    display: block;
+    width: min(100%, 980px);
+    margin-inline: auto;
+    overflow: hidden;
+}
+
+.booking-mobile-wizard-ready .booking-mobile-progress {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(189, 220, 233, 0.35);
+    border-radius: 14px;
+    background: rgba(16, 42, 56, 0.78);
+    color: #eaf6fb;
+    backdrop-filter: blur(8px);
+}
+
+.booking-mobile-progress ol {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.booking-mobile-progress li {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-width: 0;
+    color: #b8ced8;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.booking-mobile-progress li span {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid rgba(216, 235, 243, 0.42);
+    border-radius: 50%;
+    font-size: 0.75rem;
+}
+
+.booking-mobile-progress li.is-active {
+    color: #fff;
+}
+
+.booking-mobile-progress li.is-active span {
+    border-color: #9de2bd;
+    background: #168356;
+    box-shadow: 0 0 0 3px rgba(79, 190, 134, 0.18);
+}
+
+.booking-mobile-progress li.is-complete span {
+    border-color: #83cda7;
+    background: #dff5e9;
+    color: #12633f;
+}
+
+.booking-mobile-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2.2rem;
+    border: 1px solid rgba(216, 235, 243, 0.32);
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    background: rgba(255, 255, 255, 0.06);
+    color: #eaf6fb;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.booking-mobile-back:hover,
+.booking-mobile-back:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.booking-mobile-back[hidden] {
+    visibility: hidden;
+}
+
+.booking-mobile-wizard-ready > .booking-panel {
+    display: none;
+}
+
+.booking-mobile-wizard-ready > .booking-panel.is-mobile-active {
+    display: flex;
+}
+
+.booking-mobile-wizard-ready .booking-heading-desktop {
+    display: none;
+}
+
+.booking-mobile-wizard-ready .booking-heading-mobile {
+    display: none;
+}
+
+.booking-mobile-wizard-ready[data-mobile-step="date"] .booking-heading-mobile-date,
+.booking-mobile-wizard-ready[data-mobile-step="time"] .booking-heading-mobile-time {
+    display: inline;
+}
+
+.booking-mobile-wizard-ready[data-mobile-step="date"] .booking-field-time,
+.booking-mobile-wizard-ready[data-mobile-step="date"] .booking-field-notes,
+.booking-mobile-wizard-ready[data-mobile-step="date"] .booking-submit {
+    display: none;
+}
+
+.booking-mobile-wizard-ready[data-mobile-step="time"] .booking-field-date {
+    display: none;
+}
+
+.booking-mobile-wizard-ready .booking-panel-service .service-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.booking-mobile-wizard-ready .booking-panel-therapist .therapist-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+}
+
+.booking-mobile-wizard-ready[data-mobile-step="time"] .time-slots {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.booking-mobile-wizard-ready[data-mobile-step="time"] .time-slot {
+    width: 100%;
+}
+
 .booking-panel {
     display: flex;
     flex-direction: column;
@@ -1200,6 +1343,15 @@ body:has(.booking-page) {
     .service-list {
         grid-template-columns: 1fr;
         gap: 0.55rem;
+    }
+
+    .booking-mobile-wizard-ready .booking-panel-service .service-list,
+    .booking-mobile-wizard-ready .booking-panel-therapist .therapist-list {
+        grid-template-columns: 1fr;
+    }
+
+    .booking-mobile-wizard-ready[data-mobile-step="time"] .time-slots {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .service-item {

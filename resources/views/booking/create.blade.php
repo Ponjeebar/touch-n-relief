@@ -433,7 +433,6 @@
             var panelSchedule = document.getElementById('booking-panel-schedule');
             var mobileBackButton = document.getElementById('booking-mobile-back');
             var mobileProgressItems = Array.from(document.querySelectorAll('[data-booking-progress]'));
-            var mobileBookingQuery = window.matchMedia('(max-width: 760px)');
             var mobileSteps = ['date', 'service', 'therapist', 'time'];
             var currentMobileStep = 'date';
 
@@ -533,8 +532,6 @@
                 bookingGrid.dataset.mobileStep = step;
                 updateMobileProgress();
 
-                if (!mobileBookingQuery.matches) return;
-
                 [panelSchedule, panelService, panelTherapist].forEach(function (panel) {
                     if (!panel) return;
                     panel.classList.toggle('is-mobile-active', panel === panelForMobileStep(step));
@@ -559,10 +556,6 @@
             mobileBackButton?.addEventListener('click', function () {
                 var activeIndex = mobileSteps.indexOf(currentMobileStep);
                 if (activeIndex > 0) showMobileStep(mobileSteps[activeIndex - 1], 'back');
-            });
-
-            mobileBookingQuery.addEventListener?.('change', function () {
-                showMobileStep(mobileBookingQuery.matches ? suggestedMobileStep() : currentMobileStep, 'forward');
             });
 
             function clearServiceSelection() {
@@ -1200,7 +1193,7 @@
                 syncBookingSteps();
                 syncTherapistRecommendations();
                 renderSlots();
-                if (selectedService() && mobileBookingQuery.matches) {
+                if (selectedService()) {
                     showMobileStep('therapist', 'forward');
                 }
             }
@@ -1238,7 +1231,7 @@
                     input.checked = !input.checked;
                     applyTherapistCardStates();
                     renderSlots();
-                    if (input.checked && mobileBookingQuery.matches) {
+                    if (input.checked) {
                         showMobileStep('time', 'forward');
                     }
                 });
@@ -1254,7 +1247,7 @@
             dateInput?.addEventListener('change', function () {
                 therapistScheduleDateKey = '';
                 syncBookingSteps();
-                if (dateInput.value && mobileBookingQuery.matches) {
+                if (dateInput.value) {
                     showMobileStep('service', 'forward');
                 }
                 fetchTherapistSchedule(dateInput.value).finally(function () {
