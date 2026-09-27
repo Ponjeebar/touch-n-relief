@@ -57,10 +57,10 @@ class BookingController extends Controller
 
         $this->ensureSlotsSeeded();
 
-        $services = array_values(array_filter(
-            $this->servicesWithSlotTimes($user instanceof User ? $user : null),
-            fn (array $service): bool => ($service['offering_type'] ?? 'service') === 'service',
-        ));
+        $services = $this->servicesWithSlotTimes(
+            $user instanceof User ? $user : null,
+            includePackages: false,
+        );
         $slotMap = $this->slots->slotMapByService();
         $hidePrenatalRefs = $user instanceof User && $user->isMale();
         $therapists = app(TherapistCatalog::class)->forLanding($hidePrenatalRefs);
@@ -570,15 +570,23 @@ class BookingController extends Controller
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function servicesWithSlotTimes(?User $user): array
+    private function servicesWithSlotTimes(?User $user, bool $includePackages = true): array
     {
         $slotMap = $this->slots->slotMapByService();
+        $services = $this->servicesFor($user);
+
+        if (! $includePackages) {
+            $services = array_values(array_filter(
+                $services,
+                fn (array $service): bool => ($service['offering_type'] ?? 'service') === 'service',
+            ));
+        }
 
         return array_map(function (array $service) use ($slotMap): array {
             $service['times'] = $slotMap[$service['name']] ?? $service['times'] ?? [];
 
             return $service;
-        }, $this->servicesFor($user));
+        }, $services);
     }
 
     private function ensureSlotsSeeded(): void

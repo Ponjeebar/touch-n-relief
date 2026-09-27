@@ -15,21 +15,16 @@ class PackageMembershipCatalogTest extends TestCase
 
     public function test_landing_page_keeps_services_and_shows_packages_and_membership_separately(): void
     {
-        $response = $this->get(route('landing'))
+        $this->get(route('landing'))
             ->assertOk()
+            ->assertViewHas('services', fn (array $services): bool => collect($services)
+                ->every(fn (array $service): bool => ($service['offering_type'] ?? 'service') === 'service'))
+            ->assertViewHas('packages', fn (array $packages): bool => count($packages) === 3)
             ->assertSee('Buenos Touche Service Menu')
             ->assertSee('THERA Packages')
             ->assertSee('THERA #1')
             ->assertSee('Buenos Touché Membership')
             ->assertSee('PHP 499.00');
-
-        $html = $response->getContent();
-        $serviceMenu = substr(
-            $html,
-            strpos($html, '<section class="services"'),
-            strpos($html, '<section class="package-membership"') - strpos($html, '<section class="services"'),
-        );
-        $this->assertStringNotContainsString('THERA #1', $serviceMenu);
     }
 
     public function test_customer_booking_page_lists_packages_in_their_own_group(): void
