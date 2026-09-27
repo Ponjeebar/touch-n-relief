@@ -2118,6 +2118,21 @@ html[data-theme="dark"] .landing-theme-icon-light {
         outline-color: #111;
     }
 
+    html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .mobile-nav-toggle {
+        border-color: rgba(179, 220, 204, 0.34);
+        background: rgba(179, 220, 204, 0.08);
+        color: #d8f4e8;
+    }
+
+    html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .mobile-nav-toggle:hover {
+        border-color: rgba(179, 220, 204, 0.56);
+        background: rgba(179, 220, 204, 0.16);
+    }
+
+    html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .mobile-nav-toggle:focus-visible {
+        outline-color: #d8f4e8;
+    }
+
     .mobile-nav-icon,
     .mobile-nav-icon::before,
     .mobile-nav-icon::after {

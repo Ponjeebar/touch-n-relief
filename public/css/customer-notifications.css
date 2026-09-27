@@ -48,6 +48,22 @@
     background: rgba(0, 0, 0, 0.08);
 }
 
+html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .customer-notif-btn {
+    border-color: rgba(179, 220, 204, 0.34);
+    background: rgba(179, 220, 204, 0.08);
+    color: #d8f4e8;
+}
+
+html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .customer-notif-btn:hover {
+    border-color: rgba(179, 220, 204, 0.56);
+    background: rgba(179, 220, 204, 0.16);
+}
+
+html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .customer-notif-btn:focus-visible {
+    outline: 2px solid #d8f4e8;
+    outline-offset: 2px;
+}
+
 .customer-notif-badge {
     position: absolute;
     top: -5px;
@@ -73,6 +89,10 @@
 
 .landing-header.scrolled:not(.nav-solid) .customer-notif-badge {
     border-color: rgba(255, 255, 255, 0.96);
+}
+
+html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .customer-notif-badge {
+    border-color: #0c1412;
 }
 
 .customer-notif-badge[hidden] {
