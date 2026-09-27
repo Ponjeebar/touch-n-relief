@@ -250,7 +250,7 @@ body:has(.booking-page) {
 
 .booking-grid {
     display: grid;
-    grid-template-columns: minmax(280px, 0.9fr) minmax(340px, 1.12fr) minmax(320px, 1fr);
+    grid-template-columns: minmax(260px, 0.78fr) minmax(520px, 1.55fr) minmax(300px, 0.9fr);
     gap: 1.25rem;
     align-items: start;
 }
@@ -317,13 +317,15 @@ body:has(.booking-page) {
 }
 
 .service-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 0.55rem;
     min-height: 0;
 }
 
 .booking-service-group-title {
+    grid-column: 1 / -1;
     margin: 0.15rem 0 0;
     color: #617987;
     font-size: 0.74rem;
@@ -930,7 +932,7 @@ body:has(.booking-page) {
 
     .booking-panel-schedule {
         grid-column: 1 / -1;
-        min-height: 480px;
+        min-height: 0;
     }
 
     .therapist-item,
@@ -954,8 +956,7 @@ body:has(.booking-page) {
         min-height: 0;
     }
 
-    .therapist-list,
-    .service-list {
+    .therapist-list {
         flex: none;
     }
 
@@ -1197,6 +1198,7 @@ body:has(.booking-page) {
     }
 
     .service-list {
+        grid-template-columns: 1fr;
         gap: 0.55rem;
     }
 
