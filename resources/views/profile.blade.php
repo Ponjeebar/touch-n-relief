@@ -692,18 +692,20 @@
                     <img src="{{ asset('images/dashboard/logo.png') }}" alt="Buenos Touche logo" class="brand-logo">
                     <div class="brand">TouchNRelief</div>
                 </div>
-                <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
-                    <span class="mobile-nav-icon" aria-hidden="true"></span>
-                    <span>Menu</span>
-                </button>
                 <nav class="nav-links" id="public-mobile-navigation">
                     <a href="{{ route('landing') }}">Home</a>
-                    @include('partials.customer-notifications')
                     <form method="POST" action="{{ route('logout') }}" style="margin:0">
                         @csrf
                         <button type="submit" class="btn btn-outline" style="cursor:pointer">Logout</button>
                     </form>
                 </nav>
+                <div class="nav-header-actions">
+                    @include('partials.customer-notifications')
+                    <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
+                        <span class="mobile-nav-icon" aria-hidden="true"></span>
+                        <span>Menu</span>
+                    </button>
+                </div>
             </div>
         </div>
     </header>

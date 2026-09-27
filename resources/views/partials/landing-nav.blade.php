@@ -28,7 +28,6 @@
                     <a href="{{ route('landing') }}">Home</a>
                     <a href="{{ route('profile.edit') }}">Profile</a>
                     <button type="button" class="nav-txn-link" data-tnr-open-transactions>My Appointments</button>
-                    @include('partials.customer-notifications')
                 @endif
                 @if ($navMode === 'full')
                     @auth
@@ -52,6 +51,8 @@
                         @endif
                         @include('partials.landing-user-menu', ['navUserWrapperClass' => 'nav-user-wrap--desktop'])
                     @endauth
+                @elseif ($navMode === 'booking')
+                    @include('partials.customer-notifications')
                 @endif
                 @if ($navMode !== 'auth')
                     <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
