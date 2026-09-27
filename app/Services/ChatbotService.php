@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\MembershipPlan;
 use App\Models\SpaBooking;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
@@ -86,6 +87,14 @@ class ChatbotService
                 .'. You can contact the spa at '.$details['contact_phone'].' or '.$details['contact_email'].'.');
         }
 
+        if ($this->has($question, ['package', 'thera'])) {
+            return $this->packages($question);
+        }
+
+        if ($this->has($question, ['membership', 'member price', 'member rate'])) {
+            return $this->membership();
+        }
+
         if ($this->has($question, ['service', 'massage', 'treatment', 'price', 'cost', 'how much', 'rate'])) {
             return $this->services($question);
         }
@@ -145,6 +154,40 @@ class ChatbotService
 
         return $this->respond("Current services and prices:\n".$list."\nSelect a service on the website for details.",
             [$this->servicesAction()]);
+    }
+
+    private function packages(string $question): array
+    {
+        $packages = $this->catalog->packages();
+        $specific = collect($packages)->first(fn (array $package): bool => str_contains($question, mb_strtolower((string) $package['name'])));
+
+        if ($specific) {
+            $memberPrice = ! empty($specific['member_price']) ? ' Member price: '.$specific['member_price'].'.' : '';
+
+            return $this->respond($specific['name'].' is '.$specific['price'].' for '.$specific['duration'].'.'.$memberPrice.' Includes: '.$specific['inclusions'].'.',
+                [$this->action('Book this package', 'booking.index', ['service' => $specific['name']])]);
+        }
+
+        $list = collect($packages)->map(fn (array $package): string => 'â€¢ '.$package['name'].' — '.$package['price'].' ('.$package['duration'].')')->implode("\n");
+
+        return $this->respond("Current THERA packages:\n".$list, [$this->servicesAction()]);
+    }
+
+    private function membership(): array
+    {
+        if (! Schema::hasTable('membership_plans')) {
+            return $this->respond('Membership details are temporarily unavailable.');
+        }
+
+        $plan = MembershipPlan::query()->where('is_active', true)->orderBy('sort_order')->first();
+        if (! $plan) {
+            return $this->respond('There is no active membership offer right now.');
+        }
+
+        $benefits = collect($plan->benefits ?? [])->implode('; ');
+
+        return $this->respond($plan->name.' costs PHP '.number_format((float) $plan->price_amount, 2).'. '.$plan->description
+            .($benefits !== '' ? ' Benefits: '.$benefits.'.' : ''), [$this->servicesAction()]);
     }
 
     private function appointments(string $question, ?User $user): array
@@ -322,9 +365,9 @@ class ChatbotService
         return ['reply' => $reply, 'actions' => $actions];
     }
 
-    private function action(string $label, string $route): array
+    private function action(string $label, string $route, array $parameters = []): array
     {
-        return ['label' => $label, 'url' => route($route)];
+        return ['label' => $label, 'url' => route($route, $parameters)];
     }
 
     private function servicesAction(): array

@@ -2,6 +2,53 @@
     padding: 0 4px 24px;
 }
 
+.catalog-admin-section {
+    margin-top: 26px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border, #e4e9ef);
+}
+
+.catalog-admin-title {
+    margin: 0;
+    color: var(--text, #17212b);
+    font-size: 1.25rem;
+}
+
+.catalog-admin-copy {
+    margin: 4px 0 0;
+    color: var(--muted, #6b7c93);
+    font-size: 0.88rem;
+}
+
+.package-card-media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(13, 91, 70, 0.22), transparent 60%);
+    pointer-events: none;
+}
+
+.membership-admin-grid { margin-top: 14px; }
+.membership-admin-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 24px;
+    padding: 20px;
+    border: 1px solid #bcd9d1;
+    border-radius: 16px;
+    background: #f4fbf8;
+}
+.membership-admin-card h3 { margin: 4px 0; }
+.membership-admin-card p { margin: 0; color: var(--muted, #6b7c93); }
+.membership-admin-card strong { color: #04724d; font-size: 1.35rem; white-space: nowrap; }
+.membership-admin-card ul { grid-column: 1 / -1; margin: 4px 0 0; padding-left: 20px; color: var(--text, #17212b); }
+.membership-admin-label { color: #04724d; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+
+@media (max-width: 640px) {
+    .membership-admin-card { grid-template-columns: 1fr; padding: 16px; }
+    .membership-admin-card ul { grid-column: 1; }
+}
+
 .services-summary {
     display: flex;
     align-items: center;

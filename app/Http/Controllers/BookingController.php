@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MembershipPlan;
 use App\Models\SpaBooking;
 use App\Models\TimeSlot;
 use App\Models\User;
@@ -64,6 +65,10 @@ class BookingController extends Controller
 
         return view('welcome', [
             'services' => $services,
+            'packages' => app(SpaServiceCatalog::class)->packages(),
+            'membershipPlans' => Schema::hasTable('membership_plans')
+                ? MembershipPlan::query()->where('is_active', true)->orderBy('sort_order')->get()
+                : collect(),
             'therapists' => $therapists,
             'therapistGridColumns' => TherapistGridLayout::responsiveColumns(count($therapists)),
             'slotMap' => $slotMap,
@@ -586,6 +591,7 @@ class BookingController extends Controller
         if (TimeSlot::query()->count() === 0) {
             $this->slots->seedDefaults();
         }
+        $this->slots->attachDefaultSlotsForServicesWithoutSchedule();
     }
 
     /**
@@ -601,7 +607,7 @@ class BookingController extends Controller
      */
     private function allServices(): array
     {
-        return app(SpaServiceCatalog::class)->all();
+        return app(SpaServiceCatalog::class)->bookable();
     }
 
     /**

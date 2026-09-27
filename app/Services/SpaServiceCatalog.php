@@ -15,8 +15,12 @@ class SpaServiceCatalog
         $this->ensureSeeded();
 
         if (Schema::hasTable('spa_services')) {
-            $fromDb = SpaService::query()
-                ->where('is_active', true)
+            $query = SpaService::query()->where('is_active', true);
+            if (Schema::hasColumn('spa_services', 'offering_type')) {
+                $query->where('offering_type', 'service');
+            }
+
+            $fromDb = $query
                 ->orderBy('name')
                 ->get()
                 ->map(fn (SpaService $service): array => $service->toCatalogArray())
@@ -35,13 +39,37 @@ class SpaServiceCatalog
      */
     public function findByName(string $name): ?array
     {
-        foreach ($this->all() as $service) {
+        foreach ($this->bookable() as $service) {
             if (strcasecmp((string) ($service['name'] ?? ''), $name) === 0) {
                 return $service;
             }
         }
 
         return null;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function packages(): array
+    {
+        $this->ensureSeeded();
+
+        if (! Schema::hasColumn('spa_services', 'offering_type')) {
+            return [];
+        }
+
+        return SpaService::query()
+            ->where('is_active', true)
+            ->where('offering_type', 'package')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (SpaService $package): array => $package->toCatalogArray())
+            ->all();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function bookable(): array
+    {
+        return array_merge($this->all(), $this->packages());
     }
 
     public function durationMinutesFor(string $name): int
@@ -65,7 +93,15 @@ class SpaServiceCatalog
 
     public function ensureSeeded(): void
     {
-        if (! Schema::hasTable('spa_services') || SpaService::query()->exists()) {
+        if (! Schema::hasTable('spa_services')) {
+            return;
+        }
+
+        $serviceQuery = SpaService::query();
+        if (Schema::hasColumn('spa_services', 'offering_type')) {
+            $serviceQuery->where('offering_type', 'service');
+        }
+        if ($serviceQuery->exists()) {
             return;
         }
 

@@ -284,6 +284,26 @@ body:has(.booking-page) {
     min-height: 0;
 }
 
+.booking-service-group-title {
+    margin: 0.15rem 0 0;
+    color: #617987;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.booking-package-group-title {
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid #dce7ec;
+}
+
+.service-item-package {
+    border-color: #b8d7cd;
+    background: #f8fcfa;
+}
+
 .service-item {
     flex: 1 1 0;
     display: flex;

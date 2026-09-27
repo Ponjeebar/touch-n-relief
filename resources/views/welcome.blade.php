@@ -182,6 +182,66 @@
         </div>
     </section>
 
+    @if (!empty($packages) || ($membershipPlans ?? collect())->isNotEmpty())
+        <section class="package-membership" id="packages">
+            <div class="container">
+                @if (!empty($packages))
+                    <div class="catalog-section-heading reveal">
+                        <p class="section-eyebrow">VALUE BUNDLES</p>
+                        <h2>THERA Packages</h2>
+                        <p>Choose a bundled treatment while keeping every individual service available above.</p>
+                    </div>
+                    <div class="package-grid">
+                        @foreach ($packages as $package)
+                            <article class="package-card reveal delay-{{ min($loop->iteration, 3) }}">
+                                <div class="package-card-topline">
+                                    <span class="package-duration">{{ $package['duration'] }}</span>
+                                    <span class="package-type">Package</span>
+                                </div>
+                                <h3>{{ $package['name'] }}</h3>
+                                <p class="package-inclusions">{{ $package['inclusions'] }}</p>
+                                <p class="package-description">{{ $package['desc'] }}</p>
+                                <div class="package-pricing">
+                                    @if (!empty($package['member_price']))
+                                        <span><small>Member</small>{{ $package['member_price'] }}</span>
+                                        <span><small>Regular</small>{{ $package['price'] }}</span>
+                                    @else
+                                        <span><small>Package price</small>{{ $package['price'] }}</span>
+                                    @endif
+                                </div>
+                                <a href="{{ route('booking.index', ['service' => $package['name']]) }}" class="btn package-book">Book package</a>
+                            </article>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if (($membershipPlans ?? collect())->isNotEmpty())
+                    <div class="membership-block reveal" id="membership">
+                        @foreach ($membershipPlans as $plan)
+                            <div class="membership-copy">
+                                <p class="section-eyebrow">MEMBERSHIP</p>
+                                <h2>{{ $plan->name }}</h2>
+                                <p>{{ $plan->description }}</p>
+                                @if (!empty($plan->benefits))
+                                    <ul>
+                                        @foreach ($plan->benefits as $benefit)
+                                            <li>{{ $benefit }}</li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
+                            <div class="membership-price">
+                                <small>Membership fee</small>
+                                <strong>PHP {{ number_format((float) $plan->price_amount, 2) }}</strong>
+                                <a href="#contact" class="btn btn-light">Ask about membership</a>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </section>
+    @endif
+
     <section class="therapists" id="therapists">
         <div class="therapists-bg" aria-hidden="true"></div>
         <div class="container">

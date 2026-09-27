@@ -105,7 +105,9 @@
                     <h2>2. Choose a Service</h2>
                     <p class="booking-panel-lock-hint" id="service-lock-hint">Select a date first to choose a service.</p>
                     <div class="service-list" id="service-list">
-                        @foreach ($services as $service)
+                        @php $bookingServices = collect($services)->where('offering_type', 'service'); @endphp
+                        <p class="booking-service-group-title">Individual services</p>
+                        @foreach ($bookingServices as $service)
                             @php
                                 $active = (old('service', $selectedServiceName) ?? '') === $service['name'];
                             @endphp
@@ -125,6 +127,21 @@
                                 <span class="service-price">{{ $service['price'] }}</span>
                             </label>
                         @endforeach
+                        @php $bookingPackages = collect($services)->where('offering_type', 'package'); @endphp
+                        @if ($bookingPackages->isNotEmpty())
+                            <p class="booking-service-group-title booking-package-group-title">Packages</p>
+                            @foreach ($bookingPackages as $service)
+                                @php $active = (old('service', $selectedServiceName) ?? '') === $service['name']; @endphp
+                                <label class="service-item service-item-package {{ $active ? 'active' : '' }}">
+                                    <input type="radio" name="service" value="{{ $service['name'] }}" form="booking-form" {{ $active ? 'checked' : '' }} disabled>
+                                    <span class="service-main">
+                                        <span class="service-name">{{ $service['name'] }}</span>
+                                        <span class="service-meta">{{ $service['duration'] }} Â· {{ $service['inclusions'] }}</span>
+                                    </span>
+                                    <span class="service-price">{{ $service['price'] }}</span>
+                                </label>
+                            @endforeach
+                        @endif
                     </div>
                 </section>
 

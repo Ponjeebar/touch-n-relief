@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Customer;
+use App\Models\MembershipPlan;
 use App\Models\Receptionist;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
@@ -21,6 +21,7 @@ use App\Services\TherapistAvailabilityService;
 use App\Services\TherapistCatalog;
 use App\Services\WalkInClientService;
 use App\Support\PaymentMethodCatalog;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\JsonResponse;
@@ -292,6 +293,7 @@ class DashboardController extends Controller
         if ($slots->tablesReady() && TimeSlot::query()->count() === 0) {
             $slots->seedDefaults();
         }
+        $slots->attachDefaultSlotsForServicesWithoutSchedule();
     }
 
     private function redirectAfterCustomerWrite(string $returnTo, ?Customer $customer, string $message): RedirectResponse
@@ -1091,7 +1093,7 @@ class DashboardController extends Controller
         $availability = $request->string('availability')->lower()->value();
         $availability = in_array($availability, ['all', 'available', 'unavailable'], true) ? $availability : 'available';
 
-        $servicesQuery = SpaService::query()->orderBy('name');
+        $servicesQuery = SpaService::query()->where('offering_type', 'service')->orderBy('name');
 
         if ($availability === 'available') {
             $servicesQuery->where('is_active', true);
@@ -1110,7 +1112,7 @@ class DashboardController extends Controller
                     'description' => (string) $service->description,
                     'duration_minutes' => (int) $service->duration_minutes,
                     'is_active' => (bool) $service->is_active,
-                    'image_url' => file_exists(public_path('images/landing/'.$image))
+                    'image_url' => $image !== '' && file_exists(public_path('images/landing/'.$image))
                         ? asset('images/landing/'.$image)
                         : asset('images/login/background.jpg'),
                     'time_slots_count' => count($slotMap[$name] ?? []),
@@ -1135,13 +1137,46 @@ class DashboardController extends Controller
                 ->values();
         }
 
+        $packages = SpaService::query()
+            ->where('offering_type', 'package')
+            ->orderBy('id')
+            ->get()
+            ->map(function (SpaService $service) use ($slotMap, $bookingCounts): array {
+                $name = (string) $service->name;
+                $image = (string) ($service->image ?? '');
+
+                return array_merge($service->toCatalogArray(), [
+                    'id' => $service->id,
+                    'description' => (string) $service->description,
+                    'duration_minutes' => (int) $service->duration_minutes,
+                    'is_active' => (bool) $service->is_active,
+                    'image_url' => $image !== '' && file_exists(public_path('images/landing/'.$image))
+                        ? asset('images/landing/'.$image)
+                        : asset('images/login/background.jpg'),
+                    'time_slots_count' => count($slotMap[$name] ?? []),
+                    'total_bookings' => (int) ($bookingCounts[$name] ?? 0),
+                ]);
+            });
+
+        if ($search !== '') {
+            $needle = mb_strtolower($search);
+            $packages = $packages->filter(fn (array $package): bool => str_contains(
+                mb_strtolower(implode(' ', array_filter([
+                    $package['name'] ?? '', $package['desc'] ?? '', $package['inclusions'] ?? '',
+                ]))),
+                $needle,
+            ))->values();
+        }
+
         return view('services.index', [
             'services' => $services,
+            'packages' => $packages,
+            'membershipPlans' => MembershipPlan::query()->orderBy('sort_order')->get(),
             'search' => $search,
             'availability' => $availability,
             'totalServices' => $services->count(),
-            'availableCount' => SpaService::query()->where('is_active', true)->count(),
-            'unavailableCount' => SpaService::query()->where('is_active', false)->count(),
+            'availableCount' => SpaService::query()->where('offering_type', 'service')->where('is_active', true)->count(),
+            'unavailableCount' => SpaService::query()->where('offering_type', 'service')->where('is_active', false)->count(),
         ]);
     }
 
@@ -1157,6 +1192,9 @@ class DashboardController extends Controller
             'best_for' => $validated['best_for'],
             'description' => $validated['description'],
             'image' => $validated['image'] ?? null,
+            'offering_type' => $validated['offering_type'] ?? 'service',
+            'member_price_amount' => $validated['member_price_amount'] ?? null,
+            'inclusions' => $validated['inclusions'] ?? null,
             'prenatal_only' => $request->boolean('prenatal_only'),
             'is_active' => true,
         ]);
@@ -1192,6 +1230,9 @@ class DashboardController extends Controller
             'best_for' => $validated['best_for'],
             'description' => $validated['description'],
             'image' => $validated['image'] ?? null,
+            'offering_type' => $validated['offering_type'] ?? (string) ($spaService->offering_type ?: 'service'),
+            'member_price_amount' => $validated['member_price_amount'] ?? null,
+            'inclusions' => $validated['inclusions'] ?? null,
             'prenatal_only' => $request->boolean('prenatal_only'),
         ]);
 
@@ -1403,6 +1444,9 @@ class DashboardController extends Controller
             'best_for' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:2000'],
             'image' => ['nullable', 'string', 'max:255'],
+            'offering_type' => ['sometimes', Rule::in(['service', 'package'])],
+            'member_price_amount' => ['nullable', 'numeric', 'min:0'],
+            'inclusions' => ['nullable', 'string', 'max:2000'],
             'prenatal_only' => ['sometimes', 'boolean'],
         ]);
     }
@@ -2274,7 +2318,7 @@ class DashboardController extends Controller
 
     public function reportingBackup(): StreamedResponse|RedirectResponse
     {
-        $tables = ['users', 'customers', 'receptionists', 'therapists', 'spa_services', 'time_slots', 'spa_bookings', 'transactions', 'registrations', 'site_settings'];
+        $tables = ['users', 'customers', 'receptionists', 'therapists', 'spa_services', 'membership_plans', 'time_slots', 'spa_bookings', 'transactions', 'registrations', 'site_settings'];
 
         try {
             $data = [];

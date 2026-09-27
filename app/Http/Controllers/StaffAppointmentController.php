@@ -836,6 +836,7 @@ class StaffAppointmentController extends Controller
         if ($this->slots->tablesReady() && TimeSlot::query()->count() === 0) {
             $this->slots->seedDefaults();
         }
+        $this->slots->attachDefaultSlotsForServicesWithoutSchedule();
     }
 
     /**

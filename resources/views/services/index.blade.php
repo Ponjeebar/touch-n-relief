@@ -167,6 +167,58 @@
                         @endforelse
                     </div>
                 </section>
+
+                <section class="services-wrap catalog-admin-section" aria-labelledby="packages-heading">
+                    <div class="services-summary">
+                        <div>
+                            <h2 id="packages-heading" class="catalog-admin-title">Packages</h2>
+                            <p class="catalog-admin-copy">Bundled treatments shown separately from individual services.</p>
+                        </div>
+                        <button class="add-user-btn" type="button" id="toggle-add-package"><i class="bi bi-plus-circle"></i> Add Package</button>
+                    </div>
+                    <div class="services-grid">
+                        @forelse ($packages as $package)
+                            <button type="button" class="service-card {{ empty($package['is_active']) ? 'is-unavailable' : '' }}"
+                                data-open-service-edit="true" data-service-id="{{ $package['id'] }}" data-service-name="{{ $package['name'] }}"
+                                data-service-price="{{ $package['price_amount'] }}" data-service-member-price="{{ $package['member_price_amount'] }}"
+                                data-service-duration="{{ $package['duration_minutes'] }}" data-service-best-for="{{ $package['best_for'] }}"
+                                data-service-description="{{ $package['description'] }}" data-service-inclusions="{{ $package['inclusions'] }}"
+                                data-service-image="{{ $package['image'] ?? '' }}" data-service-image-url="{{ $package['image_url'] }}"
+                                data-service-prenatal="0" data-service-offering-type="package"
+                                data-service-active="{{ ! empty($package['is_active']) ? '1' : '0' }}"
+                                data-service-slots="{{ $package['time_slots_count'] ?? 0 }}" data-service-bookings="{{ $package['total_bookings'] ?? 0 }}"
+                                aria-label="Edit package {{ $package['name'] }}">
+                                <div class="service-card-media package-card-media">
+                                    <img src="{{ $package['image_url'] }}" alt=""><span class="service-badge">Package</span>
+                                    <span class="service-card-overlay"><i class="bi bi-pencil-square" aria-hidden="true"></i><span>Edit package</span></span>
+                                </div>
+                                <div class="service-card-body">
+                                    <h3>{{ $package['name'] }}</h3><p class="service-desc">{{ $package['inclusions'] }}</p>
+                                    <div class="service-meta"><span><i class="bi bi-clock"></i> {{ $package['duration'] }}</span><span><i class="bi bi-tag"></i> {{ $package['price'] }}</span></div>
+                                    @if (!empty($package['member_price']))<div class="service-meta service-meta-sub"><span><i class="bi bi-person-check"></i> Member {{ $package['member_price'] }}</span></div>@endif
+                                </div>
+                            </button>
+                        @empty
+                            <div class="services-empty">No packages match your search.</div>
+                        @endforelse
+                    </div>
+                </section>
+
+                <section class="services-wrap catalog-admin-section" aria-labelledby="membership-heading">
+                    <h2 id="membership-heading" class="catalog-admin-title">Membership</h2>
+                    <p class="catalog-admin-copy">Current membership offer displayed on the customer landing page.</p>
+                    <div class="membership-admin-grid">
+                        @forelse ($membershipPlans as $plan)
+                            <article class="membership-admin-card {{ !$plan->is_active ? 'is-unavailable' : '' }}">
+                                <div><span class="membership-admin-label">Membership plan</span><h3>{{ $plan->name }}</h3><p>{{ $plan->description }}</p></div>
+                                <strong>PHP {{ number_format((float) $plan->price_amount, 2) }}</strong>
+                                @if (!empty($plan->benefits))<ul>@foreach ($plan->benefits as $benefit)<li>{{ $benefit }}</li>@endforeach</ul>@endif
+                            </article>
+                        @empty
+                            <div class="services-empty">No membership plan is configured.</div>
+                        @endforelse
+                    </div>
+                </section>
             </main>
         </div>
     </div>
@@ -212,6 +264,7 @@
                             @csrf
                             <input type="hidden" name="_modal" id="service-modal-mode" value="{{ old('_modal', 'add') }}">
                             <input type="hidden" name="_service_id" id="service-record-id" value="{{ old('_service_id') }}">
+                            <input type="hidden" name="offering_type" id="service-offering-type" value="{{ old('offering_type', 'service') }}">
 
                             <header class="service-modal-header">
                                 <div class="service-modal-icon" aria-hidden="true">
@@ -246,6 +299,10 @@
                                         <label for="service-description">Description</label>
                                         <textarea id="service-description" name="description" rows="3" required placeholder="Describe the treatment experience...">{{ old('description') }}</textarea>
                                     </div>
+                                    <div class="profile-field package-only-field hidden-section">
+                                        <label for="service-inclusions">Package inclusions</label>
+                                        <textarea id="service-inclusions" name="inclusions" rows="2" placeholder="List the treatments included in this package">{{ old('inclusions') }}</textarea>
+                                    </div>
                                 </section>
 
                                 <section class="service-form-section">
@@ -266,6 +323,10 @@
                                     <div class="profile-field">
                                         <label for="service-best-for">Best for</label>
                                         <input id="service-best-for" type="text" name="best_for" value="{{ old('best_for') }}" placeholder="e.g. Stress relief" required>
+                                    </div>
+                                    <div class="profile-field package-only-field hidden-section">
+                                        <label for="service-member-price">Member price (PHP, optional)</label>
+                                        <input id="service-member-price" type="number" name="member_price_amount" value="{{ old('member_price_amount') }}" min="0" step="0.01" placeholder="Leave blank when there is no member rate">
                                     </div>
                                 </section>
 
@@ -393,6 +454,7 @@
             const serviceModal = document.getElementById('service-modal');
             const serviceForm = document.getElementById('service-form');
             const toggleAddService = document.getElementById('toggle-add-service');
+            const toggleAddPackage = document.getElementById('toggle-add-package');
             const closeServiceModal = document.getElementById('close-service-modal');
             const serviceFormCancel = document.getElementById('service-form-cancel');
             const modalTitle = document.getElementById('service-modal-title');
@@ -454,7 +516,16 @@
                 bestFor: document.getElementById('service-best-for'),
                 image: document.getElementById('service-image'),
                 prenatal: document.getElementById('service-prenatal'),
+                offeringType: document.getElementById('service-offering-type'),
+                memberPrice: document.getElementById('service-member-price'),
+                inclusions: document.getElementById('service-inclusions'),
             };
+
+            function syncOfferingFields() {
+                const isPackage = fields.offeringType?.value === 'package';
+                document.querySelectorAll('.package-only-field').forEach((field) => field.classList.toggle('hidden-section', !isPackage));
+                fields.prenatal?.closest('.services-checkbox-card')?.classList.toggle('hidden-section', isPackage);
+            }
 
             const preview = {
                 image: document.getElementById('service-preview-image'),
@@ -802,6 +873,9 @@
                     fields.bestFor.value = data.bestFor ?? '';
                     fields.image.value = data.image ?? '';
                     fields.prenatal.checked = data.prenatal === '1';
+                    fields.offeringType.value = data.offeringType || 'service';
+                    fields.memberPrice.value = data.memberPrice ?? '';
+                    fields.inclusions.value = data.inclusions ?? '';
 
                     serviceForm.action = updateUrlTemplate.replace('__ID__', String(data.id));
                     let methodInput = serviceForm.querySelector('input[name="_method"]');
@@ -813,10 +887,11 @@
                     }
                     methodInput.value = 'PUT';
 
-                    modalTitle.textContent = 'Edit Service';
+                    const itemLabel = fields.offeringType.value === 'package' ? 'Package' : 'Service';
+                    modalTitle.textContent = 'Edit ' + itemLabel;
                     modalSubtitle.textContent = 'Update pricing, description, and availability details.';
                     modalHeaderIcon.className = 'bi bi-pencil-square';
-                    submitLabel.textContent = 'Update Service';
+                    submitLabel.textContent = 'Update ' + itemLabel;
                     modalModeField.value = 'edit';
                     serviceRecordIdField.value = String(data.id ?? '');
 
@@ -834,22 +909,25 @@
                         serviceForm.reset();
                         fields.duration.value = '60';
                         fields.prenatal.checked = false;
+                        fields.offeringType.value = opts.offeringType || 'service';
                     }
 
                     serviceForm.action = storeUrl;
                     const methodInput = serviceForm.querySelector('input[name="_method"]');
                     if (methodInput) methodInput.remove();
 
-                    modalTitle.textContent = 'Add Service';
-                    modalSubtitle.textContent = 'Create a new massage offering for booking.';
+                    const itemLabel = fields.offeringType.value === 'package' ? 'Package' : 'Service';
+                    modalTitle.textContent = 'Add ' + itemLabel;
+                    modalSubtitle.textContent = itemLabel === 'Package' ? 'Create a bundled treatment for booking.' : 'Create a new massage offering for booking.';
                     modalHeaderIcon.className = 'bi bi-plus-circle';
-                    submitLabel.textContent = 'Save Service';
+                    submitLabel.textContent = 'Save ' + itemLabel;
                     modalModeField.value = 'add';
                     serviceRecordIdField.value = '';
                     preview.image.src = defaultImage;
                     setAvailabilityControls(true, null);
                 }
 
+                syncOfferingFields();
                 syncPreview();
                 serviceModal?.classList.remove('hidden-section');
                 document.body.classList.add('modal-open');
@@ -865,6 +943,7 @@
             }
 
             toggleAddService?.addEventListener('click', () => openServiceModal('add'));
+            toggleAddPackage?.addEventListener('click', () => openServiceModal('add', null, { offeringType: 'package' }));
             closeServiceModal?.addEventListener('click', closeServiceModalFn);
             serviceFormCancel?.addEventListener('click', closeServiceModalFn);
             serviceModal?.querySelectorAll('[data-close-service-modal="true"]').forEach((el) => {
@@ -886,6 +965,9 @@
                         active: card.getAttribute('data-service-active'),
                         slots: card.getAttribute('data-service-slots'),
                         bookings: card.getAttribute('data-service-bookings'),
+                        offeringType: card.getAttribute('data-service-offering-type') || 'service',
+                        memberPrice: card.getAttribute('data-service-member-price'),
+                        inclusions: card.getAttribute('data-service-inclusions'),
                     });
                 });
             });
@@ -992,6 +1074,9 @@
                         description: @json(old('description')),
                         image: @json(old('image')),
                         prenatal: @json(old('prenatal_only') ? '1' : '0'),
+                        offeringType: @json(old('offering_type', 'service')),
+                        memberPrice: @json(old('member_price_amount')),
+                        inclusions: @json(old('inclusions')),
                     });
                 @else
                     openServiceModal('add', null, { preserveFields: true });

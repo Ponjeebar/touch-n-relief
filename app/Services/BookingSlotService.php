@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SpaBooking;
+use App\Models\SpaService;
 use App\Models\Therapist;
 use App\Models\TimeSlot;
 use App\Support\PaymentMethodCatalog;
@@ -1407,5 +1408,21 @@ class BookingSlotService
                 ],
             );
         }
+    }
+
+    public function attachDefaultSlotsForServicesWithoutSchedule(): void
+    {
+        if (! $this->tablesReady() || ! Schema::hasTable('spa_services')) {
+            return;
+        }
+
+        SpaService::query()
+            ->where('is_active', true)
+            ->pluck('name')
+            ->each(function (string $serviceName): void {
+                if (! DB::table('service_time_slots')->where('service_name', $serviceName)->exists()) {
+                    $this->attachDefaultSlotsForService($serviceName);
+                }
+            });
     }
 }

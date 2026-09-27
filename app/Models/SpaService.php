@@ -13,6 +13,9 @@ class SpaService extends Model
         'best_for',
         'description',
         'image',
+        'offering_type',
+        'member_price_amount',
+        'inclusions',
         'prenatal_only',
         'is_active',
     ];
@@ -22,6 +25,7 @@ class SpaService extends Model
         return [
             'price_amount' => 'decimal:2',
             'duration_minutes' => 'integer',
+            'member_price_amount' => 'decimal:2',
             'prenatal_only' => 'boolean',
             'is_active' => 'boolean',
         ];
@@ -44,6 +48,10 @@ class SpaService extends Model
             'image' => (string) ($this->image ?? ''),
             'times' => [],
             'prenatal_only' => (bool) $this->prenatal_only,
+            'offering_type' => (string) ($this->offering_type ?: 'service'),
+            'member_price_amount' => $this->member_price_amount !== null ? (float) $this->member_price_amount : null,
+            'member_price' => $this->member_price_amount !== null ? 'PHP '.number_format((float) $this->member_price_amount, 2) : null,
+            'inclusions' => (string) ($this->inclusions ?? ''),
         ];
     }
 }
