@@ -46,29 +46,66 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('social.store') }}">
+        <form method="POST" action="{{ route('social.store') }}" class="social-complete-form">
             @csrf
-            <div class="social-complete-fields">
-                <div class="social-complete-field">
-                    <label for="social-contact">Contact number</label>
-                    <input id="social-contact" name="contact_number" type="tel" value="{{ old('contact_number') }}" placeholder="09XXXXXXXXX" maxlength="11" pattern="^09\d{9}$" inputmode="numeric" autocomplete="tel" class="@error('contact_number') invalid @enderror" aria-describedby="social-contact-hint" required>
-                    <small id="social-contact-hint">Use an 11-digit Philippine mobile number.</small>
+            <section class="social-form-section" aria-labelledby="social-details-heading">
+                <div class="social-section-heading">
+                    <h2 id="social-details-heading">Personal details</h2>
+                    <p>Complete the information used for your spa appointments.</p>
+                </div>
+                <div class="social-complete-fields">
+                    <div class="social-complete-field">
+                        <label for="social-contact">Contact number</label>
+                        <input id="social-contact" name="contact_number" type="tel" value="{{ old('contact_number') }}" placeholder="09XXXXXXXXX" maxlength="11" pattern="^09\d{9}$" inputmode="numeric" autocomplete="tel" class="@error('contact_number') invalid @enderror" aria-describedby="social-contact-hint" required>
+                        <small id="social-contact-hint">Use an 11-digit Philippine mobile number.</small>
+                        @error('contact_number')<p class="social-field-error">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="social-complete-field">
+                        <label for="social-birthday">Birthday</label>
+                        <input id="social-birthday" name="birthday" type="date" value="{{ old('birthday') }}" max="{{ now()->subYears(15)->format('Y-m-d') }}" autocomplete="bday" class="@error('birthday') invalid @enderror" aria-describedby="social-birthday-hint" required>
+                        <small id="social-birthday-hint">You must be at least 15 years old.</small>
+                        @error('birthday')<p class="social-field-error">{{ $message }}</p>@enderror
+                    </div>
                 </div>
 
-                <div class="social-complete-field">
-                    <label for="social-birthday">Birthday</label>
-                    <input id="social-birthday" name="birthday" type="date" value="{{ old('birthday') }}" max="{{ now()->subYears(15)->format('Y-m-d') }}" autocomplete="bday" class="@error('birthday') invalid @enderror" aria-describedby="social-birthday-hint" required>
-                    <small id="social-birthday-hint">You must be at least 15 years old.</small>
-                </div>
-            </div>
+                <fieldset class="auth-gender-field @error('sex') invalid @enderror">
+                    <legend>Sex</legend>
+                    <div class="auth-gender-options">
+                        <label class="auth-gender-option"><input type="radio" name="sex" value="male" @checked(old('sex') === 'male') required><span>Male</span></label>
+                        <label class="auth-gender-option"><input type="radio" name="sex" value="female" @checked(old('sex') === 'female')><span>Female</span></label>
+                    </div>
+                    @error('sex')<p class="social-field-error">{{ $message }}</p>@enderror
+                </fieldset>
+            </section>
 
-            <fieldset class="auth-gender-field @error('sex') invalid @enderror">
-                <legend>Sex</legend>
-                <div class="auth-gender-options">
-                    <label class="auth-gender-option"><input type="radio" name="sex" value="male" @checked(old('sex') === 'male') required><span>Male</span></label>
-                    <label class="auth-gender-option"><input type="radio" name="sex" value="female" @checked(old('sex') === 'female')><span>Female</span></label>
+            <section class="social-form-section social-password-section" aria-labelledby="social-password-heading">
+                <div class="social-section-heading">
+                    <h2 id="social-password-heading">Create your password</h2>
+                    <p>Use this password whenever you want to sign in with your email or update your account security.</p>
                 </div>
-            </fieldset>
+
+                <div class="social-complete-fields social-password-fields auth-password-policy-field" data-password-policy>
+                    <div class="social-complete-field">
+                        <label for="social-password">Password</label>
+                        <div class="auth-password-wrap">
+                            <input id="social-password" name="password" type="password" autocomplete="new-password" minlength="8" placeholder="Create a password" class="@error('password') invalid @enderror" data-password-primary required>
+                            <button type="button" class="auth-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </div>
+                        @error('password')<p class="social-field-error">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="social-complete-field">
+                        <label for="social-password-confirmation">Confirm password</label>
+                        <div class="auth-password-wrap">
+                            <input id="social-password-confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="8" placeholder="Enter it again" data-password-confirmation required>
+                            <button type="button" class="auth-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+
+                    @include('partials.password-requirements')
+                </div>
+            </section>
 
             <label class="auth-terms-option @error('terms_accepted') invalid @enderror">
                 <input type="checkbox" name="terms_accepted" value="1" @checked(old('terms_accepted')) required>
@@ -82,6 +119,7 @@
         </form>
     </main>
 
+    <script src="{{ asset('js/password-requirements.js') }}?v={{ filemtime(public_path('js/password-requirements.js')) }}"></script>
     <script src="{{ asset('js/auth-toggle.js') }}?v={{ filemtime(public_path('js/auth-toggle.js')) }}"></script>
 </body>
 </html>

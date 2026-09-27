@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as ProviderUser;
 use Tests\TestCase;
@@ -73,12 +74,16 @@ class SocialAuthenticationTest extends TestCase
         $this->get(route('social.complete'))
             ->assertOk()
             ->assertSee('social.customer@example.com')
+            ->assertSee('Create your password')
+            ->assertSee('name="password_confirmation"', false)
             ->assertDontSee('chatbot.js');
 
         $this->post(route('social.store'), [
             'contact_number' => '09171234567',
             'birthday' => now()->subYears(25)->toDateString(),
             'sex' => User::SEX_FEMALE,
+            'password' => 'SecureSocial1',
+            'password_confirmation' => 'SecureSocial1',
             'terms_accepted' => '1',
         ])->assertRedirect(route('landing'));
 
@@ -87,6 +92,7 @@ class SocialAuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
         $this->assertSame(User::ROLE_USER, $user->role);
         $this->assertSame('09171234567', $user->contact_number);
+        $this->assertTrue(Hash::check('SecureSocial1', $user->password));
         $this->assertNotNull($user->email_verified_at);
         $this->assertNull($user->profile_completed_at);
         $this->assertDatabaseHas('social_accounts', [
@@ -98,6 +104,30 @@ class SocialAuthenticationTest extends TestCase
             'user_id' => $user->id,
             'email' => 'social.customer@example.com',
         ]);
+    }
+
+    public function test_social_signup_requires_a_strong_confirmed_password(): void
+    {
+        $pending = [
+            'provider' => 'facebook',
+            'provider_user_id' => 'facebook-password-123',
+            'name' => 'Password Customer',
+            'email' => 'password.customer@example.com',
+            'created_at' => now()->timestamp,
+        ];
+
+        $this->withSession(['social_auth.pending' => $pending])
+            ->post(route('social.store'), [
+                'contact_number' => '09171234567',
+                'birthday' => now()->subYears(25)->toDateString(),
+                'sex' => User::SEX_FEMALE,
+                'password' => 'lowercase',
+                'password_confirmation' => 'different',
+                'terms_accepted' => '1',
+            ])
+            ->assertSessionHasErrors('password');
+
+        $this->assertDatabaseMissing('users', ['email' => $pending['email']]);
     }
 
     public function test_social_login_cannot_link_a_staff_or_admin_account(): void

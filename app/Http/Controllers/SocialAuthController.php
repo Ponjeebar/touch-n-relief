@@ -6,6 +6,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\WalkInClientService;
+use App\Support\StrongPassword;
 use App\Support\WalkInSchema;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -166,6 +167,7 @@ class SocialAuthController extends Controller
             'contact_number' => ['required', 'regex:/^09\d{9}$/'],
             'birthday' => ['required', 'date', 'before_or_equal:'.now()->subYears(15)->toDateString()],
             'sex' => ['required', Rule::in(User::sexOptions())],
+            'password' => ['required', 'confirmed', StrongPassword::rule()],
             'terms_accepted' => ['accepted'],
         ], [
             'contact_number.regex' => 'Phone number must be 11 digits starting with 09.',
@@ -187,7 +189,6 @@ class SocialAuthController extends Controller
 
                     $user = $existingUser;
                 } else {
-                    $password = Str::password(40);
                     $username = $this->uniqueUsername($pending['email']);
                     $signup = [
                         'name' => $pending['name'],
@@ -196,7 +197,7 @@ class SocialAuthController extends Controller
                         'contact_number' => $validated['contact_number'],
                         'birthday' => $validated['birthday'],
                         'sex' => $validated['sex'],
-                        'password' => $password,
+                        'password' => $validated['password'],
                     ];
                     $walkIn = $this->walkInClients->findWalkInForRegistration(
                         $pending['email'],
