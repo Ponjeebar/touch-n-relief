@@ -126,18 +126,38 @@ class ReportingFinancialAccuracyTest extends TestCase
         $response = $this->actingAs($admin)->get(route('reporting.export', [
             'period' => 'daily', 'period_value' => '2026-09-27',
         ]))->assertOk()
-            ->assertHeader('content-type', 'application/vnd.ms-excel; charset=UTF-8');
+            ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
         $workbook = $response->streamedContent();
+        $this->assertStringStartsWith('PK', $workbook);
+        $this->assertStringContainsString('.xlsx', (string) $response->headers->get('content-disposition'));
 
-        $this->assertNotFalse(simplexml_load_string($workbook));
-        $this->assertStringContainsString('ss:Name="Report Summary"', $workbook);
-        $this->assertStringContainsString('ss:Name="Payment Ledger"', $workbook);
-        $this->assertStringContainsString('ss:Width="190"', $workbook);
-        $this->assertStringContainsString('<FreezePanes', $workbook);
-        $this->assertStringContainsString('COT-LEDGER-1', $workbook);
-        $this->assertStringContainsString('Ledger Client', $workbook);
-        $this->assertStringContainsString('THERA #1', $workbook);
+        $temporaryBase = tempnam(sys_get_temp_dir(), 'report-test-');
+        $archivePath = $temporaryBase.'.zip';
+        @unlink($temporaryBase);
+        file_put_contents($archivePath, $workbook);
+        try {
+            $archive = new \PharData($archivePath);
+            $workbookXml = $archive['xl/workbook.xml']->getContent();
+            $summaryXml = $archive['xl/worksheets/sheet1.xml']->getContent();
+            $ledgerXml = $archive['xl/worksheets/sheet2.xml']->getContent();
+            $stylesXml = $archive['xl/styles.xml']->getContent();
+
+            $this->assertNotFalse(simplexml_load_string($workbookXml));
+            $this->assertNotFalse(simplexml_load_string($summaryXml));
+            $this->assertNotFalse(simplexml_load_string($ledgerXml));
+            $this->assertStringContainsString('Report Summary', $workbookXml);
+            $this->assertStringContainsString('Payment Ledger', $workbookXml);
+            $this->assertStringContainsString('state="frozen"', $summaryXml);
+            $this->assertStringContainsString('width="28"', $summaryXml);
+            $this->assertStringContainsString('COT-LEDGER-1', $ledgerXml);
+            $this->assertStringContainsString('Ledger Client', $ledgerXml);
+            $this->assertStringContainsString('THERA #1', $ledgerXml);
+            $this->assertStringContainsString('formatCode="&quot;PHP &quot;#,##0.00', $stylesXml);
+        } finally {
+            unset($archive);
+            @unlink($archivePath);
+        }
     }
 
     public function test_payment_ledger_recording_is_idempotent_and_preserves_collection_time(): void

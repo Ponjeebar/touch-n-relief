@@ -2221,7 +2221,7 @@ class DashboardController extends Controller
         $periodValue = $request->query('period_value');
         $payload = $this->reportingPayload($period, $periodValue);
         $safePeriod = preg_replace('/[^a-z0-9_-]+/i', '', $period) ?: 'monthly';
-        $filename = 'touchnrelief-report-'.$safePeriod.'-'.now()->format('Y-m-d-His').'.xml';
+        $filename = 'touchnrelief-report-'.$safePeriod.'-'.now()->format('Y-m-d-His').'.xlsx';
         $workbook = $spreadsheet->build($payload);
 
         ActivityLogger::log(
@@ -2234,7 +2234,7 @@ class DashboardController extends Controller
         return response()->streamDownload(function () use ($workbook): void {
             echo $workbook;
         }, $filename, [
-            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
 
