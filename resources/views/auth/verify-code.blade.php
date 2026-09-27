@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ filemtime(public_path('css/theme.css')) }}">
 </head>
-<body class="auth-page auth-reset-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
+<body class="auth-page auth-reset-page auth-code-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
     @include('partials.landing-nav', ['navMode' => 'auth'])
     <main class="container auth-reset-card auth-code-card" id="container">
         <div class="form-container sign-in">
