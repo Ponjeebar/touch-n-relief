@@ -57,7 +57,10 @@ class BookingController extends Controller
 
         $this->ensureSlotsSeeded();
 
-        $services = $this->servicesWithSlotTimes($user instanceof User ? $user : null);
+        $services = array_values(array_filter(
+            $this->servicesWithSlotTimes($user instanceof User ? $user : null),
+            fn (array $service): bool => ($service['offering_type'] ?? 'service') === 'service',
+        ));
         $slotMap = $this->slots->slotMapByService();
         $hidePrenatalRefs = $user instanceof User && $user->isMale();
         $therapists = app(TherapistCatalog::class)->forLanding($hidePrenatalRefs);
