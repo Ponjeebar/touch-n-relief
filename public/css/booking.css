@@ -2282,6 +2282,12 @@ body.bk-modal-open {
 }
 
 @media (max-width: 1024px) {
+    .booking-page input:not([type="checkbox"]):not([type="radio"]),
+    .booking-page select,
+    .booking-page textarea {
+        font-size: 16px;
+    }
+
     .bk-dialog-payment {
         width: min(100%, calc(100vw - 20px));
     }

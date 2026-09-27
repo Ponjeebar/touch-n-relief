@@ -145,9 +145,11 @@
     padding: 10px 12px;
     border-top: 1px solid #e1e9e3;
     background: #fff;
-    scrollbar-width: thin;
+    scrollbar-width: none;
     scroll-snap-type: x proximity;
 }
+
+.tnr-chat-prompts::-webkit-scrollbar { display: none; }
 
 .tnr-chat-prompts button {
     flex: 0 0 auto;

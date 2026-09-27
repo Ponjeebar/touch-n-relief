@@ -662,6 +662,9 @@
         }
         .profile-txn-row .amount{font-weight:800;color:#2f9d62;text-align:right}
         @media (max-width:900px){
+            .profile-page input:not([type="checkbox"]):not([type="radio"]),
+            .profile-page select,
+            .profile-page textarea{font-size:16px !important}
             .profile-grid,
             .profile-password-grid{grid-template-columns:1fr}
             .profile-head{padding:0 1.15rem}

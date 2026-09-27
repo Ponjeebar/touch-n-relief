@@ -1366,7 +1366,7 @@
     }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1024px) {
     .appt-row {
         grid-template-columns: 1fr;
         gap: 10px;
