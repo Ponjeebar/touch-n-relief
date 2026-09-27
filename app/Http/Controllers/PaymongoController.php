@@ -6,6 +6,7 @@ use App\Models\SpaBooking;
 use App\Services\BookingRefundService;
 use App\Services\BookingSlotService;
 use App\Services\PaymongoService;
+use App\Services\PaymentLedgerService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,7 @@ class PaymongoController extends Controller
         private readonly PaymongoService $paymongo,
         private readonly BookingSlotService $slots,
         private readonly BookingRefundService $refunds,
+        private readonly PaymentLedgerService $paymentLedger,
     ) {}
 
     public function success(Request $request, SpaBooking $spaBooking): RedirectResponse
@@ -513,6 +515,7 @@ class PaymongoController extends Controller
         }
 
         $booking->forceFill($values)->save();
+        $this->paymentLedger->recordRefund($booking->fresh());
     }
 
     /**
@@ -611,6 +614,8 @@ class PaymongoController extends Controller
                 $booking->forceFill($updates)->save();
             }
 
+            $this->paymentLedger->recordInitialPayment($booking->fresh());
+
             return;
         }
 
@@ -623,6 +628,7 @@ class PaymongoController extends Controller
 
         if (! $booking->isPaymentHoldExpired()) {
             $booking->forceFill($paidValues)->save();
+            $this->paymentLedger->recordInitialPayment($booking->fresh());
 
             return;
         }
@@ -651,6 +657,8 @@ class PaymongoController extends Controller
 
             return $hasConflict;
         });
+
+        $this->paymentLedger->recordInitialPayment($booking->fresh());
 
         if ($hasConflict) {
             $refunded = $this->refunds->processRefund($booking->fresh());

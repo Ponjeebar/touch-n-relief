@@ -14,6 +14,7 @@ use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
 use App\Services\PaymongoService;
+use App\Services\PaymentLedgerService;
 use App\Services\SpaServiceCatalog;
 use App\Services\TherapistAvailabilityService;
 use App\Services\TherapistCatalog;
@@ -43,6 +44,7 @@ class StaffAppointmentController extends Controller
         private readonly BookingCancellationService $cancellations,
         private readonly BookingRefundService $refunds,
         private readonly PaymongoService $paymongo,
+        private readonly PaymentLedgerService $paymentLedger,
     ) {}
 
     public function availability(Request $request): JsonResponse
@@ -353,6 +355,7 @@ class StaffAppointmentController extends Controller
                 }
 
                 $booking = SpaBooking::query()->create($bookingAttributes);
+                $this->paymentLedger->recordInitialPayment($booking);
                 $createdBooking = $booking;
 
                 ActivityLogger::log(

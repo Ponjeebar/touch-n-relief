@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\MembershipPlan;
+use App\Models\PaymentLedgerEntry;
 use App\Models\Receptionist;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
@@ -13,6 +14,7 @@ use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\BookingSlotService;
 use App\Services\NotificationFeedService;
+use App\Services\PaymentLedgerService;
 use App\Services\ReportingPdfChartService;
 use App\Services\SiteSettingsService;
 use App\Services\SpaServiceCatalog;
@@ -479,7 +481,7 @@ class DashboardController extends Controller
             ->with('status', 'Session started. You can monitor it below.');
     }
 
-    public function collectBalance(Request $request, SpaBooking $spaBooking): RedirectResponse
+    public function collectBalance(Request $request, SpaBooking $spaBooking, PaymentLedgerService $paymentLedger): RedirectResponse
     {
         $validated = $request->validateWithBag('balance', [
             'balance_payment_method' => ['required', Rule::in([PaymentMethodCatalog::METHOD_CASH_COUNTER])],
@@ -487,7 +489,7 @@ class DashboardController extends Controller
         ]);
 
         try {
-            $collected = DB::transaction(function () use ($spaBooking, $validated, $request): SpaBooking {
+            $collected = DB::transaction(function () use ($spaBooking, $validated, $request, $paymentLedger): SpaBooking {
                 $booking = SpaBooking::query()->lockForUpdate()->findOrFail($spaBooking->id);
 
                 if ($booking->isCancelled()) {
@@ -516,6 +518,8 @@ class DashboardController extends Controller
                     'balance_collected_by' => $request->user()?->id,
                     'balance_paid_at' => now(),
                 ])->save();
+
+                $paymentLedger->recordBalancePayment($booking);
 
                 return $booking->fresh();
             });
@@ -2245,6 +2249,8 @@ class DashboardController extends Controller
                 (string) ($payload['primaryLabel'] ?? ''),
                 number_format((float) ($payload['primaryAmount'] ?? 0), 2, '.', ''),
             ]);
+            fputcsv($out, ['Gross collections', number_format((float) ($payload['grossCollections'] ?? 0), 2, '.', '')]);
+            fputcsv($out, ['Processed refunds', number_format((float) ($payload['refundTotal'] ?? 0), 2, '.', '')]);
             fputcsv($out, [
                 (string) ($payload['secondaryLabel'] ?? ''),
                 (string) (int) ($payload['secondaryUserCount'] ?? 0),
@@ -2275,6 +2281,30 @@ class DashboardController extends Controller
                 fputcsv($out, [
                     (string) $label,
                     number_format((float) ($serviceTotals[$i] ?? 0), 2, '.', ''),
+                ]);
+            }
+            fputcsv($out, []);
+
+            fputcsv($out, ['Payment ledger']);
+            fputcsv($out, [
+                'Collected/refunded at', 'Entry type', 'Booking', 'Client', 'Service or package',
+                'Therapist', 'Payment method', 'Payment reference', 'Amount (PHP)', 'Net amount (PHP)',
+                'Historical time estimated', 'Recorded by',
+            ]);
+            foreach ($payload['ledgerRows'] ?? [] as $entry) {
+                fputcsv($out, [
+                    (string) ($entry['occurredAt'] ?? ''),
+                    (string) ($entry['typeLabel'] ?? ''),
+                    (string) ($entry['bookingReference'] ?? ''),
+                    (string) ($entry['client'] ?? ''),
+                    (string) ($entry['service'] ?? ''),
+                    (string) ($entry['therapist'] ?? ''),
+                    (string) ($entry['paymentMethod'] ?? ''),
+                    (string) ($entry['reference'] ?? ''),
+                    number_format((float) ($entry['amount'] ?? 0), 2, '.', ''),
+                    number_format((float) ($entry['netAmount'] ?? 0), 2, '.', ''),
+                    ! empty($entry['isEstimated']) ? 'Yes' : 'No',
+                    (string) ($entry['recordedBy'] ?? ''),
                 ]);
             }
 
@@ -2318,7 +2348,7 @@ class DashboardController extends Controller
 
     public function reportingBackup(): StreamedResponse|RedirectResponse
     {
-        $tables = ['users', 'customers', 'receptionists', 'therapists', 'spa_services', 'membership_plans', 'time_slots', 'spa_bookings', 'transactions', 'registrations', 'site_settings'];
+        $tables = ['users', 'customers', 'receptionists', 'therapists', 'spa_services', 'membership_plans', 'time_slots', 'spa_bookings', 'payment_ledger_entries', 'transactions', 'registrations', 'site_settings'];
 
         try {
             $data = [];
@@ -2602,10 +2632,16 @@ class DashboardController extends Controller
         $selectionBadge = $context['badge'];
         $dateLabel = $context['dateLabel'];
 
-        $primaryAmount = (float) DB::table('transactions')
-            ->whereDate('date', '>=', $rangeStart)
-            ->whereDate('date', '<=', $rangeEnd)
+        $ledgerInRange = DB::table('payment_ledger_entries')
+            ->whereDate('occurred_at', '>=', $rangeStart)
+            ->whereDate('occurred_at', '<=', $rangeEnd);
+        $grossCollections = (float) (clone $ledgerInRange)
+            ->whereIn('entry_type', [PaymentLedgerEntry::TYPE_INITIAL_PAYMENT, PaymentLedgerEntry::TYPE_BALANCE_PAYMENT])
             ->sum('amount');
+        $refundTotal = (float) (clone $ledgerInRange)
+            ->where('entry_type', PaymentLedgerEntry::TYPE_REFUND)
+            ->sum('amount');
+        $primaryAmount = round($grossCollections - $refundTotal, 2);
 
         $hoursValue = round(((float) DB::table('transactions')
             ->whereDate('date', '>=', $rangeStart)
@@ -2615,9 +2651,9 @@ class DashboardController extends Controller
         $secondaryUserCount = $this->countUserRegistrationsBetween($rangeStart, $rangeEnd);
 
         if ($period === 'daily') {
-            $primaryLabel = 'Daily Sales';
+            $primaryLabel = 'Daily Net Sales';
             $primaryBadge = $selectionBadge;
-            $primarySub = 'Total sales for '.$dateLabel;
+            $primarySub = 'Collections less refunds for '.$dateLabel;
             $primaryIcon = 'receipt';
             $secondaryLabel = 'New Users';
             $secondaryBadge = $selectionBadge;
@@ -2627,12 +2663,12 @@ class DashboardController extends Controller
             $hoursBadge = $selectionBadge;
             $hoursSub = 'Service time logged on '.$dateLabel;
             $hoursIcon = 'clock';
-            $pageSubtitle = $dateLabel.' — sales and new user signups';
+            $pageSubtitle = $dateLabel.' — net collections and new customer signups';
             $serviceLabel = $dateLabel;
         } elseif ($period === 'weekly') {
-            $primaryLabel = 'Weekly Sales';
+            $primaryLabel = 'Weekly Net Sales';
             $primaryBadge = $selectionBadge;
-            $primarySub = 'Total for '.$dateLabel;
+            $primarySub = 'Collections less refunds for '.$dateLabel;
             $primaryIcon = 'calendar-week';
             $secondaryLabel = 'New Users';
             $secondaryBadge = $selectionBadge;
@@ -2642,13 +2678,13 @@ class DashboardController extends Controller
             $hoursBadge = $selectionBadge;
             $hoursSub = 'Service time logged during '.$dateLabel;
             $hoursIcon = 'clock';
-            $pageSubtitle = $dateLabel.' — sales and new user signups';
+            $pageSubtitle = $dateLabel.' — net collections and new customer signups';
             $serviceLabel = $dateLabel;
         } elseif ($period === 'yearly') {
             $year = (int) $periodValue;
-            $primaryLabel = 'Yearly Sales';
+            $primaryLabel = 'Yearly Net Sales';
             $primaryBadge = $selectionBadge;
-            $primarySub = $year === (int) now()->year ? 'Year-to-date' : 'Full year total';
+            $primarySub = $year === (int) now()->year ? 'Net collections year-to-date' : 'Full year collections less refunds';
             $primaryIcon = 'calendar2-range';
             $secondaryLabel = 'New Users';
             $secondaryBadge = $selectionBadge;
@@ -2658,12 +2694,12 @@ class DashboardController extends Controller
             $hoursBadge = $selectionBadge;
             $hoursSub = $year === (int) now()->year ? 'Service time logged year-to-date' : 'Service time logged in '.$selectionBadge;
             $hoursIcon = 'clock';
-            $pageSubtitle = $selectionBadge.' — sales and new user signups';
+            $pageSubtitle = $selectionBadge.' — net collections and new customer signups';
             $serviceLabel = (string) $selectionBadge;
         } else {
-            $primaryLabel = 'Monthly Sales';
+            $primaryLabel = 'Monthly Net Sales';
             $primaryBadge = $selectionBadge;
-            $primarySub = 'Total for '.$dateLabel;
+            $primarySub = 'Collections less refunds for '.$dateLabel;
             $primaryIcon = 'calendar2-week';
             $secondaryLabel = 'New Users';
             $secondaryBadge = $selectionBadge;
@@ -2673,37 +2709,37 @@ class DashboardController extends Controller
             $hoursBadge = $selectionBadge;
             $hoursSub = 'Service time logged in '.$dateLabel;
             $hoursIcon = 'clock';
-            $pageSubtitle = $dateLabel.' — sales and new user signups';
+            $pageSubtitle = $dateLabel.' — net collections and new customer signups';
             $serviceLabel = $dateLabel;
         }
 
         if ($period === 'daily') {
-            $trendRows = DB::table('transactions')
-                ->select(['time', 'amount'])
-                ->whereDate('date', '=', $rangeStart)
+            $trendRows = DB::table('payment_ledger_entries')
+                ->select(['occurred_at', 'entry_type', 'amount'])
+                ->whereDate('occurred_at', '=', $rangeStart)
                 ->get()
-                ->groupBy(fn ($transaction) => Carbon::parse((string) $transaction->time)->format('H:00'))
-                ->map(fn (Collection $transactions, string $bucket) => (object) [
+                ->groupBy(fn ($entry) => Carbon::parse((string) $entry->occurred_at)->format('H:00'))
+                ->map(fn (Collection $entries, string $bucket) => (object) [
                     'bucket' => $bucket,
-                    'total' => $transactions->sum(fn ($transaction) => (float) $transaction->amount),
+                    'total' => $entries->sum(fn ($entry) => $entry->entry_type === PaymentLedgerEntry::TYPE_REFUND ? -(float) $entry->amount : (float) $entry->amount),
                 ]);
 
             $map = $trendRows->keyBy('bucket');
             $trendLabelsPretty = collect(range(0, 23))
                 ->map(fn (int $h) => str_pad((string) $h, 2, '0', STR_PAD_LEFT).':00');
             $trendData = $trendLabelsPretty->map(fn (string $b) => (float) optional($map->get($b))->total)->values();
-            $trendSubtitle = $dateLabel.' (hourly sales)';
+            $trendSubtitle = $dateLabel.' (hourly net sales)';
         } elseif ($period === 'yearly') {
             $year = (int) $periodValue;
-            $trendRows = DB::table('transactions')
-                ->select(['date', 'amount'])
-                ->whereDate('date', '>=', Carbon::create($year, 1, 1)->toDateString())
-                ->whereDate('date', '<=', $rangeEnd)
+            $trendRows = DB::table('payment_ledger_entries')
+                ->select(['occurred_at', 'entry_type', 'amount'])
+                ->whereDate('occurred_at', '>=', Carbon::create($year, 1, 1)->toDateString())
+                ->whereDate('occurred_at', '<=', $rangeEnd)
                 ->get()
-                ->groupBy(fn ($transaction) => Carbon::parse((string) $transaction->date)->format('Y-m'))
-                ->map(fn (Collection $transactions, string $bucket) => (object) [
+                ->groupBy(fn ($entry) => Carbon::parse((string) $entry->occurred_at)->format('Y-m'))
+                ->map(fn (Collection $entries, string $bucket) => (object) [
                     'bucket' => $bucket,
-                    'total' => $transactions->sum(fn ($transaction) => (float) $transaction->amount),
+                    'total' => $entries->sum(fn ($entry) => $entry->entry_type === PaymentLedgerEntry::TYPE_REFUND ? -(float) $entry->amount : (float) $entry->amount),
                 ]);
 
             $map = $trendRows->keyBy('bucket');
@@ -2712,14 +2748,14 @@ class DashboardController extends Controller
                 ->values();
             $trendData = $trendYm->map(fn (string $b) => (float) optional($map->get($b))->total)->values();
             $trendLabelsPretty = $trendYm->map(fn (string $b) => Carbon::createFromFormat('Y-m', $b)->format('M'))->values();
-            $trendSubtitle = $selectionBadge.' (monthly sales)';
+            $trendSubtitle = $selectionBadge.' (monthly net sales)';
         } else {
             $start = Carbon::parse($rangeStart);
             $end = Carbon::parse($rangeEnd);
-            $trendRows = DB::table('transactions')
-                ->selectRaw('date as bucket, SUM(amount) as total')
-                ->whereDate('date', '>=', $rangeStart)
-                ->whereDate('date', '<=', $rangeEnd)
+            $trendRows = DB::table('payment_ledger_entries')
+                ->selectRaw("DATE(occurred_at) as bucket, SUM(CASE WHEN entry_type = 'refund' THEN -amount ELSE amount END) as total")
+                ->whereDate('occurred_at', '>=', $rangeStart)
+                ->whereDate('occurred_at', '<=', $rangeEnd)
                 ->groupBy('bucket')
                 ->orderBy('bucket')
                 ->get();
@@ -2731,7 +2767,7 @@ class DashboardController extends Controller
             }
             $trendData = $trendDates->map(fn (string $b) => (float) optional($map->get($b))->total)->values();
             $trendLabelsPretty = $trendDates->map(fn (string $b) => Carbon::parse($b)->format('M d'))->values();
-            $trendSubtitle = $dateLabel.' (daily sales)';
+            $trendSubtitle = $dateLabel.' (daily net sales)';
         }
 
         $minutesByTherapistId = DB::table('transactions')
@@ -2771,35 +2807,34 @@ class DashboardController extends Controller
                 ->all();
         }
 
-        $serviceBreakdown = DB::table('transactions')
-            ->selectRaw('service_name as service, SUM(amount) as total')
-            ->whereDate('date', '>=', $rangeStart)
-            ->whereDate('date', '<=', $rangeEnd)
+        $serviceBreakdown = DB::table('payment_ledger_entries as ledger')
+            ->join('spa_bookings as bookings', 'bookings.id', '=', 'ledger.spa_booking_id')
+            ->selectRaw("bookings.service_name as service, SUM(CASE WHEN ledger.entry_type = 'refund' THEN -ledger.amount ELSE ledger.amount END) as total")
+            ->whereDate('ledger.occurred_at', '>=', $rangeStart)
+            ->whereDate('ledger.occurred_at', '<=', $rangeEnd)
             ->groupBy('service')
             ->orderByDesc('total')
             ->get();
 
-        $allServiceLabels = collect([
-            'Deep Tissue',
-            'Swedish Massage',
-            'Aromatherapy',
-            'Sports Massage',
-            'Hot Stone',
-            'Foot Reflexology',
-            'Prenatal Massage',
-            'Thai Massage',
-        ]);
+        $allServiceLabels = SpaService::query()
+            ->orderByRaw("CASE WHEN offering_type = 'package' THEN 1 ELSE 0 END")
+            ->orderBy('name')
+            ->pluck('name')
+            ->merge($serviceBreakdown->pluck('service'))
+            ->filter()
+            ->unique()
+            ->values();
         $totalsByService = $serviceBreakdown->pluck('total', 'service');
         $serviceLabels = $allServiceLabels->values();
         $serviceTotals = $allServiceLabels
             ->map(fn (string $service) => (float) ($totalsByService[$service] ?? 0))
             ->values();
-        $serviceTotalSum = (float) $serviceTotals->sum();
+        $serviceTotalSum = (float) $serviceTotals->sum(fn ($value) => max((float) $value, 0));
         $colors = collect(['#0c9aa6', '#04724d', '#4f6d8c', '#2f9d62', '#c95a7b', '#f0a74d', '#7f8c8d', '#8e44ad']);
         $serviceSegments = [];
         $acc = 0.0;
         foreach ($serviceTotals as $i => $val) {
-            $pct = $serviceTotalSum > 0 ? ($val / $serviceTotalSum) * 100.0 : 0.0;
+            $pct = $serviceTotalSum > 0 ? (max((float) $val, 0) / $serviceTotalSum) * 100.0 : 0.0;
             $serviceSegments[] = [
                 'label' => (string) ($serviceLabels[$i] ?? 'Service'),
                 'value' => (float) $val,
@@ -2816,6 +2851,43 @@ class DashboardController extends Controller
             default => 'Best day',
         };
 
+        $ledgerRows = DB::table('payment_ledger_entries as ledger')
+            ->join('spa_bookings as bookings', 'bookings.id', '=', 'ledger.spa_booking_id')
+            ->leftJoin('users as recorders', 'recorders.id', '=', 'ledger.recorded_by')
+            ->whereDate('ledger.occurred_at', '>=', $rangeStart)
+            ->whereDate('ledger.occurred_at', '<=', $rangeEnd)
+            ->orderBy('ledger.occurred_at')
+            ->orderBy('ledger.id')
+            ->get([
+                'ledger.id', 'ledger.entry_type', 'ledger.amount', 'ledger.payment_method',
+                'ledger.reference', 'ledger.occurred_at', 'ledger.is_estimated',
+                'bookings.id as booking_id', 'bookings.client_name', 'bookings.service_name',
+                'bookings.therapist_name', 'recorders.name as recorded_by_name',
+            ])
+            ->map(fn ($entry): array => [
+                'id' => (int) $entry->id,
+                'occurredAt' => Carbon::parse((string) $entry->occurred_at)->format('Y-m-d H:i:s'),
+                'type' => (string) $entry->entry_type,
+                'typeLabel' => match ((string) $entry->entry_type) {
+                    PaymentLedgerEntry::TYPE_INITIAL_PAYMENT => 'Initial payment',
+                    PaymentLedgerEntry::TYPE_BALANCE_PAYMENT => 'Balance payment',
+                    PaymentLedgerEntry::TYPE_REFUND => 'Refund',
+                    default => (string) $entry->entry_type,
+                },
+                'bookingReference' => 'RCP-'.str_pad((string) $entry->booking_id, 5, '0', STR_PAD_LEFT),
+                'client' => (string) ($entry->client_name ?: 'Unknown client'),
+                'service' => (string) ($entry->service_name ?: 'Unknown service'),
+                'therapist' => (string) ($entry->therapist_name ?: 'Unassigned'),
+                'paymentMethod' => PaymentMethodCatalog::labelFor((string) $entry->payment_method),
+                'reference' => (string) ($entry->reference ?: '—'),
+                'amount' => (float) $entry->amount,
+                'netAmount' => $entry->entry_type === PaymentLedgerEntry::TYPE_REFUND ? -(float) $entry->amount : (float) $entry->amount,
+                'isEstimated' => (bool) $entry->is_estimated,
+                'recordedBy' => (string) ($entry->recorded_by_name ?: 'System'),
+            ])
+            ->values()
+            ->all();
+
         return [
             'period' => $period,
             'periodValue' => $periodValue,
@@ -2824,6 +2896,8 @@ class DashboardController extends Controller
             'availableWeeks' => $this->availableReportingWeeks(),
             'serviceLabel' => $serviceLabel,
             'primaryAmount' => $primaryAmount,
+            'grossCollections' => $grossCollections,
+            'refundTotal' => $refundTotal,
             'primaryLabel' => $primaryLabel,
             'primaryBadge' => $primaryBadge,
             'primarySub' => $primarySub,
@@ -2849,43 +2923,31 @@ class DashboardController extends Controller
             'trendSubtitle' => $trendSubtitle,
             'insightPeakLabel' => $insightPeakLabel,
             'serviceTotalSum' => $serviceTotalSum,
+            'ledgerRows' => $ledgerRows,
         ];
     }
 
-    /** New accounts on a single calendar day (customers + receptionists + admins). */
+    /** New registered customer accounts on a single calendar day. */
     private function countUserRegistrationsOnDate(string $date): int
     {
-        $n = 0;
-        foreach (['customers', 'receptionists', 'users'] as $table) {
-            $n += (int) DB::table($table)->whereDate('created_at', $date)->count();
-        }
-
-        return $n;
+        return User::query()->where('role', User::ROLE_USER)->registeredClient()->whereDate('created_at', $date)->count();
     }
 
     /** New accounts from a calendar date through today (inclusive). */
     private function countUserRegistrationsFromDate(string $fromDate): int
     {
-        $n = 0;
-        foreach (['customers', 'receptionists', 'users'] as $table) {
-            $n += (int) DB::table($table)->whereDate('created_at', '>=', $fromDate)->count();
-        }
-
-        return $n;
+        return User::query()->where('role', User::ROLE_USER)->registeredClient()->whereDate('created_at', '>=', $fromDate)->count();
     }
 
     /** New accounts within an inclusive date range. */
     private function countUserRegistrationsBetween(string $start, string $end): int
     {
-        $n = 0;
-        foreach (['customers', 'receptionists', 'users'] as $table) {
-            $n += (int) DB::table($table)
-                ->whereDate('created_at', '>=', $start)
-                ->whereDate('created_at', '<=', $end)
-                ->count();
-        }
-
-        return $n;
+        return User::query()
+            ->where('role', User::ROLE_USER)
+            ->registeredClient()
+            ->whereDate('created_at', '>=', $start)
+            ->whereDate('created_at', '<=', $end)
+            ->count();
     }
 
     public function storeReceptionist(Request $request): RedirectResponse

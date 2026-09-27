@@ -28,7 +28,6 @@ class RevisionAdjustmentsTest extends TestCase
     public function test_backup_download_uses_portable_json_without_zip_extension(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-
         $response = $this->actingAs($admin)->get(route('reporting.backup'));
 
         $response->assertOk()
@@ -74,7 +73,7 @@ class RevisionAdjustmentsTest extends TestCase
             ->assertJsonPath('period', 'weekly')
             ->assertJsonPath('periodValue', '2026-09-14')
             ->assertJsonPath('periodValueLabel', 'Sep 14 - Sep 20, 2026')
-            ->assertJsonPath('primaryLabel', 'Weekly Sales')
+            ->assertJsonPath('primaryLabel', 'Weekly Net Sales')
             ->assertJsonCount(7, 'trendLabels');
     }
 
@@ -82,6 +81,7 @@ class RevisionAdjustmentsTest extends TestCase
     {
         Carbon::setTestNow('2026-09-25 10:00:00');
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
         DB::table('transactions')->insert([
             [
                 'transaction_id' => 'TRX-HEROKU-1', 'client_name' => 'Client One', 'therapist_id' => 1,
@@ -92,6 +92,26 @@ class RevisionAdjustmentsTest extends TestCase
                 'transaction_id' => 'TRX-HEROKU-2', 'client_name' => 'Client Two', 'therapist_id' => 1,
                 'service_name' => 'Swedish Massage', 'date' => '2026-09-25', 'time' => '08:45:00',
                 'duration' => 60, 'amount' => 120, 'created_at' => now(), 'updated_at' => now(),
+            ],
+        ]);
+        $bookingOne = SpaBooking::create([
+            'user_id' => $client->id,
+            'client_name' => 'Client One', 'service_name' => 'Swedish Massage', 'therapist_name' => 'Liza Reyes',
+            'booking_date' => '2026-10-10', 'time_slot' => '08:00 AM', 'amount' => 80,
+        ]);
+        $bookingTwo = SpaBooking::create([
+            'user_id' => $client->id,
+            'client_name' => 'Client Two', 'service_name' => 'Swedish Massage', 'therapist_name' => 'Liza Reyes',
+            'booking_date' => '2026-10-10', 'time_slot' => '09:00 AM', 'amount' => 120,
+        ]);
+        DB::table('payment_ledger_entries')->insert([
+            [
+                'spa_booking_id' => $bookingOne->id, 'entry_type' => 'initial_payment', 'amount' => 80,
+                'occurred_at' => '2026-09-25 08:15:00', 'is_estimated' => false, 'created_at' => now(), 'updated_at' => now(),
+            ],
+            [
+                'spa_booking_id' => $bookingTwo->id, 'entry_type' => 'initial_payment', 'amount' => 120,
+                'occurred_at' => '2026-09-25 08:45:00', 'is_estimated' => false, 'created_at' => now(), 'updated_at' => now(),
             ],
         ]);
 

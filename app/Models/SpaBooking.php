@@ -8,6 +8,7 @@ use App\Support\PaymentMethodCatalog;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SpaBooking extends Model
@@ -239,5 +240,10 @@ class SpaBooking extends Model
     public function transaction(): HasOne
     {
         return $this->hasOne(Transaction::class, 'spa_booking_id');
+    }
+
+    public function paymentLedgerEntries(): HasMany
+    {
+        return $this->hasMany(PaymentLedgerEntry::class);
     }
 }

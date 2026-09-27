@@ -15,8 +15,8 @@ return new class extends Migration
             $table->string('code_hash');
             $table->text('payload')->nullable();
             $table->unsignedTinyInteger('failed_attempts')->default(0);
-            $table->timestamp('expires_at');
-            $table->timestamp('last_sent_at');
+            $table->dateTime('expires_at');
+            $table->dateTime('last_sent_at');
             $table->timestamps();
             $table->index(['purpose', 'email']);
         });

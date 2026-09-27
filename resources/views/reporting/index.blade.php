@@ -543,6 +543,7 @@
             const td = Array.isArray(trendData) ? trendData : [];
             const sl = Array.isArray(serviceLabels) ? serviceLabels : [];
             const st = Array.isArray(serviceTotals) ? serviceTotals : [];
+            const chartTotals = st.map((value) => Math.max(Number(value) || 0, 0));
             const trendEl = document.getElementById('salesTrendChart');
             const trendFallback = document.getElementById('trendFallback');
             const trendFallbackBars = document.getElementById('trendFallbackBars');
@@ -625,7 +626,7 @@
                     data: {
                         labels: sl,
                         datasets: [{
-                            data: st,
+                            data: chartTotals,
                             backgroundColor: sl.map((_, i) => pieColors[i % pieColors.length]),
                             borderWidth: 0
                         }]

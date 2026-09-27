@@ -30,6 +30,12 @@
         table.data td:last-child, table.data th:last-child { text-align: right; }
         .empty { color: #788991; text-align: center !important; }
         .section-note { padding: 4px 7px; border: 1px solid #dfe8eb; border-top: 0; color: #647680; font-size: 8px; }
+        .ledger { margin-top: 10px; page-break-before: always; }
+        .ledger table.data { font-size: 7px; }
+        .ledger table.data th, .ledger table.data td { padding: 3px 4px; }
+        .ledger table.data td:last-child, .ledger table.data th:last-child { text-align: left; }
+        .amount { text-align: right !important; white-space: nowrap; }
+        .refund { color: #9b2c2c; }
         .footer { position: fixed; right: 0; bottom: -12px; left: 0; color: #788991; font-size: 8px; text-align: center; }
     </style>
 </head>
@@ -147,6 +153,34 @@
             </div>
         </td>
     </tr></table>
+    @if (! empty($ledgerRows))
+    <div class="section ledger">
+        <h2>Complete Payment Ledger</h2>
+        <table class="data">
+            <thead><tr>
+                <th>Date / time</th><th>Type</th><th>Booking</th><th>Client</th><th>Service / package</th>
+                <th>Method</th><th>Reference</th><th class="amount">Net amount</th><th>Source</th>
+            </tr></thead>
+            <tbody>
+            @forelse (($ledgerRows ?? []) as $entry)
+                <tr>
+                    <td>{{ $entry['occurredAt'] }}</td>
+                    <td>{{ $entry['typeLabel'] }}</td>
+                    <td>{{ $entry['bookingReference'] }}</td>
+                    <td>{{ $entry['client'] }}</td>
+                    <td>{{ $entry['service'] }}</td>
+                    <td>{{ $entry['paymentMethod'] }}</td>
+                    <td>{{ $entry['reference'] }}</td>
+                    <td class="amount {{ ($entry['netAmount'] ?? 0) < 0 ? 'refund' : '' }}">PHP {{ number_format((float) ($entry['netAmount'] ?? 0), 2) }}</td>
+                    <td>{{ ! empty($entry['isEstimated']) ? 'Historical estimate' : ($entry['recordedBy'] ?? 'System') }}</td>
+                </tr>
+            @empty
+                <tr><td colspan="9" class="empty">No payment activity for this period</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+    @endif
     <div class="footer">TOUCHnRELIEF Appointment and Record Management System</div>
 </body>
 </html>

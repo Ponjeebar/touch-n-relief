@@ -28,6 +28,7 @@ class BookingRefundService
 
     public function __construct(
         private readonly PaymongoService $paymongo,
+        private readonly PaymentLedgerService $paymentLedger,
     ) {}
 
     public function labelFor(?string $status): string
@@ -150,6 +151,8 @@ class BookingRefundService
                     : 'Refund issued manually by staff.',
             ])->save();
 
+            $this->paymentLedger->recordRefund($locked->fresh());
+
             return $locked->fresh();
         });
     }
@@ -220,6 +223,8 @@ class BookingRefundService
                 'refund_reference' => $refundId !== '' ? $refundId : 'RF-'.Str::upper(Str::random(8)),
                 'refund_note' => 'Refund sent back to the client\'s PayMongo payment method.',
             ])->save();
+
+            $this->paymentLedger->recordRefund($booking->fresh());
 
             return $booking->fresh();
         } catch (\Throwable $exception) {
