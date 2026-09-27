@@ -44,22 +44,6 @@
     };
 
     function syncThemeControls(mode) {
-        var pairs = [
-            ['tnr-theme-light', 'tnr-theme-dark'],
-            ['tnr-theme-light-auth', 'tnr-theme-dark-auth'],
-        ];
-        pairs.forEach(function (ids) {
-            var lightBtn = document.getElementById(ids[0]);
-            var darkBtn = document.getElementById(ids[1]);
-            if (lightBtn) {
-                lightBtn.classList.toggle('active', mode === 'light');
-                lightBtn.setAttribute('aria-pressed', mode === 'light' ? 'true' : 'false');
-            }
-            if (darkBtn) {
-                darkBtn.classList.toggle('active', mode === 'dark');
-                darkBtn.setAttribute('aria-pressed', mode === 'dark' ? 'true' : 'false');
-            }
-        });
         document.querySelectorAll('.mp-theme-row').forEach(function (btn) {
             btn.classList.toggle('is-dark', mode === 'dark');
             btn.setAttribute('aria-checked', mode === 'dark' ? 'true' : 'false');
@@ -77,19 +61,6 @@
         } catch (e) {
             syncThemeControls(window.tnrGetTheme());
         }
-
-        function wire(lightId, darkId) {
-            var lightBtn = document.getElementById(lightId);
-            var darkBtn = document.getElementById(darkId);
-            lightBtn?.addEventListener('click', function () {
-                window.tnrSetTheme('light');
-            });
-            darkBtn?.addEventListener('click', function () {
-                window.tnrSetTheme('dark');
-            });
-        }
-        wire('tnr-theme-light', 'tnr-theme-dark');
-        wire('tnr-theme-light-auth', 'tnr-theme-dark-auth');
 
         var profileModal = document.getElementById('tnr-my-profile-modal');
         var trigger = document.getElementById('tnr-profile-menu-trigger');

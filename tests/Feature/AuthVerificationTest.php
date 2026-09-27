@@ -102,12 +102,17 @@ class AuthVerificationTest extends TestCase
         $this->get(route('login'))
             ->assertOk()
             ->assertDontSee('>Home<', false)
-            ->assertDontSee('aria-label="Open navigation menu"', false);
+            ->assertDontSee('aria-label="Open navigation menu"', false)
+            ->assertDontSee('tnr-landing-theme-toggle');
 
         $this->get(route('password.request'))
             ->assertOk()
             ->assertDontSee('>Home<', false)
             ->assertDontSee('aria-label="Open navigation menu"', false);
+
+        $this->get(route('landing'))
+            ->assertOk()
+            ->assertSee('tnr-landing-theme-toggle');
     }
 
     public function test_password_reset_rejects_current_and_recent_passwords(): void

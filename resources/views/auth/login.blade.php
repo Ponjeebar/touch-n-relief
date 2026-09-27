@@ -17,10 +17,6 @@
 </head>
 <body class="auth-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
     @include('partials.landing-nav', ['navMode' => 'auth'])
-    <div class="auth-theme-float" role="group" aria-label="Display theme">
-        <button type="button" class="auth-theme-btn" id="tnr-theme-light-auth" aria-pressed="true" title="Light mode"><i class="bi bi-sun-fill" aria-hidden="true"></i></button>
-        <button type="button" class="auth-theme-btn" id="tnr-theme-dark-auth" aria-pressed="false" title="Dark mode"><i class="bi bi-moon-stars-fill" aria-hidden="true"></i></button>
-    </div>
     @if (session('status'))
         <div class="auth-flash" role="status">{{ session('status') }}</div>
     @endif

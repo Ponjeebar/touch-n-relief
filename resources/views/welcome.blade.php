@@ -47,12 +47,19 @@
     <meta property="og:description" content="Book personalized spa services through TouchNRelief, the official appointment system of Buenos Touche Spa.">
     <meta property="og:image" content="{{ $siteLogoUrl }}">
     <script type="application/ld+json">{!! json_encode($siteIdentity, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+    <script>
+        try {
+            if (localStorage.getItem('tnr-theme') === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}">
     @auth
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <link rel="stylesheet" href="{{ asset('css/profile-app-modal.css') }}">
         @if (session('booking_confirmed'))
             <link rel="stylesheet" href="{{ asset('css/booking.css') }}?v={{ filemtime(public_path('css/booking.css')) }}">
@@ -891,6 +898,7 @@
             });
         })();
     </script>
+    <script src="{{ asset('js/landing-theme.js') }}?v={{ filemtime(public_path('js/landing-theme.js')) }}" defer></script>
     @auth
         @include('partials.registration-onboarding-modal')
         @include('partials.profile-transactions-modal')

@@ -45,6 +45,19 @@
             @endif
             <div class="nav-header-actions">
                 @if ($navMode === 'full')
+                    <button
+                        type="button"
+                        class="landing-theme-toggle"
+                        id="tnr-landing-theme-toggle"
+                        aria-label="Switch to dark mode"
+                        aria-pressed="false"
+                        title="Switch to dark mode"
+                    >
+                        <i class="bi bi-moon-stars-fill landing-theme-icon landing-theme-icon-dark" aria-hidden="true"></i>
+                        <i class="bi bi-sun-fill landing-theme-icon landing-theme-icon-light" aria-hidden="true"></i>
+                    </button>
+                @endif
+                @if ($navMode === 'full')
                     @auth
                         @if ($user->isUser() && ! $user->isWalkIn())
                             @include('partials.customer-notifications')

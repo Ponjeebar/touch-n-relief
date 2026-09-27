@@ -11,10 +11,6 @@
 </head>
 <body class="auth-page auth-reset-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
     @include('partials.landing-nav', ['navMode' => 'auth'])
-    <div class="auth-theme-float" role="group" aria-label="Display theme">
-        <button type="button" class="auth-theme-btn" id="tnr-theme-light-auth" aria-pressed="true" title="Light mode"><i class="bi bi-sun-fill" aria-hidden="true"></i></button>
-        <button type="button" class="auth-theme-btn" id="tnr-theme-dark-auth" aria-pressed="false" title="Dark mode"><i class="bi bi-moon-stars-fill" aria-hidden="true"></i></button>
-    </div>
 
     <main class="container auth-reset-card" id="container">
         <div class="form-container sign-in">

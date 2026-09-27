@@ -2,6 +2,163 @@
     box-sizing: border-box;
 }
 
+/* Landing page dark theme */
+html[data-theme="dark"] body {
+    color: #e8efe9;
+    background: #111816;
+}
+
+html[data-theme="dark"] .landing-header.scrolled .nav-shell {
+    background: rgba(12, 20, 18, 0.97);
+    border-color: rgba(179, 220, 204, 0.18);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+}
+
+html[data-theme="dark"] .landing-header.scrolled .brand,
+html[data-theme="dark"] .landing-header.scrolled .nav-links a,
+html[data-theme="dark"] .landing-header.scrolled .nav-txn-link {
+    color: #f4f8f5;
+}
+
+html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .landing-theme-toggle {
+    border-color: rgba(179, 220, 204, 0.34);
+    background: rgba(179, 220, 204, 0.08);
+    color: #d8f4e8;
+}
+
+html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .landing-theme-toggle:focus-visible {
+    outline-color: #d8f4e8;
+}
+
+html[data-theme="dark"] .landing-header.scrolled .btn-outline {
+    border-color: rgba(255, 255, 255, 0.52);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme="dark"] .landing-header.scrolled .nav-user {
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.06);
+    color: #f4f8f5;
+}
+
+html[data-theme="dark"] .landing-header.scrolled .nav-avatar {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="dark"] .intro-card .card {
+    color: #f2f8f4;
+    background: #52675e;
+    box-shadow: 0 22px 38px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .features .left p,
+html[data-theme="dark"] .features article p,
+html[data-theme="dark"] .section-sub,
+html[data-theme="dark"] .catalog-section-heading > p:last-child {
+    color: #b9c5bf;
+}
+
+html[data-theme="dark"] .features article,
+html[data-theme="dark"] .service-card,
+html[data-theme="dark"] .package-card {
+    color: #edf4ef;
+    background: #1a2521;
+    border-color: rgba(179, 220, 204, 0.14);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="dark"] .services {
+    background: radial-gradient(circle at top left, #1b2824, #111816 68%);
+    border-color: rgba(179, 220, 204, 0.1);
+}
+
+html[data-theme="dark"] .service-card p,
+html[data-theme="dark"] .package-description,
+html[data-theme="dark"] .duration,
+html[data-theme="dark"] .package-pricing small {
+    color: #aebbb5;
+}
+
+html[data-theme="dark"] .price,
+html[data-theme="dark"] .package-inclusions,
+html[data-theme="dark"] .package-pricing span,
+html[data-theme="dark"] .package-duration,
+html[data-theme="dark"] .package-type {
+    color: #bce4d3;
+}
+
+html[data-theme="dark"] .package-membership {
+    background: #141d1a;
+}
+
+html[data-theme="dark"] .package-pricing {
+    border-color: rgba(179, 220, 204, 0.14);
+}
+
+html[data-theme="dark"] .carousel-btn {
+    color: #eaf3ee;
+    background: #202d28;
+    border-color: rgba(179, 220, 204, 0.2);
+}
+
+html[data-theme="dark"] .carousel-btn:hover {
+    background: #293a34;
+}
+
+html[data-theme="dark"] .carousel-dot {
+    background: rgba(219, 235, 226, 0.28);
+}
+
+html[data-theme="dark"] .carousel-dot.active {
+    background: #c7e4d7;
+}
+
+html[data-theme="dark"] .therapist-modal-dialog,
+html[data-theme="dark"] .service-modal-dialog {
+    color: #edf4ef;
+    background: #18231f;
+    border-color: rgba(179, 220, 204, 0.16);
+}
+
+html[data-theme="dark"] .therapist-modal-close,
+html[data-theme="dark"] .service-modal-close,
+html[data-theme="dark"] .therapist-modal-dialog h3,
+html[data-theme="dark"] .service-modal-dialog h3,
+html[data-theme="dark"] .service-modal-price {
+    color: #f2f7f4;
+}
+
+html[data-theme="dark"] .therapist-modal-label,
+html[data-theme="dark"] .service-modal-label,
+html[data-theme="dark"] .therapist-modal-role,
+html[data-theme="dark"] .therapist-modal-bio,
+html[data-theme="dark"] .service-modal-desc {
+    color: #b6c3bd;
+}
+
+html[data-theme="dark"] .therapist-modal-block,
+html[data-theme="dark"] .service-time-block,
+html[data-theme="dark"] .service-modal-note {
+    background: #202d28;
+    border-color: rgba(179, 220, 204, 0.14);
+}
+
+html[data-theme="dark"] .therapist-modal-block-title,
+html[data-theme="dark"] .therapist-modal-certs li {
+    color: #dbe8e1;
+}
+
+html[data-theme="dark"] .therapist-modal-tag,
+html[data-theme="dark"] .therapist-modal-sessions,
+html[data-theme="dark"] .modal-pill {
+    color: #d8e7df;
+    background: #263630;
+    border-color: rgba(179, 220, 204, 0.18);
+}
+
 .customer-mobile-shortcuts { display: none; }
 
 @media (max-width: 900px) {
@@ -183,6 +340,52 @@ body {
     align-items: center;
     gap: 0.55rem;
     flex: 0 0 auto;
+}
+
+.landing-theme-toggle {
+    display: inline-grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font: inherit;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.landing-theme-toggle:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.landing-theme-toggle:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.landing-theme-icon-light,
+html[data-theme="dark"] .landing-theme-icon-dark {
+    display: none;
+}
+
+html[data-theme="dark"] .landing-theme-icon-light {
+    display: inline-block;
+}
+
+.landing-header.scrolled:not(.nav-solid) .landing-theme-toggle {
+    border-color: rgba(18, 18, 18, 0.28);
+    background: rgba(0, 0, 0, 0.03);
+    color: #111;
+}
+
+.landing-header.scrolled:not(.nav-solid) .landing-theme-toggle:focus-visible {
+    outline-color: #111;
 }
 
 .nav-links a {
@@ -1859,6 +2062,8 @@ body {
 @media (max-width: 900px) {
     .landing-header .nav-shell {
         position: relative;
+        width: 100%;
+        min-width: 0;
         flex-wrap: nowrap;
         border-radius: 16px;
     }
@@ -1868,6 +2073,8 @@ body {
     }
 
     .landing-header .nav-header-actions {
+        position: absolute;
+        right: 0.6rem;
         margin-left: auto;
     }
 
@@ -2053,5 +2260,40 @@ body {
         width: 100%;
         max-width: none;
         color: #fff;
+    }
+}
+
+@media (max-width: 480px) {
+    .landing-header .nav-shell {
+        gap: 0.55rem;
+    }
+
+    .landing-header .brand {
+        font-size: 1.08rem;
+    }
+
+    .landing-header .nav-header-actions {
+        gap: 0.35rem;
+    }
+
+    .landing-theme-toggle,
+    .mobile-nav-toggle {
+        width: 38px;
+        height: 38px;
+        min-height: 38px;
+        flex: 0 0 38px;
+        justify-content: center;
+        padding: 0;
+        border-radius: 999px;
+    }
+
+    .mobile-nav-toggle > span:last-child {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
     }
 }
