@@ -46,7 +46,7 @@
         @if (! $u->isAdmin() && ! $u->isReceptionist())
             <button type="button" class="profile-dropdown-item" data-tnr-open-transactions role="menuitem">
                 <span class="profile-dropdown-icon" aria-hidden="true"><i class="bi bi-receipt"></i></span>
-                <span>Transactions</span>
+                <span>My Appointments</span>
             </button>
         @endif
         <form method="POST" action="{{ route('logout') }}">

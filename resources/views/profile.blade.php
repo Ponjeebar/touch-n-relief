@@ -938,11 +938,11 @@
                     <div class="profile-sections">
                         <section class="profile-section profile-section-compact" aria-labelledby="profile-transactions-title">
                             <div class="profile-section-head">
-                                <h2 id="profile-transactions-title">Transactions</h2>
+                                <h2 id="profile-transactions-title">My Appointments</h2>
                                 <span>{{ count($transactions) }} record{{ count($transactions) === 1 ? '' : 's' }}</span>
                             </div>
-                            <p class="profile-txn-teaser">View your bookings and completed sessions in a full-screen modal.</p>
-                            <button type="button" class="btn btn-light profile-txn-open" data-tnr-open-transactions>Open transactions</button>
+                            <p class="profile-txn-teaser">View your appointments, payment status, and completed sessions.</p>
+                            <button type="button" class="btn btn-light profile-txn-open" data-tnr-open-transactions>View my appointments</button>
                         </section>
                     </div>
                 </div>

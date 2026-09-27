@@ -8,7 +8,7 @@
         <header class="txn-modal-header">
             <div>
                 <p class="txn-modal-label">Account</p>
-                <h2 class="txn-modal-title" id="tnr-transactions-modal-title">My Transactions</h2>
+                <h2 class="txn-modal-title" id="tnr-transactions-modal-title">My Appointments</h2>
                 @if (!empty($customerBirthday) || !empty($customerAge))
                     <p class="txn-modal-client-meta">
                         @if (!empty($customerBirthday))
@@ -23,7 +23,7 @@
             <button type="button" class="txn-modal-close" data-tnr-txn-close="true" aria-label="Close">&times;</button>
         </header>
         <div class="txn-modal-body">
-            <p class="txn-modal-sub">Your bookings, payment status, and completed spa sessions — most recent activity shown first.</p>
+            <p class="txn-modal-sub">Your appointments, payment status, and completed spa sessions — most recent activity shown first.</p>
             <p class="txn-modal-note">
                 <i class="bi bi-info-circle" aria-hidden="true"></i>
                 <span class="txn-modal-note-text"><strong>Late note:</strong> your session will be automatically cancelled if you are <strong>10 minutes late</strong>.</span>

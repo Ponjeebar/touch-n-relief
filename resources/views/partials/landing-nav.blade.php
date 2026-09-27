@@ -27,7 +27,7 @@
                 @elseif ($navMode === 'booking')
                     <a href="{{ route('landing') }}">Home</a>
                     <a href="{{ route('profile.edit') }}">Profile</a>
-                    <button type="button" class="nav-txn-link" data-tnr-open-transactions>Transactions</button>
+                    <button type="button" class="nav-txn-link" data-tnr-open-transactions>My Appointments</button>
                     @include('partials.customer-notifications')
                 @endif
                 @if ($navMode === 'full')

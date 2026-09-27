@@ -18,7 +18,7 @@
             <a role="menuitem" href="{{ route('profile.edit') }}">Edit Profile</a>
         @endif
         @if (! $user->isAdmin() && ! $user->isReceptionist())
-            <button type="button" role="menuitem" class="nav-user-menu-btn" data-tnr-open-transactions>Transactions</button>
+            <button type="button" role="menuitem" class="nav-user-menu-btn" data-tnr-open-transactions>My Appointments</button>
         @endif
         <form method="POST" action="{{ route('logout') }}">
             @csrf

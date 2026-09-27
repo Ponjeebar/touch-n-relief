@@ -10,8 +10,8 @@
             <a href="{{ route('booking.index') }}" @if(request()->routeIs('booking.index')) aria-current="page" @endif>
                 <i class="bi bi-calendar-plus" aria-hidden="true"></i><span>Book</span>
             </a>
-            <button type="button" data-tnr-open-transactions aria-label="View transactions">
-                <i class="bi bi-receipt" aria-hidden="true"></i><span>Bookings</span>
+            <button type="button" data-tnr-open-transactions aria-label="View my appointments">
+                <i class="bi bi-calendar2-check" aria-hidden="true"></i><span>Appointments</span>
             </button>
             <a href="{{ route('profile.edit') }}" @if(request()->routeIs('profile.edit')) aria-current="page" @endif>
                 <i class="bi bi-person-circle" aria-hidden="true"></i><span>Profile</span>

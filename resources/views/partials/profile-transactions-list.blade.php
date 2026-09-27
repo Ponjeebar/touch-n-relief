@@ -31,7 +31,7 @@
         </div>
     </div>
     <p class="txn-filter-empty txn-hidden" id="txn-filter-empty" role="status">No transactions match your search/filter.</p>
-    <ul class="txn-cards" id="txn-cards-list" aria-label="Your transactions">
+    <ul class="txn-cards" id="txn-cards-list" aria-label="Your appointments">
         @foreach ($userTransactions as $txn)
             @php
                 $statusLower = strtolower($txn['status'] ?? '');
@@ -224,5 +224,5 @@
         @endforeach
     </ul>
 @else
-    <p class="txn-empty">You have no bookings or completed sessions yet. Confirm an appointment on the booking page and it will appear here.</p>
+    <p class="txn-empty">You have no appointments or completed sessions yet. Confirm an appointment and it will appear here.</p>
 @endif
