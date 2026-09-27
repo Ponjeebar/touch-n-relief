@@ -30,7 +30,7 @@ class SpaSessionService
         }
 
         if ($booking->session_started_at !== null || $booking->session_status === SpaBooking::STATUS_IN_SESSION) {
-            if ($this->hasExpired($booking, $now)) {
+            if ($this->hasExpired($booking, $now) && $booking->isFullyPaid()) {
                 return SpaBooking::STATUS_COMPLETED;
             }
 
@@ -109,10 +109,12 @@ class SpaSessionService
             'amount' => $displayAmountRaw > 0 ? '₱'.number_format($displayAmountRaw, 2) : '—',
             'amount_raw' => $displayAmountRaw,
             ...$this->paymentMeta($booking),
-            'status' => $status === SpaBooking::STATUS_CONFIRMED
-                && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING
-                ? 'Payment pending'
-                : $this->userTransactionLabel($status),
+            'status' => $status === SpaBooking::STATUS_COMPLETED && ! $booking->isFullyPaid()
+                ? ($booking->totalPaidAmount() > 0 ? 'Payment incomplete' : 'Payment not received')
+                : ($status === SpaBooking::STATUS_CONFIRMED
+                    && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING
+                    ? 'Payment pending'
+                    : $this->userTransactionLabel($status)),
             'session_status' => $status,
             'sort_ts' => $this->sortTimestamp($date, (string) $booking->time_slot),
             'activity_ts' => $this->activityTimestamp($booking),
@@ -222,6 +224,10 @@ class SpaSessionService
     public function autoCompleteIfExpired(SpaBooking $booking, ?Carbon $now = null): bool
     {
         if (! $this->hasExpired($booking, $now)) {
+            return false;
+        }
+
+        if (! $booking->isFullyPaid()) {
             return false;
         }
 
@@ -733,12 +739,11 @@ class SpaSessionService
             'full_payment_status' => $isFullyPaid ? PaymentMethodCatalog::STATUS_PAID : PaymentMethodCatalog::STATUS_PENDING,
             'full_payment_status_label' => $isFullyPaid
                 ? 'Fully paid'
-                : ($booking->payment_status === PaymentMethodCatalog::STATUS_PAID ? 'Balance due' : 'Initial payment pending'),
+                : ($paidAmount > 0 ? 'Balance due' : 'Payment not received'),
             'can_collect_balance' => ! $isFullyPaid
                 && $booking->payment_status === PaymentMethodCatalog::STATUS_PAID
                 && $booking->cancelled_at === null
-                && $booking->completed_at === null
-                && $booking->session_started_at === null,
+                && $booking->refund_status !== BookingRefundService::STATUS_PROCESSED,
             'balance_payment_method_label' => PaymentMethodCatalog::labelFor($booking->balance_payment_method),
             'balance_payment_reference' => (string) ($booking->balance_payment_reference ?? ''),
             'balance_paid_at' => $booking->balance_paid_at?->format('M j, Y g:i A') ?? '',

@@ -487,9 +487,9 @@ class DashboardController extends Controller
             $collected = DB::transaction(function () use ($spaBooking, $validated, $request): SpaBooking {
                 $booking = SpaBooking::query()->lockForUpdate()->findOrFail($spaBooking->id);
 
-                if ($booking->isCancelled() || $booking->completed_at !== null || $booking->session_started_at !== null) {
+                if ($booking->isCancelled()) {
                     throw ValidationException::withMessages([
-                        'balance_payment_method' => 'The balance can only be collected before the session starts.',
+                        'balance_payment_method' => 'A balance cannot be collected for a cancelled appointment.',
                     ]);
                 }
 

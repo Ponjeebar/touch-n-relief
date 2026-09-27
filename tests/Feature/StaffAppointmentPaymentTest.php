@@ -224,6 +224,72 @@ class StaffAppointmentPaymentTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_booking_with_no_confirmed_payment_cannot_start_or_auto_complete(): void
+    {
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $client->id,
+            'service_name' => 'Swedish Massage',
+            'booking_date' => now()->toDateString(),
+            'time_slot' => '10:00 AM',
+            'duration_minutes' => 60,
+            'amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_type' => PaymentMethodCatalog::TYPE_FULL,
+            'payment_amount' => 100,
+            'payment_status' => PaymentMethodCatalog::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($staff)->patch(route('appointments.start', $booking))
+            ->assertRedirect(route('appointments.index', ['date' => $booking->booking_date->format('Y-m-d')]))
+            ->assertSessionHas('error', 'Collect the remaining balance before starting this session.');
+
+        // Simulate a record created before payment enforcement existed.
+        $booking->forceFill([
+            'session_started_at' => now()->subHours(2),
+            'session_status' => SpaBooking::STATUS_IN_SESSION,
+        ])->save();
+
+        $this->assertFalse(app(SpaSessionService::class)->autoCompleteIfExpired($booking->fresh(), now()));
+        $this->assertNull($booking->fresh()->completed_at);
+        $this->assertSame(SpaBooking::STATUS_IN_SESSION, $booking->fresh()->session_status);
+    }
+
+    public function test_staff_can_collect_an_outstanding_balance_on_a_legacy_completed_session(): void
+    {
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $client->id,
+            'service_name' => 'Swedish Massage',
+            'booking_date' => now()->subDay()->toDateString(),
+            'time_slot' => '10:00 AM',
+            'amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+            'payment_amount' => 50,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_started_at' => now()->subDay(),
+            'completed_at' => now()->subDay()->addHour(),
+            'session_status' => SpaBooking::STATUS_COMPLETED,
+        ]);
+
+        $row = app(SpaSessionService::class)->toUserTransactionRow($booking->fresh());
+        $this->assertSame('Payment incomplete', $row['status']);
+        $this->assertTrue($row['can_collect_balance']);
+
+        $this->actingAs($staff)->patch(route('appointments.collect-balance', $booking), [
+            'balance_payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+            'balance_payment_reference' => 'OR-LEGACY-1',
+        ])->assertSessionHas('status');
+
+        $booking->refresh();
+        $this->assertTrue($booking->isFullyPaid());
+        $this->assertSame(50.0, (float) $booking->balance_amount);
+        $this->assertSame('OR-LEGACY-1', $booking->balance_payment_reference);
+    }
+
     public function test_unconfirmed_initial_payment_cannot_have_balance_collected(): void
     {
         $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);

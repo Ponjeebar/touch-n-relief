@@ -97,7 +97,7 @@
                                 <i class="bi bi-play-fill" aria-hidden="true"></i>
                             </button>
                         </form>
-                    @elseif ($isActiveBooking && $bookingId && ! empty($appointment['can_collect_balance']))
+                    @elseif (($isActiveBooking || $isCompleted || $isInSession) && $bookingId && ! empty($appointment['can_collect_balance']))
                         <button
                             class="appt-icon-btn collect-balance"
                             type="button"
