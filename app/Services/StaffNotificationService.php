@@ -57,7 +57,7 @@ class StaffNotificationService
         }
 
         $occurredAt = now();
-        $eventKey = 'booking:'.$booking->id.':'.$event.':'.$occurredAt->format('YmdHisv');
+        $eventKey = $this->eventKey($booking, $event);
         $url = route('appointments.index', ['date' => $booking->booking_date?->format('Y-m-d'), 'notif_key' => $booking->id, 'from_notification' => 1]);
 
         User::query()->whereIn('role', [User::ROLE_ADMIN, User::ROLE_RECEPTIONIST])->pluck('id')->each(
@@ -66,6 +66,17 @@ class StaffNotificationService
                 ['spa_booking_id' => $booking->id, 'type' => $type, 'title' => $title, 'message' => $message, 'url' => $url, 'occurred_at' => $occurredAt],
             )
         );
+    }
+
+    private function eventKey(SpaBooking $booking, string $event): string
+    {
+        $key = 'booking:'.$booking->id.':'.$event;
+
+        if ($event === 'rescheduled') {
+            $key .= ':'.($booking->rescheduled_at?->format('YmdHis') ?? 'unknown');
+        }
+
+        return $key;
     }
 
     private function bookingMessage(SpaBooking $booking): string
