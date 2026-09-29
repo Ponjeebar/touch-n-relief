@@ -54,7 +54,7 @@
                 };
             @endphp
             <li
-                class="txn-card txn-card-{{ $statusAccent }} {{ (! empty($txn['can_cancel']) || ! empty($txn['can_reschedule'])) ? 'txn-card-cancellable' : '' }}"
+                class="txn-card {{ $statusAccent }} {{ (! empty($txn['can_cancel']) || ! empty($txn['can_reschedule'])) ? 'txn-card-cancellable' : '' }}"
                 data-sort-ts="{{ $txn['sort_ts'] ?? 0 }}"
                 data-activity-ts="{{ $txn['activity_ts'] ?? ($txn['sort_ts'] ?? 0) }}"
                 data-sort-date="{{ $txn['date'] ?? '' }}"

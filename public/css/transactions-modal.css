@@ -350,17 +350,17 @@
 }
 
 .txn-card-top {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
     gap: 0.65rem;
     margin-bottom: 0.35rem;
 }
 
 .txn-card-mid {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: flex-start;
-    justify-content: space-between;
     gap: 0.65rem;
     margin-bottom: 0.55rem;
 }
@@ -373,6 +373,7 @@
 }
 
 .txn-ref {
+    min-width: 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.8rem;
     font-weight: 800;
@@ -424,10 +425,13 @@
 }
 
 .txn-service {
+    min-width: 0;
     margin: 0;
     font-size: 1.05rem;
+    line-height: 1.3;
     font-weight: 800;
     color: #1a2b36;
+    overflow-wrap: anywhere;
 }
 
 .txn-meta {
@@ -445,6 +449,7 @@
 
 .txn-meta > div {
     margin: 0;
+    min-width: 0;
 }
 
 .txn-meta-full {
@@ -463,8 +468,10 @@
 .txn-meta dd {
     margin: 0;
     font-size: 0.88rem;
+    line-height: 1.4;
     font-weight: 600;
     color: #243843;
+    overflow-wrap: anywhere;
 }
 
 .txn-payment-block > dd {
@@ -1330,6 +1337,99 @@ html[data-theme="dark"] .txn-meta dd {
 }
 
 html[data-theme="dark"] .txn-card {
-    background: #24313b;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: #22313b;
+    border-color: #465c68;
+    box-shadow: none;
+}
+
+html[data-theme="dark"] .txn-card:hover {
+    border-color: #66808d;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="dark"] .txn-modal-label,
+html[data-theme="dark"] .txn-modal-client-meta,
+html[data-theme="dark"] .txn-modal-sub {
+    color: #a9bdc8;
+}
+
+html[data-theme="dark"] .txn-modal-close {
+    background: #2b3d48;
+    color: #f1f6f8;
+}
+
+html[data-theme="dark"] .txn-modal-close:hover {
+    background: #38505e;
+}
+
+html[data-theme="dark"] .txn-modal-body {
+    color: #e8f0f4;
+}
+
+html[data-theme="dark"] .txn-modal-note {
+    background: #173644;
+    border-color: #2d6075;
+    color: #d9f0fa;
+}
+
+html[data-theme="dark"] .txn-modal-note .bi {
+    color: #7bc5e6;
+}
+
+html[data-theme="dark"] .txn-toolbar {
+    background: #253640;
+    border-color: #465c68;
+}
+
+html[data-theme="dark"] .txn-sort-label,
+html[data-theme="dark"] .txn-meta dt,
+html[data-theme="dark"] .txn-payment-item dt {
+    color: #a8bdc9;
+}
+
+html[data-theme="dark"] .txn-search-input,
+html[data-theme="dark"] .txn-date-input,
+html[data-theme="dark"] .txn-date-select,
+html[data-theme="dark"] .txn-sort-select {
+    background: #17252e;
+    border-color: #526b78;
+    color: #f0f6f8;
+    color-scheme: dark;
+}
+
+html[data-theme="dark"] .txn-search-input::placeholder {
+    color: #8fa5b1;
+    opacity: 1;
+}
+
+html[data-theme="dark"] .txn-ref {
+    color: #78b7d7;
+}
+
+html[data-theme="dark"] .txn-amount-pill {
+    color: #62d296;
+}
+
+html[data-theme="dark"] .txn-payment-grid {
+    background: #17262f;
+    border-color: #455e6b;
+}
+
+html[data-theme="dark"] .txn-payment-item dd {
+    color: #edf4f7;
+}
+
+html[data-theme="dark"] .txn-card-actions {
+    border-color: #465c68;
+}
+
+html[data-theme="dark"] .txn-reschedule-btn {
+    background: #183b4c;
+    border-color: #4c8dab;
+    color: #d7f1fc;
+}
+
+html[data-theme="dark"] .txn-reschedule-btn:hover {
+    background: #205169;
+    border-color: #73b5d3;
 }

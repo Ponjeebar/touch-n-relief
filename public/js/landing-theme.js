@@ -2,6 +2,8 @@
     'use strict';
 
     var storageKey = 'tnr-theme';
+    var versionKey = 'tnr-theme-preference-version';
+    var currentVersion = 'light-default-v1';
 
     function currentTheme() {
         return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
@@ -34,6 +36,7 @@
 
             try {
                 localStorage.setItem(storageKey, mode);
+                localStorage.setItem(versionKey, currentVersion);
             } catch (e) {}
 
             syncControl(button, mode);

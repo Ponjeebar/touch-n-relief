@@ -9,6 +9,16 @@
 (function () {
     try {
         var k = 'tnr-theme';
+        var versionKey = 'tnr-theme-preference-version';
+        var currentVersion = 'light-default-v1';
+
+        // Reset preferences saved before light mode became the site default.
+        // Choices made after this release continue to persist normally.
+        if (localStorage.getItem(versionKey) !== currentVersion) {
+            localStorage.removeItem(k);
+            localStorage.setItem(versionKey, currentVersion);
+        }
+
         var v = localStorage.getItem(k);
         if (v === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
@@ -21,6 +31,8 @@
     if (window.__tnrThemeApi) return;
     window.__tnrThemeApi = true;
     var k = 'tnr-theme';
+    var versionKey = 'tnr-theme-preference-version';
+    var currentVersion = 'light-default-v1';
 
     window.tnrGetTheme = function () {
         return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
@@ -35,6 +47,7 @@
         }
         try {
             localStorage.setItem(k, mode);
+            localStorage.setItem(versionKey, currentVersion);
         } catch (e) {}
         syncThemeControls(mode);
     };

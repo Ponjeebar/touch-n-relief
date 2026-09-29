@@ -49,8 +49,19 @@
     <script type="application/ld+json">{!! json_encode($siteIdentity, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
     <script>
         try {
-            if (localStorage.getItem('tnr-theme') === 'dark') {
+            var themeKey = 'tnr-theme';
+            var themeVersionKey = 'tnr-theme-preference-version';
+            var themeVersion = 'light-default-v1';
+
+            if (localStorage.getItem(themeVersionKey) !== themeVersion) {
+                localStorage.removeItem(themeKey);
+                localStorage.setItem(themeVersionKey, themeVersion);
+            }
+
+            if (localStorage.getItem(themeKey) === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
             }
         } catch (e) {}
     </script>
