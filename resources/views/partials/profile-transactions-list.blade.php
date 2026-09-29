@@ -111,7 +111,7 @@
                                         <dd>{{ $txn['payment_amount'] ?? '—' }}</dd>
                                     </div>
                                     @if (! empty($txn['full_payment_status']))
-                                        <div class="txn-payment-item">
+                                        <div class="txn-payment-item txn-payment-item-status">
                                             <dt>Status</dt>
                                             <dd>
                                                 @php
