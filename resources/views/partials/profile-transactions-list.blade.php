@@ -125,7 +125,23 @@
                         <dd>{{ $txn['duration'] ?? '—' }}</dd>
                     </div>
                     @if (! empty($txn['payment_method_label']) && $txn['payment_method_label'] !== '—')
-                        <div class="txn-meta-full txn-payment-block">
+                        <div class="txn-meta-full txn-payment-toggle-row">
+                            <button
+                                type="button"
+                                class="txn-payment-details-toggle"
+                                aria-expanded="false"
+                                aria-controls="txn-payment-details-{{ $loop->iteration }}"
+                                data-txn-payment-toggle
+                            >
+                                <span>View payment details</span>
+                                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div
+                            class="txn-meta-full txn-payment-block"
+                            id="txn-payment-details-{{ $loop->iteration }}"
+                            data-txn-payment-details
+                        >
                             <dt>Payment</dt>
                             <dd>
                                 <dl class="txn-payment-grid">
@@ -254,6 +270,9 @@
             </li>
         @endforeach
     </ul>
+    <button type="button" class="txn-load-more txn-hidden" id="txn-load-more">
+        <span data-txn-load-more-label>Show more appointments</span>
+    </button>
 @else
     <p class="txn-empty">You have no appointments or completed sessions yet. Confirm an appointment and it will appear here.</p>
 @endif

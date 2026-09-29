@@ -549,6 +549,58 @@
     margin-top: 0.35rem;
 }
 
+.txn-payment-toggle-row {
+    display: none;
+}
+
+.txn-payment-details-toggle {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #c9dbe5;
+    border-radius: 9px;
+    background: #f5fafc;
+    color: #31586b;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.txn-payment-details-toggle .bi {
+    transition: transform 0.15s ease;
+}
+
+.txn-payment-details-toggle[aria-expanded="true"] .bi {
+    transform: rotate(180deg);
+}
+
+.txn-load-more {
+    width: 100%;
+    min-height: 42px;
+    margin-top: 0.8rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid #9ec4d8;
+    border-radius: 10px;
+    background: #eef7fb;
+    color: #1b5c78;
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.txn-load-more:hover {
+    background: #dff0f7;
+}
+
+.txn-load-more.txn-hidden {
+    display: none;
+}
+
 .txn-payment-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1366,6 +1418,19 @@ body.txn-modal-open .tnr-chat {
         padding: 0.65rem;
     }
 
+    .txn-payment-toggle-row {
+        display: block;
+        grid-column: 1 / -1;
+    }
+
+    .txn-payment-block {
+        display: none;
+    }
+
+    .txn-payment-block.is-expanded {
+        display: block;
+    }
+
     .txn-payment-item dd {
         font-size: 12px;
         word-break: normal;
@@ -1550,6 +1615,19 @@ html[data-theme="dark"] .txn-amount-pill {
 html[data-theme="dark"] .txn-payment-grid {
     background: #17262f;
     border-color: #455e6b;
+}
+
+html[data-theme="dark"] .txn-payment-details-toggle,
+html[data-theme="dark"] .txn-load-more {
+    background: #183b4c;
+    border-color: #4c8dab;
+    color: #d7f1fc;
+}
+
+html[data-theme="dark"] .txn-payment-details-toggle:hover,
+html[data-theme="dark"] .txn-load-more:hover {
+    background: #205169;
+    border-color: #73b5d3;
 }
 
 html[data-theme="dark"] .txn-payment-item dd {

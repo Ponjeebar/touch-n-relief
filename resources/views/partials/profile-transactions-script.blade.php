@@ -112,8 +112,13 @@
     var sortSelect = document.getElementById('txn-sort-select');
     var filterEmpty = document.getElementById('txn-filter-empty');
     var cardsList = document.getElementById('txn-cards-list');
+    var loadMoreButton = document.getElementById('txn-load-more');
+    var loadMoreLabel = loadMoreButton?.querySelector('[data-txn-load-more-label]');
     var groupTabs = Array.from(document.querySelectorAll('[data-txn-group]'));
     var groupDescription = document.getElementById('txn-group-description');
+    var compactListQuery = window.matchMedia('(max-width: 719px)');
+    var mobilePageSize = 5;
+    var visibleLimits = { upcoming: mobilePageSize, history: mobilePageSize };
     var activeGroup = groupTabs.find(function (tab) {
         return tab.getAttribute('aria-pressed') === 'true';
     })?.getAttribute('data-txn-group') || 'upcoming';
@@ -131,6 +136,7 @@
     function setActiveGroup(group) {
         if (group !== 'upcoming' && group !== 'history') return;
         activeGroup = group;
+        visibleLimits[group] = mobilePageSize;
         groupTabs.forEach(function (tab) {
             var selected = tab.getAttribute('data-txn-group') === group;
             tab.classList.toggle('is-active', selected);
@@ -197,11 +203,17 @@
 
     function applySearchAndFilter() {
         if (!cardsList) return;
+        if (sortSelect) {
+            sortTransactions(sortSelect.value);
+        }
         var query = (searchInput && searchInput.value ? searchInput.value : '').toLowerCase().trim();
         var chosenDate = (dateInput && dateInput.value ? dateInput.value : '').trim();
         var filter = filterSelect ? filterSelect.value : 'all';
         var visible = 0;
         var inActiveGroup = 0;
+        var matching = 0;
+        var compactList = compactListQuery.matches;
+        var visibleLimit = visibleLimits[activeGroup] || mobilePageSize;
 
         cardsList.querySelectorAll('.txn-card').forEach(function (card) {
             var haystack = [
@@ -221,7 +233,9 @@
             var matchesGroup = (card.getAttribute('data-appointment-group') || 'history') === activeGroup;
             if (matchesGroup) inActiveGroup += 1;
 
-            var show = matchesGroup && matchesQuery && matchesDate && matchesFilter;
+            var matchesAll = matchesGroup && matchesQuery && matchesDate && matchesFilter;
+            if (matchesAll) matching += 1;
+            var show = matchesAll && (!compactList || matching <= visibleLimit);
             card.hidden = !show;
             if (show) visible += 1;
         });
@@ -235,25 +249,54 @@
             }
         }
 
-        if (sortSelect) {
-            sortTransactions(sortSelect.value);
+        if (loadMoreButton) {
+            var remaining = Math.max(0, matching - visibleLimit);
+            loadMoreButton.classList.toggle('txn-hidden', !compactList || remaining === 0);
+            if (loadMoreLabel && remaining > 0) {
+                loadMoreLabel.textContent = 'Show ' + Math.min(mobilePageSize, remaining)
+                    + ' more (' + remaining + ' remaining)';
+            }
         }
     }
 
     sortSelect?.addEventListener('change', function () {
-        sortTransactions(sortSelect.value);
+        visibleLimits[activeGroup] = mobilePageSize;
+        applySearchAndFilter();
     });
 
     searchInput?.addEventListener('input', function () {
+        visibleLimits[activeGroup] = mobilePageSize;
         applySearchAndFilter();
     });
 
     dateInput?.addEventListener('change', function () {
+        visibleLimits[activeGroup] = mobilePageSize;
         applySearchAndFilter();
     });
 
     filterSelect?.addEventListener('change', function () {
+        visibleLimits[activeGroup] = mobilePageSize;
         applySearchAndFilter();
+    });
+
+    loadMoreButton?.addEventListener('click', function () {
+        visibleLimits[activeGroup] = (visibleLimits[activeGroup] || mobilePageSize) + mobilePageSize;
+        applySearchAndFilter();
+    });
+
+    compactListQuery.addEventListener?.('change', applySearchAndFilter);
+
+    document.querySelectorAll('[data-txn-payment-toggle]').forEach(function (toggle) {
+        toggle.addEventListener('click', function () {
+            var detailsId = toggle.getAttribute('aria-controls');
+            var details = detailsId ? document.getElementById(detailsId) : null;
+            if (!details) return;
+            var expanded = toggle.getAttribute('aria-expanded') === 'true';
+            toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            details.classList.toggle('is-expanded', !expanded);
+            var label = toggle.querySelector('span');
+            if (label) label.textContent = expanded ? 'View payment details' : 'Hide payment details';
+        });
     });
 
     groupTabs.forEach(function (tab) {

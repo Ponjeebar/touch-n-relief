@@ -176,7 +176,9 @@ class CustomerPaymentRecoveryTest extends TestCase
             ->assertSee('data-txn-group="upcoming"', false)
             ->assertSee('data-txn-group="history"', false)
             ->assertSee('data-appointment-group="upcoming"', false)
-            ->assertSee('data-appointment-group="history"', false);
+            ->assertSee('data-appointment-group="history"', false)
+            ->assertSee('data-txn-payment-toggle', false)
+            ->assertSee('id="txn-load-more"', false);
     }
 
     public function test_late_payment_is_cancelled_and_refunded_when_released_slot_was_taken(): void
