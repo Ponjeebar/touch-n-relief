@@ -16,7 +16,7 @@
         role="menu"
         aria-labelledby="tnr-settings-trigger"
     >
-        <button type="button" class="settings-dropdown-item mp-theme-row" id="tnr-settings-theme-toggle" role="menuitem" aria-checked="false">
+        <button type="button" class="settings-dropdown-item mp-theme-row" id="tnr-settings-theme-toggle" data-tnr-theme-toggle role="menuitem" aria-checked="false">
             <span class="mp-theme-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
             <span>Dark mode</span>
         </button>

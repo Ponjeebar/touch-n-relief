@@ -190,7 +190,7 @@
         return [
             introduction('Receptionist workspace', 'This page-level training covers the complete daily workflow. Each major staff page starts its own guide the first time you open it.'),
             step(['.brand'], 'TouchNRelief staff area', 'This is the receptionist portal for day-to-day spa operations.'),
-            step(['#staff-mobile-navigation', '.nav-list'], 'Daily work pages', withExample('Move between bookings, live sessions, completed transactions, therapists, and customer records.', 'A normal flow is Appointments → collect balance → start session → Ongoing Sessions → Complete Session → Completed Sessions.')),
+            step(['#staff-mobile-navigation', '.nav-list', '[data-staff-mobile-menu]'], 'Daily work pages', withExample('Move between bookings, live sessions, completed transactions, therapists, and customer records.', 'A normal flow is Appointments → collect balance → start session → Ongoing Sessions → Complete Session → Completed Sessions.')),
             step(['.staff-mobile-shortcuts'], 'Mobile shortcuts', 'On smaller screens, use this bar for the most common staff actions.', 'top'),
         ];
     }
@@ -208,7 +208,7 @@
             step(['.mobile-dashboard-actions'], 'Quick actions', 'On compact screens, these links open the three most common operational pages.'),
             step(['[data-open-dashboard-notifications]', '[data-topbar-notif-sync]'], 'Notifications', 'Review new bookings, payment updates, cancellations, and reschedules.', 'bottom', 'end'),
             step(['#tnr-settings-trigger'], 'Display settings', 'Switch between light and dark mode.'),
-            step(['#tnr-profile-menu-trigger'], 'Profile and tour', 'Update your profile, replay the page tour, or sign out.', 'bottom', 'end'),
+            step(['#tnr-profile-menu-trigger'], 'Account menu', 'Open your profile, change the display theme, replay the page tour, or sign out.', 'bottom', 'end'),
         ]);
     }
 

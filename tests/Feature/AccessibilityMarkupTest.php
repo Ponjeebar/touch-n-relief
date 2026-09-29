@@ -52,4 +52,45 @@ class AccessibilityMarkupTest extends TestCase
             $profileResponse->getContent()
         );
     }
+
+    public function test_staff_mobile_navigation_uses_more_sheet_and_avatar_account_menu(): void
+    {
+        $receptionist = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+
+        $receptionistResponse = $this->actingAs($receptionist)->get(route('receptionist.dashboard'));
+
+        $receptionistResponse->assertOk()
+            ->assertDontSee('class="staff-nav-toggle"', false)
+            ->assertSee('aria-label="Staff mobile shortcuts"', false)
+            ->assertSee('data-staff-mobile-item="home"', false)
+            ->assertSee('data-staff-mobile-item="bookings"', false)
+            ->assertSee('data-staff-mobile-item="sessions"', false)
+            ->assertSee('data-staff-mobile-item="clients"', false)
+            ->assertSee('data-staff-mobile-item="more"', false)
+            ->assertSee('data-staff-mobile-header-actions', false)
+            ->assertSee('id="staff-mobile-more-menu"', false)
+            ->assertSee('aria-controls="staff-mobile-more-menu"', false)
+            ->assertSee('Secondary staff pages')
+            ->assertSee('id="tnr-profile-theme-toggle"', false)
+            ->assertSee('Receptionist');
+        $this->assertSame(5, substr_count($receptionistResponse->getContent(), 'data-staff-mobile-item='));
+
+        $mobileNavigationScript = file_get_contents(public_path('js/mobile-navigation.js'));
+        $this->assertStringContainsString('setupStaffHeaderActions()', $mobileNavigationScript);
+        $this->assertStringContainsString("window.matchMedia('(max-width: 1024px)')", $mobileNavigationScript);
+
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee('class="staff-nav-toggle"', false)
+            ->assertSee('data-staff-mobile-item="more"', false)
+            ->assertSee('Receptionists')
+            ->assertSee('Customers')
+            ->assertSee('Reports')
+            ->assertSee('Team Profiles')
+            ->assertSee('Landing Page')
+            ->assertSee('Administrator');
+    }
 }

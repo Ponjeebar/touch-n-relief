@@ -6,11 +6,9 @@
     $cmsActive = in_array($active, ['services', 'therapist-manage', 'landing-settings'], true);
     $operationsActive = in_array($active, ['ongoing', 'completed', 'appointments', 'therapist-monitoring', 'client-records'], true);
     $usersActive = in_array($active, ['users', 'users-receptionists', 'users-customers'], true);
+    $moreActive = in_array($active, ['completed', 'therapist-monitoring', 'users', 'users-receptionists', 'users-customers', 'reporting', 'services', 'therapist-manage', 'landing-settings'], true);
 @endphp
-<button type="button" class="staff-nav-toggle" aria-controls="staff-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
-    <i class="bi bi-list" aria-hidden="true"></i>
-    <span>Menu</span>
-</button>
+<div class="staff-mobile-header-actions" data-staff-mobile-header-actions></div>
 <ul class="nav-list" id="staff-mobile-navigation">
     @if ($admin || $receptionist)
         <li>
@@ -170,23 +168,65 @@
     </li>
     @endif
 </ul>
+<div class="staff-mobile-more-menu" id="staff-mobile-more-menu" data-staff-more-menu hidden>
+    <button type="button" class="staff-mobile-more-backdrop" data-staff-more-close tabindex="-1" aria-label="Close more navigation"></button>
+    <section class="staff-mobile-more-sheet" role="dialog" aria-modal="true" aria-labelledby="staff-mobile-more-title">
+        <div class="staff-mobile-more-head">
+            <div>
+                <strong id="staff-mobile-more-title">More</strong>
+                <span>Secondary staff pages</span>
+            </div>
+            <button type="button" class="staff-mobile-more-close" data-staff-more-close aria-label="Close more navigation">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="staff-mobile-more-links">
+            <a href="{{ route('completed-sessions.index') }}" @if($active === 'completed') aria-current="page" @endif>
+                <i class="bi bi-check2-circle" aria-hidden="true"></i><span>Completed Sessions</span>
+            </a>
+            <a href="{{ route('therapist-tracking.index') }}" @if($active === 'therapist-monitoring') aria-current="page" @endif>
+                <i class="bi bi-activity" aria-hidden="true"></i><span>Therapist Monitoring</span>
+            </a>
+            @if ($admin)
+                <a href="{{ route('users.index', ['tab' => 'receptionists']) }}" @if(in_array($active, ['users', 'users-receptionists'], true)) aria-current="page" @endif>
+                    <i class="bi bi-person-badge" aria-hidden="true"></i><span>Receptionists</span>
+                </a>
+                <a href="{{ route('users.index', ['tab' => 'customers']) }}" @if($active === 'users-customers') aria-current="page" @endif>
+                    <i class="bi bi-person-lines-fill" aria-hidden="true"></i><span>Customers</span>
+                </a>
+                <a href="{{ route('reporting.index') }}" @if($active === 'reporting') aria-current="page" @endif>
+                    <i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Reports</span>
+                </a>
+                <a href="{{ route('services.index') }}" @if($active === 'services') aria-current="page" @endif>
+                    <i class="bi bi-grid" aria-hidden="true"></i><span>Services</span>
+                </a>
+                <a href="{{ route('therapist-tracking.index', ['manage' => 1]) }}" @if($active === 'therapist-manage') aria-current="page" @endif>
+                    <i class="bi bi-people" aria-hidden="true"></i><span>Team Profiles</span>
+                </a>
+                <a href="{{ route('landing-settings.edit') }}" @if($active === 'landing-settings') aria-current="page" @endif>
+                    <i class="bi bi-window" aria-hidden="true"></i><span>Landing Page</span>
+                </a>
+            @endif
+            <button type="button" data-staff-chat-open>
+                <i class="bi bi-chat-dots" aria-hidden="true"></i><span>Help</span>
+            </button>
+        </div>
+    </section>
+</div>
 <nav class="staff-mobile-shortcuts" aria-label="Staff mobile shortcuts">
-    <a href="{{ $admin ? route('dashboard') : route('receptionist.dashboard') }}" @if($homeActive) aria-current="page" @endif>
+    <a href="{{ $admin ? route('dashboard') : route('receptionist.dashboard') }}" data-staff-mobile-item="home" @if($homeActive) aria-current="page" @endif>
         <i class="bi bi-house-door" aria-hidden="true"></i><span>Home</span>
     </a>
-    <a href="{{ route('appointments.index') }}" @if($active === 'appointments') aria-current="page" @endif>
+    <a href="{{ route('appointments.index') }}" data-staff-mobile-item="bookings" @if($active === 'appointments') aria-current="page" @endif>
         <i class="bi bi-calendar2-check" aria-hidden="true"></i><span>Bookings</span>
     </a>
-    <a href="{{ route('ongoing-sessions.index') }}" @if($active === 'ongoing') aria-current="page" @endif>
+    <a href="{{ route('ongoing-sessions.index') }}" data-staff-mobile-item="sessions" @if($active === 'ongoing') aria-current="page" @endif>
         <i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Sessions</span>
     </a>
-    <a href="{{ route('client-records.index') }}" @if($active === 'client-records') aria-current="page" @endif>
+    <a href="{{ route('client-records.index') }}" data-staff-mobile-item="clients" @if($active === 'client-records') aria-current="page" @endif>
         <i class="bi bi-folder2-open" aria-hidden="true"></i><span>Clients</span>
     </a>
-    <button type="button" data-staff-chat-open aria-label="Open help chat" aria-expanded="false">
-        <i class="bi bi-chat-dots" aria-hidden="true"></i><span>Help</span>
-    </button>
-    <button type="button" data-staff-mobile-menu aria-label="Open all staff pages" aria-expanded="false">
+    <button type="button" data-staff-mobile-item="more" data-staff-mobile-menu aria-label="Open more staff pages" aria-controls="staff-mobile-more-menu" aria-expanded="false" @if($moreActive) aria-current="page" @endif>
         <i class="bi bi-grid" aria-hidden="true"></i><span>More</span>
     </button>
 </nav>

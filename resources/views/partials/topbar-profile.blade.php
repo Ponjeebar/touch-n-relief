@@ -33,6 +33,19 @@
         role="menu"
         aria-labelledby="tnr-profile-menu-trigger"
     >
+        <div class="profile-dropdown-summary" role="none">
+            <div class="avatar" aria-hidden="true">
+                @if ($profilePhotoUrl)
+                    <img src="{{ $profilePhotoUrl }}" alt="">
+                @else
+                    {{ strtoupper(substr((string) $label, 0, 1)) }}
+                @endif
+            </div>
+            <div>
+                <strong>{{ $label }}</strong>
+                <span>{{ $u->isAdmin() ? 'Administrator' : ($u->isReceptionist() ? 'Receptionist' : 'Customer') }}</span>
+            </div>
+        </div>
         <button type="button" class="profile-dropdown-item" id="tnr-profile-open-modal" role="menuitem">
             <span class="profile-dropdown-icon" aria-hidden="true"><i class="bi bi-person"></i></span>
             <span>Profile</span>
@@ -47,6 +60,12 @@
             <button type="button" class="profile-dropdown-item" data-start-customer-tour role="menuitem">
                 <span class="profile-dropdown-icon" aria-hidden="true"><i class="bi bi-signpost-split"></i></span>
                 <span>Take a tour</span>
+            </button>
+        @endif
+        @if ($u->isAdmin() || $u->isReceptionist())
+            <button type="button" class="profile-dropdown-item staff-profile-theme-item mp-theme-row" id="tnr-profile-theme-toggle" data-tnr-theme-toggle role="menuitem" aria-checked="false">
+                <span class="profile-dropdown-icon mp-theme-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+                <span>Dark mode</span>
             </button>
         @endif
         @if (! $u->isAdmin() && ! $u->isReceptionist())

@@ -164,10 +164,12 @@
             toggleSettingsDropdown();
         });
 
-        document.getElementById('tnr-settings-theme-toggle')?.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            window.tnrToggleTheme();
+        document.querySelectorAll('[data-tnr-theme-toggle]').forEach(function (themeToggle) {
+            themeToggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.tnrToggleTheme();
+            });
         });
 
         window.addEventListener('resize', function () {
