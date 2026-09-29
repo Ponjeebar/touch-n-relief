@@ -50,10 +50,19 @@
         width: min(290px, calc(100vw - 24px));
         min-width: 0;
     }
+    .staff-mobile-header-actions .profile-dropdown {
+        max-height: calc(100dvh - 88px - env(safe-area-inset-bottom));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
     .topbar .profile-dropdown .staff-profile-theme-item,
     .staff-mobile-header-actions .profile-dropdown .staff-profile-theme-item { display: flex; }
     .topbar-settings { display: none; }
-    .sidebar { position: relative; }
+    .sidebar {
+        position: relative;
+        z-index: 100;
+        overflow: visible;
+    }
     .sidebar .brand { margin-right: 96px; }
     .staff-mobile-header-actions {
         position: absolute;

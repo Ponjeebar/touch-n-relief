@@ -79,6 +79,13 @@ class AccessibilityMarkupTest extends TestCase
         $this->assertStringContainsString('setupStaffHeaderActions()', $mobileNavigationScript);
         $this->assertStringContainsString("window.matchMedia('(max-width: 1024px)')", $mobileNavigationScript);
 
+        $mobileStyles = file_get_contents(public_path('css/staff-mobile.css'));
+        $this->assertMatchesRegularExpression(
+            '/\.sidebar\s*\{[^}]*overflow:\s*visible;/s',
+            $mobileStyles
+        );
+        $this->assertStringContainsString('max-height: calc(100dvh - 88px - env(safe-area-inset-bottom));', $mobileStyles);
+
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
         $this->actingAs($admin)
