@@ -42,12 +42,15 @@ class CustomerTourTest extends TestCase
             ->get(route('booking.index'))
             ->assertOk()
             ->assertSee('data-customer-tour-page="booking.create"', false)
+            ->assertSee('data-customer-tour-auto-start="1"', false)
             ->assertSee('Booking guide');
 
         $this->actingAs($customer)
             ->get(route('profile.edit'))
             ->assertOk()
             ->assertSee('data-customer-tour-page="profile.edit"', false)
+            ->assertSee('data-customer-tour-auto-start="1"', false)
+            ->assertSee('data-tour-scope="appointments"', false)
             ->assertSee('driver.js@1.8.0', false);
     }
 
@@ -68,8 +71,31 @@ class CustomerTourTest extends TestCase
             ->get(route('appointments.index'))
             ->assertOk()
             ->assertSee('data-customer-tour-page="appointments.index"', false)
-            ->assertSee('data-customer-tour-auto-start="0"', false)
+            ->assertSee('data-customer-tour-auto-start="1"', false)
             ->assertSee('data-start-customer-tour', false);
+    }
+
+    public function test_receptionist_training_covers_every_major_operational_page_with_examples(): void
+    {
+        $receptionist = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+
+        foreach (['ongoing-sessions.index', 'completed-sessions.index', 'therapist-tracking.index', 'client-records.index'] as $routeName) {
+            $this->actingAs($receptionist)
+                ->get(route($routeName))
+                ->assertOk()
+                ->assertSee('data-customer-tour-role="receptionist"', false)
+                ->assertSee('data-customer-tour-page="'.$routeName.'"', false)
+                ->assertSee('data-customer-tour-auto-start="1"', false);
+        }
+
+        $tourScript = file_get_contents(public_path('js/customer-tour.js'));
+
+        $this->assertStringContainsString("'appointments.index'", $tourScript);
+        $this->assertStringContainsString("'ongoing-sessions.index'", $tourScript);
+        $this->assertStringContainsString("'completed-sessions.index'", $tourScript);
+        $this->assertStringContainsString("'therapist-tracking.index'", $tourScript);
+        $this->assertStringContainsString("'client-records.index'", $tourScript);
+        $this->assertStringContainsString('Example:', $tourScript);
     }
 
     public function test_completing_wellness_onboarding_starts_the_tour_on_the_next_landing_visit(): void

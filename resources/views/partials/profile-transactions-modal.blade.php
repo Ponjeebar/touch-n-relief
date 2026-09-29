@@ -31,6 +31,9 @@
             @include('partials.profile-transactions-list')
         </div>
         <footer class="txn-modal-footer">
+            <button type="button" class="txn-modal-btn txn-modal-btn-secondary" data-start-customer-tour data-tour-scope="appointments">
+                Appointments guide
+            </button>
             <button type="button" class="txn-modal-btn" data-tnr-txn-close="true">Close</button>
         </footer>
     </div>

@@ -9,7 +9,9 @@
 
     $autoStartCustomerTour = (bool) session()->pull('customer_tour_pending', false);
     $tourPage = $tourPage ?? Route::currentRouteName() ?? 'page';
-    $autoStartTour = $autoStartCustomerTour || ($tourRole === 'receptionist' && $tourPage === 'receptionist.dashboard');
+    $autoStartTour = $autoStartCustomerTour
+        || $tourRole === 'receptionist'
+        || in_array($tourPage, ['booking.create', 'profile.edit'], true);
 @endphp
 @once
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.8.0/dist/driver.css">

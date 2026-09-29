@@ -356,6 +356,18 @@
     background: #fafcfd;
     display: flex;
     justify-content: flex-end;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.txn-modal-btn-secondary {
+    border: 1px solid #86aebf;
+    background: #fff;
+    color: #1f4d63;
+}
+
+.txn-modal-btn-secondary:hover {
+    background: #edf6f9;
 }
 
 .txn-modal-btn {
@@ -1471,7 +1483,8 @@ body.txn-modal-open .tnr-chat {
     }
 
     .txn-modal-btn {
-        width: 100%;
+        width: auto;
+        flex: 1 1 10rem;
         min-height: 42px;
         padding: 0.55rem 1rem;
         font-size: 13px;
@@ -1495,6 +1508,16 @@ html[data-theme="dark"] .txn-modal-header,
 html[data-theme="dark"] .txn-modal-footer {
     background: #1a252d;
     border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="dark"] .txn-modal-btn-secondary {
+    border-color: #587684;
+    background: #263740;
+    color: #e8f0f4;
+}
+
+html[data-theme="dark"] .txn-modal-btn-secondary:hover {
+    background: #304650;
 }
 
 html[data-theme="dark"] .txn-modal-title,

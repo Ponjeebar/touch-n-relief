@@ -24,6 +24,21 @@
     line-height: 1.5;
 }
 
+.driver-popover.tnr-customer-tour .tnr-tour-example {
+    display: block;
+    margin-top: 0.7rem;
+    padding: 0.65rem 0.75rem;
+    border-left: 3px solid #168561;
+    background: #eef8f4;
+    color: #24473d;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.driver-popover.tnr-customer-tour .tnr-tour-example strong {
+    color: #0f6248;
+}
+
 .driver-popover.tnr-customer-tour .driver-popover-progress-text {
     color: #6d817a;
     font-size: 0.75rem;
@@ -111,6 +126,16 @@ html[data-theme="dark"] .driver-popover.tnr-customer-tour .driver-popover-title 
 html[data-theme="dark"] .driver-popover.tnr-customer-tour .driver-popover-description,
 html[data-theme="dark"] .driver-popover.tnr-customer-tour .driver-popover-progress-text {
     color: #b8cec4;
+}
+
+html[data-theme="dark"] .driver-popover.tnr-customer-tour .tnr-tour-example {
+    border-left-color: #4bd3aa;
+    background: #18352e;
+    color: #d5eee6;
+}
+
+html[data-theme="dark"] .driver-popover.tnr-customer-tour .tnr-tour-example strong {
+    color: #78e1c0;
 }
 
 html[data-theme="dark"] .driver-popover.tnr-customer-tour button {
