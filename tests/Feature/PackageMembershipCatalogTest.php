@@ -56,9 +56,7 @@ class PackageMembershipCatalogTest extends TestCase
 
         $this->actingAs($admin)
             ->get(route('booking.index'))
-            ->assertOk()
-            ->assertSee('Back to dashboard')
-            ->assertSee('href="'.route('dashboard').'"', false);
+            ->assertRedirect(route('dashboard'));
     }
 
     public function test_staff_can_create_a_package_without_turning_it_into_an_individual_service(): void

@@ -56,23 +56,26 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('
 
 Route::middleware(['auth', 'staff.activity'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    Route::get('/booking', [BookingController::class, 'create'])->name('booking.index');
-    Route::get('/booking/availability', [BookingController::class, 'availability'])->name('booking.availability');
-    Route::get('/booking/therapist-availability', [BookingController::class, 'therapistAvailability'])->name('booking.therapist-availability');
-    Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
-    Route::get('/booking/paymongo/success/{spaBooking}', [PaymongoController::class, 'success'])->name('paymongo.success');
-    Route::get('/booking/paymongo/cancel/{spaBooking}', [PaymongoController::class, 'cancel'])->name('paymongo.cancel');
-    Route::post('/bookings/{spaBooking}/cancel', [BookingController::class, 'cancel'])->name('booking.cancel');
-    Route::post('/bookings/{spaBooking}/continue-payment', [PaymongoController::class, 'customerRetry'])->middleware('throttle:10,1')->name('booking.payment.retry');
-    Route::patch('/bookings/{spaBooking}/reschedule', [BookingController::class, 'reschedule'])->name('booking.reschedule');
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
-    Route::post('/onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
 
-    Route::get('/customer-notifications/poll', [CustomerNotificationController::class, 'poll'])->name('customer-notifications.poll');
-    Route::post('/customer-notifications/mark-all-read', [CustomerNotificationController::class, 'markAllRead'])->name('customer-notifications.mark-all-read');
-    Route::post('/customer-notifications/{customerNotification}/read', [CustomerNotificationController::class, 'markRead'])->name('customer-notifications.read');
+    Route::middleware('customer')->group(function () {
+        Route::get('/booking', [BookingController::class, 'create'])->name('booking.index');
+        Route::get('/booking/availability', [BookingController::class, 'availability'])->name('booking.availability');
+        Route::get('/booking/therapist-availability', [BookingController::class, 'therapistAvailability'])->name('booking.therapist-availability');
+        Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
+        Route::get('/booking/paymongo/success/{spaBooking}', [PaymongoController::class, 'success'])->name('paymongo.success');
+        Route::get('/booking/paymongo/cancel/{spaBooking}', [PaymongoController::class, 'cancel'])->name('paymongo.cancel');
+        Route::post('/bookings/{spaBooking}/cancel', [BookingController::class, 'cancel'])->name('booking.cancel');
+        Route::post('/bookings/{spaBooking}/continue-payment', [PaymongoController::class, 'customerRetry'])->middleware('throttle:10,1')->name('booking.payment.retry');
+        Route::patch('/bookings/{spaBooking}/reschedule', [BookingController::class, 'reschedule'])->name('booking.reschedule');
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
+        Route::post('/onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
+
+        Route::get('/customer-notifications/poll', [CustomerNotificationController::class, 'poll'])->name('customer-notifications.poll');
+        Route::post('/customer-notifications/mark-all-read', [CustomerNotificationController::class, 'markAllRead'])->name('customer-notifications.mark-all-read');
+        Route::post('/customer-notifications/{customerNotification}/read', [CustomerNotificationController::class, 'markRead'])->name('customer-notifications.read');
+    });
 
     Route::middleware('staff')->group(function () {
         Route::get('/receptionist-dashboard', [DashboardController::class, 'receptionistDashboard'])->name('receptionist.dashboard');

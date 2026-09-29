@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Customer;
 use App\Models\SiteSetting;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
-use App\Models\Customer;
 use App\Models\Therapist;
 use App\Models\User;
 use App\Services\BookingSlotService;
@@ -13,8 +13,8 @@ use App\Services\SiteSettingsService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -34,9 +34,14 @@ class RevisionAdjustmentsTest extends TestCase
         $response = $this->actingAs($admin)->get(route('reporting.backup'));
 
         $response->assertOk()
-            ->assertHeader('content-type', 'application/json; charset=UTF-8');
+            ->assertHeader('content-type', 'application/json; charset=UTF-8')
+            ->assertHeader('cache-control', 'no-store, private');
         $this->assertStringContainsString('.json', (string) $response->headers->get('content-disposition'));
-        $this->assertStringContainsString('"application": "TOUCHnRELIEF"', $response->streamedContent());
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('"application": "TOUCHnRELIEF"', $content);
+        $this->assertStringContainsString('"format_version": 2', $content);
+        $this->assertStringContainsString('"service_time_slots"', $content);
+        $this->assertStringContainsString('"tables_sha256"', $content);
     }
 
     public function test_appointment_export_downloads_a_dated_csv(): void

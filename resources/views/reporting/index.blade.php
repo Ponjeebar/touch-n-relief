@@ -63,9 +63,9 @@
                             <span>Generate PDF</span>
                         </a>
                         @if (auth()->user()->isAdmin())
-                            <a href="{{ route('reporting.backup') }}" class="rep-backup-btn">
+                            <a href="{{ route('reporting.backup') }}" class="rep-backup-btn" title="Download a sensitive recovery export. Store it securely.">
                                 <i class="bi bi-database-down" aria-hidden="true"></i>
-                                <span>Backup data</span>
+                                <span>Recovery export</span>
                             </a>
                         @endif
                     </div>

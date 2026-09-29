@@ -1,0 +1,43 @@
+name: Application checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: intl, sqlite3
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run PHP tests
+        run: php artisan test
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Audit PHP dependencies
+        run: composer audit --locked
+
+      - name: Audit production frontend dependencies
+        run: npm audit --omit=dev

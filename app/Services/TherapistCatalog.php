@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\SpaBooking;
 use App\Models\Therapist;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
@@ -67,10 +68,10 @@ class TherapistCatalog
         $this->ensureSeeded();
 
         if (! Schema::hasTable('therapists')) {
-            return array_map(
+            return $this->withCompletedSessionCounts(array_map(
                 fn (array $therapist): array => $this->filterLandingTherapist($therapist, $hidePrenatalRefs),
                 $this->defaultCatalog(),
-            );
+            ), 'sessions');
         }
 
         $query = Therapist::query();
@@ -86,13 +87,13 @@ class TherapistCatalog
             ->all();
 
         if ($fromDb === []) {
-            return array_map(
+            return $this->withCompletedSessionCounts(array_map(
                 fn (array $therapist): array => $this->filterLandingTherapist($therapist, $hidePrenatalRefs),
                 $this->defaultCatalog(),
-            );
+            ), 'sessions');
         }
 
-        return $fromDb;
+        return $this->withCompletedSessionCounts($fromDb, 'sessions');
     }
 
     /**
@@ -103,17 +104,19 @@ class TherapistCatalog
         $this->ensureSeeded();
 
         if (! Schema::hasTable('therapists')) {
-            return $this->defaultTrackingRows();
+            return $this->withCompletedSessionCounts($this->defaultTrackingRows(), 'sessions_label');
         }
 
         $query = Therapist::query();
 
-        return $query
+        $rows = $query
             ->orderBy(Schema::hasColumn('therapists', 'sort_order') ? 'sort_order' : 'therapist_code')
             ->orderBy('therapist_code')
             ->get()
             ->map(fn (Therapist $therapist): array => $therapist->toTrackingArray())
             ->all();
+
+        return $this->withCompletedSessionCounts($rows, 'sessions_label');
     }
 
     public function ensureSeeded(): void
@@ -149,7 +152,6 @@ class TherapistCatalog
             foreach ([
                 'role' => $row['role'] ?? null,
                 'bio' => $row['bio'] ?? null,
-                'sessions_label' => $row['sessions'] ?? null,
                 'accent_color' => $row['accent'] ?? null,
                 'landing_photo' => $row['photo'] ?? null,
                 'sort_order' => $index + 1,
@@ -193,7 +195,7 @@ class TherapistCatalog
             'landing_photo' => (string) ($row['photo'] ?? ''),
             'specializations' => array_values($row['specialties'] ?? $row['specializations'] ?? []),
             'certifications' => array_values($row['certifications'] ?? []),
-            'sessions_label' => (string) ($row['sessions'] ?? '0'),
+            'sessions_label' => null,
             'accent_color' => (string) ($row['accent'] ?? '#8fa89a'),
             'status' => (string) ($row['status'] ?? 'available'),
             'total_hours' => (int) ($row['total_hours'] ?? 0),
@@ -245,7 +247,6 @@ class TherapistCatalog
                 'bio' => 'Maria brings over 8 years of clinical massage experience with a calm, attentive approach. She specializes in stress relief and muscle recovery for clients who need deep relaxation without harsh pressure.',
                 'specialties' => ['Swedish Massage', 'Deep Tissue', 'Prenatal Massage'],
                 'certifications' => ['Licensed Massage Therapist (LMT)', 'Prenatal Massage Certification', 'CPR & First Aid Certified'],
-                'sessions' => '1,200+',
                 'accent' => '#c4a882',
                 'status' => 'available',
                 'total_hours' => 218,
@@ -259,7 +260,6 @@ class TherapistCatalog
                 'bio' => 'Juan works with athletes and active clients to improve mobility, reduce soreness, and speed up recovery. His sessions combine targeted deep tissue work with sports-specific techniques.',
                 'specialties' => ['Sports Massage', 'Deep Tissue', 'Thai Massage'],
                 'certifications' => ['Sports Massage Therapy Certificate', 'Licensed Massage Therapist (LMT)', 'Injury Prevention & Recovery Training'],
-                'sessions' => '980+',
                 'accent' => '#8fa89a',
                 'status' => 'busy',
                 'total_hours' => 176,
@@ -273,7 +273,6 @@ class TherapistCatalog
                 'bio' => 'Liza creates soothing, sensory-rich experiences using essential oils and gentle Swedish techniques. She is known for helping clients unwind mentally and physically in every session.',
                 'specialties' => ['Aromatherapy', 'Swedish Massage', 'Hot Stone'],
                 'certifications' => ['Aromatherapy Bodywork Certification', 'Licensed Massage Therapist (LMT)', 'Wellness & Stress Management Training'],
-                'sessions' => '1,450+',
                 'accent' => '#b89aab',
                 'status' => 'available',
                 'total_hours' => 231,
@@ -287,7 +286,6 @@ class TherapistCatalog
                 'bio' => 'Carlos focuses on therapeutic outcomes through structured bodywork, blending sports massage and traditional Thai stretching to restore movement and ease chronic tension.',
                 'specialties' => ['Sports Massage', 'Thai Massage', 'Deep Tissue'],
                 'certifications' => ['Thai Massage Practitioner Certificate', 'Licensed Massage Therapist (LMT)', 'Therapeutic Bodywork Diploma'],
-                'sessions' => '860+',
                 'accent' => '#9a8f7e',
                 'status' => 'off-duty',
                 'total_hours' => 129,
@@ -301,7 +299,6 @@ class TherapistCatalog
                 'bio' => 'Angela delivers warm, grounding treatments using heated stones and aromatherapy blends. Her sessions are ideal for clients seeking deep warmth, circulation support, and full-body calm.',
                 'specialties' => ['Hot Stone', 'Aromatherapy', 'Swedish Massage'],
                 'certifications' => ['Hot Stone Therapy Certification', 'Aromatherapy Specialist Certificate', 'Licensed Massage Therapist (LMT)'],
-                'sessions' => '1,100+',
                 'accent' => '#a8927c',
                 'status' => 'available',
                 'total_hours' => 203,
@@ -331,7 +328,7 @@ class TherapistCatalog
                 'landing_photo_url' => asset('images/landing/therapist/'.($row['photo'] ?? '')),
                 'specializations' => array_values($row['specialties'] ?? []),
                 'certifications' => array_values($row['certifications'] ?? []),
-                'sessions_label' => (string) ($row['sessions'] ?? ''),
+                'sessions_label' => '0',
                 'accent_color' => (string) ($row['accent'] ?? '#8fa89a'),
                 'status' => (string) ($row['status'] ?? 'available'),
                 'total_hours' => (int) ($row['total_hours'] ?? 0),
@@ -341,5 +338,52 @@ class TherapistCatalog
                 'sort_order' => 0,
             ];
         }, $this->defaultCatalog());
+    }
+
+    /**
+     * Replace legacy marketing labels with counts from completed spa bookings.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function withCompletedSessionCounts(array $rows, string $targetKey): array
+    {
+        $counts = $this->completedSessionCounts();
+
+        return array_map(function (array $row) use ($counts, $targetKey): array {
+            $nameKey = strtolower(trim((string) ($row['name'] ?? '')));
+            $row[$targetKey] = (string) ($counts[$nameKey] ?? 0);
+
+            return $row;
+        }, $rows);
+    }
+
+    /** @return array<string, int> */
+    private function completedSessionCounts(): array
+    {
+        if (! Schema::hasTable('spa_bookings') || ! Schema::hasColumn('spa_bookings', 'therapist_name')) {
+            return [];
+        }
+
+        $query = SpaBooking::query()->whereNotNull('therapist_name');
+        if (Schema::hasColumn('spa_bookings', 'completed_at') && Schema::hasColumn('spa_bookings', 'session_status')) {
+            $query->where(function ($completed): void {
+                $completed->whereNotNull('completed_at')
+                    ->orWhere('session_status', SpaBooking::STATUS_COMPLETED);
+            });
+        } elseif (Schema::hasColumn('spa_bookings', 'completed_at')) {
+            $query->whereNotNull('completed_at');
+        } elseif (Schema::hasColumn('spa_bookings', 'session_status')) {
+            $query->where('session_status', SpaBooking::STATUS_COMPLETED);
+        } else {
+            return [];
+        }
+
+        return $query
+            ->selectRaw('LOWER(TRIM(therapist_name)) AS therapist_key, COUNT(*) AS aggregate')
+            ->groupByRaw('LOWER(TRIM(therapist_name))')
+            ->pluck('aggregate', 'therapist_key')
+            ->map(fn ($count): int => (int) $count)
+            ->all();
     }
 }

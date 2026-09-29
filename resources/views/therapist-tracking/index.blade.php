@@ -229,7 +229,6 @@
                                                             data-service-hours-pct="{{ (int) ($t['service_hours_pct'] ?? 0) }}"
                                                             data-specializations="{{ implode(', ', array_map('strval', $t['specializations'] ?? [])) }}"
                                                             data-certifications="{{ implode(', ', array_map('strval', $t['certifications'] ?? [])) }}"
-                                                            data-sessions-label="{{ $t['sessions_label'] ?? '' }}"
                                                             data-accent-color="{{ $t['accent_color'] ?? '#8fa89a' }}"
                                                             data-is-active="{{ !empty($t['is_active']) ? '1' : '0' }}"
                                                             aria-label="Edit {{ $t['name'] }}"
@@ -363,7 +362,7 @@
                                                 'overflowClass' => 'more',
                                             ])
                                         </div>
-                                        <p class="tt-manage-meta">{{ $t['sessions_label'] ?: '0' }} sessions</p>
+                                        <p class="tt-manage-meta">{{ $t['sessions_label'] ?: '0' }} completed sessions</p>
                                         <div class="tt-manage-actions">
                                             <button
                                                 type="button"
@@ -385,7 +384,6 @@
                                                 data-service-hours-pct="{{ (int) ($t['service_hours_pct'] ?? 0) }}"
                                                 data-specializations="{{ implode(', ', array_map('strval', $t['specializations'] ?? [])) }}"
                                                 data-certifications="{{ $certs }}"
-                                                data-sessions-label="{{ $t['sessions_label'] ?? '' }}"
                                                 data-accent-color="{{ $t['accent_color'] ?? '#8fa89a' }}"
                                                 data-is-active="{{ !empty($t['is_active']) ? '1' : '0' }}"
                                             >Edit profile</button>
@@ -481,10 +479,6 @@
                                         <label for="ttCertifications">Certifications</label>
                                         <textarea id="ttCertifications" name="certifications" rows="3" placeholder="Licensed Massage Therapist (LMT), CPR & First Aid Certified"></textarea>
                                         <small>Separate each certification with a comma.</small>
-                                    </div>
-                                    <div class="tt-field">
-                                        <label for="ttSessionsLabel">Sessions completed label</label>
-                                        <input id="ttSessionsLabel" name="sessions_label" type="text" placeholder="e.g., 1,200+">
                                     </div>
                                     <div class="tt-field">
                                         <label for="ttAccentColor">Card accent color</label>
@@ -682,7 +676,6 @@
                 formData.append('role', formEl.querySelector('[name="role"]')?.value?.trim() || '');
                 formData.append('bio', formEl.querySelector('[name="bio"]')?.value?.trim() || '');
                 formData.append('certifications', formEl.querySelector('[name="certifications"]')?.value?.trim() || '');
-                formData.append('sessions_label', formEl.querySelector('[name="sessions_label"]')?.value?.trim() || '');
                 formData.append('accent_color', formEl.querySelector('[name="accent_color"]')?.value?.trim() || '#8fa89a');
                 const isActive = formEl.querySelector('[name="is_active"]');
                 formData.append('is_active', (isActive?.checked ?? true) ? '1' : '0');
@@ -765,7 +758,6 @@
                     serviceHoursPct: Math.max(0, Math.min(parseInt(String(ttCurrentServicePct), 10) || 0, 100)),
                     specializations: specStr,
                     certifications: form.querySelector('[name="certifications"]')?.value?.trim() || '',
-                    sessionsLabel: form.querySelector('[name="sessions_label"]')?.value?.trim() || '',
                     accentColor: form.querySelector('[name="accent_color"]')?.value?.trim() || '#8fa89a',
                     isActive: form.querySelector('[name="is_active"]')?.checked === true,
                     initials,
@@ -892,8 +884,6 @@
                 if (bioEl) bioEl.value = '';
                 const certsEl = form?.querySelector('[name="certifications"]');
                 if (certsEl) certsEl.value = '';
-                const sessionsEl = form?.querySelector('[name="sessions_label"]');
-                if (sessionsEl) sessionsEl.value = '';
                 const accentEl = form?.querySelector('[name="accent_color"]');
                 if (accentEl) accentEl.value = '#8fa89a';
                 const activeEl = form?.querySelector('[name="is_active"]');
@@ -933,8 +923,6 @@
                 setSelectedSpecs(parseSpecs(ds.specializations || ''));
                 const certsEl = form?.querySelector('[name="certifications"]');
                 if (certsEl) certsEl.value = ds.certifications || '';
-                const sessionsEl = form?.querySelector('[name="sessions_label"]');
-                if (sessionsEl) sessionsEl.value = ds.sessionsLabel || ds.sessionslabel || '';
                 const accentEl = form?.querySelector('[name="accent_color"]');
                 if (accentEl) accentEl.value = ds.accentColor || ds.accentcolor || '#8fa89a';
                 const activeEl = form?.querySelector('[name="is_active"]');

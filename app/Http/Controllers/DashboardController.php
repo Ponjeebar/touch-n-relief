@@ -27,7 +27,6 @@ use App\Services\WalkInClientService;
 use App\Support\PaymentMethodCatalog;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,7 +73,6 @@ class DashboardController extends Controller
 
     public function users(): View
     {
-        $this->ensureReceptionistsTableExists();
         $this->removeWalkInCustomerRecords();
 
         $usersByEmail = User::query()
@@ -1729,7 +1727,6 @@ class DashboardController extends Controller
             'landing_photo' => $photoUrl === null ? ($validated['landing_photo'] ?? null) : null,
             'specializations' => $this->parseCommaList($validated['specializations'] ?? ''),
             'certifications' => $this->parseCommaList($validated['certifications'] ?? ''),
-            'sessions_label' => $validated['sessions_label'] ?? null,
             'accent_color' => $validated['accent_color'] ?? '#8fa89a',
             'status' => 'available',
             'total_hours' => 0,
@@ -1797,7 +1794,6 @@ class DashboardController extends Controller
         $therapist->avatar_initials = $initials !== '' ? $initials : 'TT';
         $therapist->specializations = $this->parseCommaList($validated['specializations'] ?? '');
         $therapist->certifications = $this->parseCommaList($validated['certifications'] ?? '');
-        $therapist->sessions_label = $validated['sessions_label'] ?? null;
         $therapist->accent_color = $validated['accent_color'] ?? $therapist->accent_color;
         $therapist->is_active = $this->therapistIsActiveFromRequest($request, defaultActive: (bool) $therapist->is_active);
         if (isset($validated['sort_order'])) {
@@ -1840,7 +1836,6 @@ class DashboardController extends Controller
             'birthday' => ['nullable', 'date'],
             'specializations' => ['nullable', 'string'],
             'certifications' => ['nullable', 'string'],
-            'sessions_label' => ['nullable', 'string', 'max:30'],
             'accent_color' => ['nullable', 'string', 'max:20'],
             'landing_photo' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
@@ -2387,7 +2382,28 @@ class DashboardController extends Controller
 
     public function reportingBackup(): StreamedResponse|RedirectResponse
     {
-        $tables = ['users', 'customers', 'receptionists', 'therapists', 'spa_services', 'membership_plans', 'time_slots', 'spa_bookings', 'payment_ledger_entries', 'transactions', 'registrations', 'site_settings'];
+        $tables = [
+            'users',
+            'customers',
+            'receptionists',
+            'therapists',
+            'spa_services',
+            'membership_plans',
+            'time_slots',
+            'service_time_slots',
+            'store_closures',
+            'service_slot_date_overrides',
+            'spa_bookings',
+            'payment_ledger_entries',
+            'transactions',
+            'registrations',
+            'social_accounts',
+            'user_password_histories',
+            'customer_notifications',
+            'staff_notifications',
+            'activity_logs',
+            'site_settings',
+        ];
 
         try {
             $data = [];
@@ -2396,10 +2412,14 @@ class DashboardController extends Controller
                     $data[$table] = DB::table($table)->get()->map(fn ($row) => (array) $row)->all();
                 }
             }
+            $encodedTables = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
             $payload = json_encode([
                 'application' => 'TOUCHnRELIEF',
                 'generated_at' => now()->toIso8601String(),
-                'format_version' => 1,
+                'format_version' => 2,
+                'contains_sensitive_data' => true,
+                'record_counts' => collect($data)->map(fn (array $rows): int => count($rows))->all(),
+                'tables_sha256' => hash('sha256', $encodedTables),
                 'tables' => $data,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         } catch (\Throwable $exception) {
@@ -2420,7 +2440,9 @@ class DashboardController extends Controller
         return response()->streamDownload(function () use ($payload): void {
             echo $payload;
         }, $downloadName, [
+            'Cache-Control' => 'no-store, private',
             'Content-Type' => 'application/json; charset=UTF-8',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
@@ -2991,8 +3013,6 @@ class DashboardController extends Controller
 
     public function storeReceptionist(Request $request): RedirectResponse
     {
-        $this->ensureReceptionistsTableExists();
-
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:receptionists,username'],
@@ -3048,8 +3068,6 @@ class DashboardController extends Controller
 
     public function updateReceptionist(Request $request, Receptionist $receptionist): RedirectResponse
     {
-        $this->ensureReceptionistsTableExists();
-
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:receptionists,username,'.$receptionist->id],
@@ -3105,8 +3123,6 @@ class DashboardController extends Controller
 
     public function destroyReceptionist(Request $request, Receptionist $receptionist): RedirectResponse
     {
-        $this->ensureReceptionistsTableExists();
-
         if ($receptionist->isArchived()) {
             return redirect()->route('users.index', ['tab' => 'receptionists'])
                 ->with('status', 'This receptionist is already archived.');
@@ -3129,54 +3145,6 @@ class DashboardController extends Controller
 
         return redirect()->route('users.index', ['tab' => 'receptionists'])
             ->with('status', 'Receptionist archived successfully. Their login is disabled but records are preserved.');
-    }
-
-    private function ensureReceptionistsTableExists(): void
-    {
-        if (Schema::hasTable('receptionists')) {
-            // Ensure the newer column exists (older DBs might not be migrated).
-            if (! Schema::hasColumn('receptionists', 'full_name')) {
-                Schema::table('receptionists', function ($table): void {
-                    /** @var Blueprint $table */
-                    $table->string('full_name')->nullable()->after('receptionist_id');
-                });
-            }
-            if (! Schema::hasColumn('receptionists', 'address')) {
-                Schema::table('receptionists', function ($table): void {
-                    /** @var Blueprint $table */
-                    $table->string('address')->nullable()->after('email');
-                });
-            }
-            if (! Schema::hasColumn('receptionists', 'phone_number')) {
-                Schema::table('receptionists', function ($table): void {
-                    /** @var Blueprint $table */
-                    $table->string('phone_number', 30)->nullable()->after('address');
-                });
-            }
-            if (! Schema::hasColumn('receptionists', 'birthday')) {
-                Schema::table('receptionists', function ($table): void {
-                    /** @var Blueprint $table */
-                    $table->date('birthday')->nullable()->after('phone_number');
-                });
-            }
-
-            return;
-        }
-
-        Schema::create('receptionists', function ($table): void {
-            /** @var Blueprint $table */
-            $table->id();
-            $table->string('receptionist_id')->unique();
-            $table->string('full_name')->nullable();
-            $table->string('username')->unique();
-            $table->string('email')->unique();
-            $table->string('address')->nullable();
-            $table->string('phone_number', 30)->nullable();
-            $table->date('birthday')->nullable();
-            $table->string('shift');
-            $table->string('profile_picture')->nullable();
-            $table->timestamps();
-        });
     }
 
     private function generateReceptionistId(): string

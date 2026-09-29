@@ -71,7 +71,7 @@ class OnboardingController extends Controller
             return false;
         }
 
-        if (str_starts_with($url, '/')) {
+        if (str_starts_with($url, '/') && ! str_starts_with($url, '//') && ! str_contains($url, '\\')) {
             return true;
         }
 

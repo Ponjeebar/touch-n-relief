@@ -319,7 +319,7 @@
                                     @endforeach
                                 </div>
                                 <p class="therapist-meta">
-                                    <span>{{ $therapist['sessions'] }} sessions</span>
+                                    <span>{{ $therapist['sessions'] }} completed sessions</span>
                                 </p>
                             </div>
                             <a href="{{ route('booking.index', ['therapist' => $therapist['name']]) }}" class="therapist-book" data-stop-card-click>Book with {{ explode(' ', $therapist['name'])[0] }}</a>
