@@ -11,6 +11,7 @@
     <title>@yield('title') — TouchNRelief</title>
     <link rel="icon" type="image/png" sizes="64x64" href="{{ asset('favicon-64.png') }}">
     <link rel="stylesheet" href="{{ asset('css/error-pages.css') }}?v={{ filemtime(public_path('css/error-pages.css')) }}">
+    @include('partials.page-transition-assets')
     <script>
         try {
             if (localStorage.getItem('tnr-theme') === 'dark') {

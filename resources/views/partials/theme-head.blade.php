@@ -3,6 +3,7 @@
 <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 <link rel="stylesheet" href="{{ asset('css/password-capslock.css') }}">
 <link rel="stylesheet" href="{{ asset('css/password-toggle.css') }}">
+@include('partials.page-transition-assets')
 <script src="{{ asset('js/password-capslock.js') }}" defer></script>
 <script src="{{ asset('js/password-toggle.js') }}" defer></script>
 <script>

@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="{{ asset('css/booking.css') }}?v={{ filemtime(public_path('css/booking.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/payment-receipt.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    @include('partials.page-transition-assets')
     @include('partials.chatbot-assets')
     @include('partials.customer-tour-assets', ['tourPage' => 'booking.create'])
 </head>
