@@ -1,3 +1,2 @@
 release: php artisan migrate --force
-web: heroku-php-apache2 public/
-clock: php artisan schedule:work
+web: php artisan schedule:work & exec heroku-php-apache2 public/
