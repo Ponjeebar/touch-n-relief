@@ -332,7 +332,7 @@
         activeTour = window.driver.js.driver({
             steps: visibleSteps, popoverClass: 'tnr-customer-tour', showProgress: true,
             progressText: '{{current}} of {{total}}', nextBtnText: 'Next', prevBtnText: 'Back', doneBtnText: 'Finish',
-            smoothScroll: true, allowClose: true, allowKeyboardControl: true, overlayOpacity: 0.72,
+            smoothScroll: true, allowClose: false, allowKeyboardControl: true, overlayOpacity: 0.72,
             stagePadding: 8, stageRadius: 10, skipMissingElement: true,
             animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
             onDestroyed: function () { markSeen(); cleanupTutorialExamples(); activeTour = null; },
