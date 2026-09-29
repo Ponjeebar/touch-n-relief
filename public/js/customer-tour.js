@@ -124,6 +124,14 @@
     }
 
     function staffPageSteps() {
+        var pageIntroductions = {
+            'appointments.index': ['Appointments guide', 'Learn the booking, payment, rescheduling, cancellation, and session-start workflow on this page.'],
+            'ongoing-sessions.index': ['Ongoing Sessions guide', 'Learn how to monitor active treatments and move finished work into completed history.'],
+            'completed-sessions.index': ['Completed Sessions guide', 'Learn how to review finished treatments, totals, date ranges, and session notes.'],
+            'therapist-tracking.index': ['Therapist Monitoring guide', 'Learn how availability, specialties, and completed service hours support therapist assignment.'],
+            'client-records.index': ['Client Records guide', 'Learn how to locate the correct customer and open their complete record.'],
+            'client-records.show': ['Customer record guide', 'Learn how to verify customer details and review their appointment and transaction history.'],
+        };
         var pageSteps = {
             'appointments.index': [
                 step(['.topbar .welcome', '.appointments-head'], 'Appointments workspace', 'Create and manage customer and walk-in bookings.'),
@@ -186,12 +194,11 @@
             ],
         };
 
-        return staffFoundationSteps().concat(pageSteps[page] || [
+        var pageIntroduction = pageIntroductions[page] || ['Page guide', 'Learn the controls and records available in this staff workspace.'];
+
+        return [introduction(pageIntroduction[0], pageIntroduction[1])].concat(pageSteps[page] || [
             step(['main .topbar', 'main header', 'main h1'], 'Current workspace', 'The heading identifies the staff task on this page.'),
             step(['main section', 'main .data-card', 'main table'], 'Controls and records', 'Use the visible controls to review and update permitted records.'),
-        ]).concat([
-            step(['[data-topbar-notif-sync]', '.topbar-notifications'], 'Stay updated', 'Open notifications for booking and payment activity.', 'bottom', 'end'),
-            step(['#tnr-profile-menu-trigger'], 'Your account', 'Update your profile, replay this guide, or sign out.', 'bottom', 'end'),
         ]);
     }
 
