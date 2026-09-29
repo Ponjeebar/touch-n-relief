@@ -17,6 +17,28 @@
         document.body.appendChild(rescheduleModal);
     }
 
+    function syncTransactionsTriggers(open) {
+        document.querySelectorAll('[data-tnr-open-transactions]').forEach(function (trigger) {
+            trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+
+        var mobileShortcuts = document.querySelector('.customer-mobile-shortcuts');
+        if (!mobileShortcuts) return;
+
+        if (open) {
+            mobileShortcuts.querySelectorAll('[aria-current]').forEach(function (item) {
+                item.dataset.currentBeforeAppointments = item.getAttribute('aria-current') || 'page';
+                item.removeAttribute('aria-current');
+            });
+            return;
+        }
+
+        mobileShortcuts.querySelectorAll('[data-current-before-appointments]').forEach(function (item) {
+            item.setAttribute('aria-current', item.dataset.currentBeforeAppointments || 'page');
+            delete item.dataset.currentBeforeAppointments;
+        });
+    }
+
     function syncTransactionsUrl(open) {
         var url = new URL(window.location.href);
         if (open) {
@@ -33,6 +55,7 @@
         transactionsModal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('txn-modal-open');
         document.body.classList.remove('modal-open');
+        syncTransactionsTriggers(false);
         syncTransactionsUrl(false);
     }
 
@@ -41,6 +64,7 @@
         transactionsModal.classList.remove('txn-modal-hidden');
         transactionsModal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('txn-modal-open');
+        syncTransactionsTriggers(true);
         syncTransactionsUrl(true);
         transactionsModal.querySelector('.txn-modal-close')?.focus();
     }

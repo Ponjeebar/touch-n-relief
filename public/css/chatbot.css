@@ -241,9 +241,9 @@ html[data-theme="dark"] .tnr-chat-actions a { color: #a8e4ba; }
 
 @media (max-width: 900px) {
     .booking-page-body .tnr-chat { display: none !important; }
-    body:has(.customer-mobile-shortcuts) .tnr-chat { bottom: calc(80px + env(safe-area-inset-bottom)); }
+    body:has(.customer-mobile-shortcuts) .tnr-chat { bottom: calc(94px + env(safe-area-inset-bottom)); }
     body:has(.customer-mobile-shortcuts) .tnr-chat-panel {
-        height: min(560px, calc(100dvh - 174px - env(safe-area-inset-bottom)));
+        height: min(560px, calc(100dvh - 188px - env(safe-area-inset-bottom)));
     }
 }
 
@@ -272,9 +272,9 @@ html[data-theme="dark"] .tnr-chat-actions a { color: #a8e4ba; }
 
     body:has(.customer-mobile-shortcuts) .tnr-chat-panel {
         right: 10px;
-        bottom: calc(82px + env(safe-area-inset-bottom));
+        bottom: calc(96px + env(safe-area-inset-bottom));
         left: 10px;
-        height: min(560px, calc(100dvh - 104px - env(safe-area-inset-bottom)));
+        height: min(560px, calc(100dvh - 118px - env(safe-area-inset-bottom)));
     }
 
     .tnr-chat-staff { right: 8px; bottom: 0; }

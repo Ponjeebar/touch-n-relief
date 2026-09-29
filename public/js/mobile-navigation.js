@@ -1,4 +1,24 @@
 (function () {
+    function syncCustomerMobileSection(sectionId) {
+        var shortcuts = document.querySelector('.customer-mobile-shortcuts');
+        if (!shortcuts) return;
+        if (shortcuts.querySelector('[data-customer-mobile-item="appointments"][aria-expanded="true"]')) return;
+
+        var home = shortcuts.querySelector('[data-customer-mobile-item="home"]');
+        var services = shortcuts.querySelector('[data-customer-mobile-item="services"]');
+        var servicesActive = sectionId === 'services';
+
+        if (home) {
+            if (servicesActive) home.removeAttribute('aria-current');
+            else home.setAttribute('aria-current', 'page');
+        }
+
+        if (services) {
+            if (servicesActive) services.setAttribute('aria-current', 'location');
+            else services.removeAttribute('aria-current');
+        }
+    }
+
     function setupMenu(rootSelector, buttonSelector, openClass, query) {
         var root = document.querySelector(rootSelector);
         var button = root && root.querySelector(buttonSelector);
@@ -50,7 +70,7 @@
         });
         if (!header || !sections.length) return;
 
-        var activeId = '';
+        var activeId = null;
         var scheduled = false;
 
         function setActive(id) {
@@ -62,6 +82,7 @@
                 if (active) item.link.setAttribute('aria-current', 'location');
                 else item.link.removeAttribute('aria-current');
             });
+            syncCustomerMobileSection(id);
         }
 
         function update() {
