@@ -134,6 +134,20 @@
 
 .tnr-chat-message.is-pending { color: #66736c; font-style: italic; }
 
+.tnr-chat-message.is-pending::after {
+    content: '';
+    display: inline-block;
+    width: 1.1em;
+    height: .35em;
+    margin-left: .35em;
+    background: radial-gradient(circle closest-side, currentColor 90%, transparent) 0 50% / 33% 100% repeat-x;
+    animation: tnr-chat-thinking 1s steps(3) infinite;
+}
+
+@keyframes tnr-chat-thinking {
+    50% { opacity: .35; }
+}
+
 .tnr-chat-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .tnr-chat-actions a { color: #045b3f; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
 
@@ -145,6 +159,12 @@
     padding: 10px 12px;
     border-top: 1px solid #e1e9e3;
     background: #fff;
+}
+
+.tnr-chat-prompts[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .tnr-chat-message.is-pending::after { animation: none; }
 }
 
 .tnr-chat-prompts button {

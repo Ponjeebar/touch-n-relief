@@ -1,7 +1,37 @@
 @php
     $userTransactions = $userTransactions ?? [];
+    $upcomingCount = collect($userTransactions)->where('appointment_group', 'upcoming')->count();
+    $historyCount = collect($userTransactions)->where('appointment_group', 'history')->count();
+    $initialAppointmentGroup = $upcomingCount > 0 ? 'upcoming' : 'history';
 @endphp
 @if (count($userTransactions) > 0)
+    <div class="txn-group-tabs" role="group" aria-label="Appointment sections">
+        <button
+            type="button"
+            class="txn-group-tab {{ $initialAppointmentGroup === 'upcoming' ? 'is-active' : '' }}"
+            aria-pressed="{{ $initialAppointmentGroup === 'upcoming' ? 'true' : 'false' }}"
+            aria-controls="txn-cards-list"
+            data-txn-group="upcoming"
+        >
+            <span>Upcoming</span>
+            <span class="txn-group-count" data-txn-group-count="upcoming">{{ $upcomingCount }}</span>
+        </button>
+        <button
+            type="button"
+            class="txn-group-tab {{ $initialAppointmentGroup === 'history' ? 'is-active' : '' }}"
+            aria-pressed="{{ $initialAppointmentGroup === 'history' ? 'true' : 'false' }}"
+            aria-controls="txn-cards-list"
+            data-txn-group="history"
+        >
+            <span>History</span>
+            <span class="txn-group-count" data-txn-group-count="history">{{ $historyCount }}</span>
+        </button>
+    </div>
+    <p class="txn-group-description" id="txn-group-description">
+        {{ $initialAppointmentGroup === 'upcoming'
+            ? 'Confirmed appointments and active payment holds.'
+            : 'Completed, cancelled, expired, and past appointments.' }}
+    </p>
     <div class="txn-toolbar">
         <div class="txn-toolbar-field">
             <label class="txn-sort-label" for="txn-date-filter">Date</label>
@@ -64,6 +94,7 @@
                 data-duration="{{ strtolower((string) ($txn['duration'] ?? '')) }}"
                 data-amount-raw="{{ $txn['amount_raw'] ?? 0 }}"
                 data-has-amount="{{ (float) ($txn['amount_raw'] ?? 0) > 0 ? '1' : '0' }}"
+                data-appointment-group="{{ $txn['appointment_group'] ?? 'history' }}"
                 @if (! empty($txn['booking_id'])) data-booking-id="{{ $txn['booking_id'] }}" @endif
             >
                 <div class="txn-card-top">

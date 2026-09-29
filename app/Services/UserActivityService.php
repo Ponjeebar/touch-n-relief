@@ -70,6 +70,7 @@ class UserActivityService
                 'amount_raw' => $amountRaw,
                 'status' => 'Completed session',
                 'session_status' => SpaBooking::STATUS_COMPLETED,
+                'appointment_group' => 'history',
                 'sort_ts' => $this->sortTimestamp($date, (string) $row->time),
                 'activity_ts' => $this->sortTimestamp($date, (string) $row->time),
                 'can_cancel' => false,

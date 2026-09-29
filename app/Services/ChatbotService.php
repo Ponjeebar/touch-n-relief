@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Schema;
 
 class ChatbotService
 {
+    /** @var array{topic?: string, subject?: string} */
+    private array $conversationContext = [];
+
     public function __construct(
         private readonly SpaServiceCatalog $catalog,
         private readonly SiteSettingsService $settings,
@@ -17,22 +20,45 @@ class ChatbotService
     ) {}
 
     /**
-     * @return array{reply: string, actions: list<array{label: string, url: string}>}
+     * @param  array<string, mixed>  $context
+     * @return array{reply: string, actions: list<array{label: string, url: string}>, suggestions: list<string>, context: array<string, string>}
      */
-    public function answer(string $message, ?User $user): array
+    public function answer(string $message, ?User $user, array $context = []): array
     {
-        $question = mb_strtolower(trim($message));
+        $this->conversationContext = $this->sanitizeContext($context);
+        $question = preg_replace('/\s+/u', ' ', mb_strtolower(trim($message))) ?? mb_strtolower(trim($message));
         $staff = $user !== null && ($user->isAdmin() || $user->isReceptionist());
 
-        if (in_array($question, ['hello', 'hi', 'hey', 'help', 'menu'], true)) {
+        if ($this->has($question, ['thank you', 'thanks', 'thankyou', 'salamat'])) {
+            return $this->respond(
+                'You’re welcome! Is there anything else I can help you with?',
+                [],
+                ($this->conversationContext['topic'] ?? null) === 'appointments'
+                    ? ['Can I reschedule?', 'Can I cancel?', 'Book another appointment']
+                    : ['Services and prices', 'Business hours', 'How do I book?'],
+            );
+        }
+
+        if ($this->has($question, ['goodbye', 'bye', 'see you'])) {
+            return $this->respond('Take care! We’ll be here whenever you’re ready to plan your next visit.', [], []);
+        }
+
+        if ($followUp = $this->followUp($question, $user)) {
+            return $followUp;
+        }
+
+        if ($this->isGreeting($question)) {
             if ($staff) {
                 return $this->roleHelp($user);
             }
 
             return $this->respond(
-                'Hi! I can help with services, prices, hours, location, booking, and account questions.'
-                .($user ? ' You can also ask about your appointments or account.' : ' Sign in to ask about your own appointments.'),
+                $this->greeting($user).' How can I help you today? I can answer questions about services, prices, hours, location, and booking.'
+                .($user ? ' I can also check your upcoming appointments.' : ' Sign in when you need help with your own appointments.'),
                 $user ? [$this->action('Book an appointment', 'booking.index')] : $this->guestActions(),
+                $user
+                    ? ['My appointments', 'Services and prices', 'Can I reschedule?', 'Business hours']
+                    : ['Services and prices', 'How do I book?', 'Business hours', 'Where are you located?'],
             );
         }
 
@@ -40,11 +66,11 @@ class ChatbotService
             return $staffReply;
         }
 
-        if ($this->has($question, ['resched', 'change my date', 'change my time', 'move my appointment'])) {
+        if ($this->has($question, ['resched', 'change my date', 'change my time', 'move my appointment', 'lipat appointment'])) {
             return $this->changeRules($question, $user, false);
         }
 
-        if ($this->has($question, ['cancel', 'refund'])) {
+        if ($this->has($question, ['cancel', 'refund', 'kansela'])) {
             return $this->changeRules($question, $user, true);
         }
 
@@ -73,18 +99,22 @@ class ChatbotService
                 .'Open your profile to review or update your details.', [$this->action('Open profile', 'profile.edit')]);
         }
 
-        if ($this->has($question, ['hour', 'open', 'closing', 'when are you'])) {
+        if ($this->has($question, ['hour', 'open', 'closing', 'when are you', 'oras', 'bukas ba'])) {
+            $this->remember('hours');
             $details = $this->settings->footer();
 
-            return $this->respond('The website currently lists these hours: '.$details['hours_weekday'].'; '
-                .$details['hours_weekend'].'; '.$details['hours_holidays'].'.');
+            return $this->respond("Here are our current spa hours:\n• ".$details['hours_weekday']."\n• "
+                .$details['hours_weekend']."\n• ".$details['hours_holidays'].'.', [],
+                ['Where are you located?', 'Services and prices', 'How do I book?']);
         }
 
-        if ($this->has($question, ['location', 'address', 'where are you', 'directions', 'contact', 'phone', 'email'])) {
+        if ($this->has($question, ['location', 'address', 'where are you', 'directions', 'contact', 'phone', 'email', 'saan'])) {
+            $this->remember('location');
             $details = $this->settings->footer();
 
-            return $this->respond('The website lists our address as '.$details['contact_address']
-                .'. You can contact the spa at '.$details['contact_phone'].' or '.$details['contact_email'].'.');
+            return $this->respond('You can find us at '.$details['contact_address'].'. You may also reach the spa at '
+                .$details['contact_phone'].' or '.$details['contact_email'].'.', [],
+                ['Business hours', 'Services and prices', 'How do I book?']);
         }
 
         if ($this->has($question, ['package', 'thera'])) {
@@ -95,7 +125,7 @@ class ChatbotService
             return $this->membership();
         }
 
-        if ($this->has($question, ['service', 'massage', 'treatment', 'price', 'cost', 'how much', 'rate'])) {
+        if ($this->has($question, ['service', 'massage', 'treatment', 'price', 'cost', 'how much', 'rate', 'magkano', 'presyo'])) {
             return $this->services($question);
         }
 
@@ -133,9 +163,12 @@ class ChatbotService
         }
 
         return $this->respond(
-            'I can help with services and prices, hours, location, booking, policies, and account questions. '
-            .($user ? 'You can also ask “What are my appointments?”' : 'Sign in for help with your own appointments.'),
+            'I’m sorry, I didn’t quite understand that. Could you say it another way, or choose one of the questions below? '
+            .($user ? 'I can also check your appointments.' : 'You can sign in for help with your own appointments.'),
             $user ? [$this->action('Book an appointment', 'booking.index')] : $this->guestActions(),
+            $user
+                ? ['My appointments', 'Services and prices', 'Can I reschedule?', 'Business hours']
+                : ['Services and prices', 'How do I book?', 'Business hours', 'Where are you located?'],
         );
     }
 
@@ -145,15 +178,19 @@ class ChatbotService
         $specific = collect($services)->first(fn (array $service): bool => str_contains($question, mb_strtolower((string) $service['name'])));
 
         if ($specific) {
+            $this->remember('services', (string) $specific['name']);
+
             return $this->respond($specific['name'].' costs '.$specific['price'].' and lasts '.$specific['duration'].'. '
                 .trim((string) ($specific['desc'] ?? '')),
-                [$this->servicesAction()]);
+                [$this->action('Book this service', 'booking.index', ['service' => $specific['name']])],
+                ['How do I book?', 'Show me the packages', 'What are your hours?']);
         }
 
+        $this->remember('services');
         $list = collect($services)->map(fn (array $service): string => '• '.$service['name'].' — '.$service['price'])->implode("\n");
 
         return $this->respond("Current services and prices:\n".$list."\nSelect a service on the website for details.",
-            [$this->servicesAction()]);
+            [$this->servicesAction()], ['Show me the packages', 'How do I book?', 'Business hours']);
     }
 
     private function packages(string $question): array
@@ -162,19 +199,25 @@ class ChatbotService
         $specific = collect($packages)->first(fn (array $package): bool => str_contains($question, mb_strtolower((string) $package['name'])));
 
         if ($specific) {
+            $this->remember('packages', (string) $specific['name']);
             $memberPrice = ! empty($specific['member_price']) ? ' Member price: '.$specific['member_price'].'.' : '';
 
             return $this->respond($specific['name'].' is '.$specific['price'].' for '.$specific['duration'].'.'.$memberPrice.' Includes: '.$specific['inclusions'].'.',
-                [$this->action('Book this package', 'booking.index', ['service' => $specific['name']])]);
+                [$this->action('Book this package', 'booking.index', ['service' => $specific['name']])],
+                ['How do I book?', 'Show individual services', 'Tell me about membership']);
         }
 
+        $this->remember('packages');
         $list = collect($packages)->map(fn (array $package): string => 'â€¢ '.$package['name'].' — '.$package['price'].' ('.$package['duration'].')')->implode("\n");
 
-        return $this->respond("Current THERA packages:\n".$list, [$this->servicesAction()]);
+        return $this->respond("Current THERA packages:\n".$list, [$this->servicesAction()],
+            ['Tell me about THERA #1', 'Tell me about membership', 'How do I book?']);
     }
 
     private function membership(): array
     {
+        $this->remember('membership');
+
         if (! Schema::hasTable('membership_plans')) {
             return $this->respond('Membership details are temporarily unavailable.');
         }
@@ -187,11 +230,14 @@ class ChatbotService
         $benefits = collect($plan->benefits ?? [])->implode('; ');
 
         return $this->respond($plan->name.' costs PHP '.number_format((float) $plan->price_amount, 2).'. '.$plan->description
-            .($benefits !== '' ? ' Benefits: '.$benefits.'.' : ''), [$this->servicesAction()]);
+            .($benefits !== '' ? ' Benefits: '.$benefits.'.' : ''), [$this->servicesAction()],
+            ['Show me the packages', 'Services and prices', 'How do I book?']);
     }
 
     private function appointments(string $question, ?User $user): array
     {
+        $this->remember('appointments');
+
         if (! $user) {
             return $this->signInFirst();
         }
@@ -219,12 +265,17 @@ class ChatbotService
                 [$this->appointmentsAction('View appointments'), $this->action('Book now', 'booking.index')]);
         }
 
-        return $this->respond('Your next appointments: '.$bookings->map(fn (SpaBooking $booking): string => $this->bookingSummary($booking))->implode(' '),
+        $summaries = $bookings
+            ->map(fn (SpaBooking $booking): string => '• '.$this->bookingSummary($booking))
+            ->implode("\n");
+
+        return $this->respond("Here’s what I found:\n".$summaries."\nWould you like help changing one?",
             [$this->appointmentsAction('Manage bookings')]);
     }
 
     private function changeRules(string $question, ?User $user, bool $cancel): array
     {
+        $this->remember('appointments');
         $operation = $cancel ? 'cancel' : 'reschedule';
         $general = 'You can '.$operation.' a booking before its appointment time if the session has not started or finished. ';
 
@@ -349,6 +400,88 @@ class ChatbotService
         return $this->respond('Please sign in to view information specific to your account or appointments.', $this->guestActions());
     }
 
+    private function followUp(string $question, ?User $user): ?array
+    {
+        $topic = $this->conversationContext['topic'] ?? null;
+        $subject = $this->conversationContext['subject'] ?? null;
+        $compact = trim($question, " \t\n\r\0\x0B?!.");
+        $refersToPrevious = $this->has($question, [' it', 'it ', 'that one', 'this one', 'does that', 'is that'])
+            || in_array($compact, ['how much', 'how long', 'what is included', 'what does it include', 'tell me more'], true);
+
+        if ($subject && $refersToPrevious && $topic === 'services') {
+            return $this->services(mb_strtolower($subject));
+        }
+
+        if ($subject && $refersToPrevious && $topic === 'packages') {
+            return $this->packages(mb_strtolower($subject));
+        }
+
+        if ($topic === 'appointments' && in_array($compact, ['what time', 'when is it', 'which therapist', 'tell me more'], true)) {
+            return $this->appointments('my appointments', $user);
+        }
+
+        if ($subject && in_array($compact, ['yes', 'yes please', 'sure', 'okay', 'ok'], true)
+            && in_array($topic, ['services', 'packages'], true)) {
+            return $this->respond(
+                'Great choice. You can open the booking page with '.$subject.' selected, then choose your therapist, date, and available time.',
+                [$this->action('Book '.$subject, 'booking.index', ['service' => $subject])],
+                ['Business hours', 'Can I pay a downpayment?', 'Show my appointments'],
+            );
+        }
+
+        return null;
+    }
+
+    private function isGreeting(string $question): bool
+    {
+        return preg_match('/^(hello|hi|hey|good morning|good afternoon|good evening|kumusta|help|menu)[!. ]*$/u', $question) === 1;
+    }
+
+    private function greeting(?User $user): string
+    {
+        $hour = (int) now()->format('G');
+        $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
+        $nameParts = $user ? (preg_split('/\s+/u', trim($user->name)) ?: []) : [];
+        $firstName = trim((string) ($nameParts[0] ?? ''));
+
+        return $greeting.($firstName !== '' ? ', '.$firstName.'!' : '!');
+    }
+
+    /** @param array<string, mixed> $context */
+    private function sanitizeContext(array $context): array
+    {
+        $allowedTopics = ['services', 'packages', 'membership', 'appointments', 'hours', 'location'];
+        $topic = is_string($context['topic'] ?? null) && in_array($context['topic'], $allowedTopics, true)
+            ? $context['topic']
+            : null;
+        $subject = is_string($context['subject'] ?? null)
+            ? mb_substr(trim($context['subject']), 0, 120)
+            : null;
+
+        return array_filter(['topic' => $topic, 'subject' => $subject]);
+    }
+
+    private function remember(string $topic, ?string $subject = null): void
+    {
+        $this->conversationContext = array_filter([
+            'topic' => $topic,
+            'subject' => $subject ? mb_substr(trim($subject), 0, 120) : null,
+        ]);
+    }
+
+    /** @return list<string> */
+    private function suggestionsForTopic(): array
+    {
+        return match ($this->conversationContext['topic'] ?? null) {
+            'services' => ['Show me the packages', 'How do I book?', 'Business hours'],
+            'packages' => ['Tell me about membership', 'Show individual services', 'How do I book?'],
+            'appointments' => ['Can I reschedule?', 'Can I cancel?', 'Book another appointment'],
+            'hours' => ['Where are you located?', 'Services and prices', 'How do I book?'],
+            'location' => ['Business hours', 'Services and prices', 'How do I book?'],
+            default => [],
+        };
+    }
+
     private function has(string $question, array $needles): bool
     {
         foreach ($needles as $needle) {
@@ -360,9 +493,14 @@ class ChatbotService
         return false;
     }
 
-    private function respond(string $reply, array $actions = []): array
+    private function respond(string $reply, array $actions = [], ?array $suggestions = null): array
     {
-        return ['reply' => $reply, 'actions' => $actions];
+        return [
+            'reply' => $reply,
+            'actions' => $actions,
+            'suggestions' => array_values($suggestions ?? $this->suggestionsForTopic()),
+            'context' => $this->conversationContext,
+        ];
     }
 
     private function action(string $label, string $route, array $parameters = []): array

@@ -112,6 +112,37 @@
     var sortSelect = document.getElementById('txn-sort-select');
     var filterEmpty = document.getElementById('txn-filter-empty');
     var cardsList = document.getElementById('txn-cards-list');
+    var groupTabs = Array.from(document.querySelectorAll('[data-txn-group]'));
+    var groupDescription = document.getElementById('txn-group-description');
+    var activeGroup = groupTabs.find(function (tab) {
+        return tab.getAttribute('aria-pressed') === 'true';
+    })?.getAttribute('data-txn-group') || 'upcoming';
+
+    function updateGroupCounts() {
+        if (!cardsList) return;
+        ['upcoming', 'history'].forEach(function (group) {
+            var count = cardsList.querySelectorAll('.txn-card[data-appointment-group="' + group + '"]').length;
+            document.querySelectorAll('[data-txn-group-count="' + group + '"]').forEach(function (el) {
+                el.textContent = String(count);
+            });
+        });
+    }
+
+    function setActiveGroup(group) {
+        if (group !== 'upcoming' && group !== 'history') return;
+        activeGroup = group;
+        groupTabs.forEach(function (tab) {
+            var selected = tab.getAttribute('data-txn-group') === group;
+            tab.classList.toggle('is-active', selected);
+            tab.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+        if (groupDescription) {
+            groupDescription.textContent = group === 'upcoming'
+                ? 'Confirmed appointments and active payment holds.'
+                : 'Completed, cancelled, expired, and past appointments.';
+        }
+        applySearchAndFilter();
+    }
 
     function compareByRecent(a, b, ascending) {
         var actA = Number(a.getAttribute('data-activity-ts')) || Number(a.getAttribute('data-sort-ts')) || 0;
@@ -170,6 +201,7 @@
         var chosenDate = (dateInput && dateInput.value ? dateInput.value : '').trim();
         var filter = filterSelect ? filterSelect.value : 'all';
         var visible = 0;
+        var inActiveGroup = 0;
 
         cardsList.querySelectorAll('.txn-card').forEach(function (card) {
             var haystack = [
@@ -186,14 +218,21 @@
             var matchesFilter = filter === 'all'
                 || (filter === 'with-amount' && hasAmount)
                 || (filter === 'without-amount' && !hasAmount);
+            var matchesGroup = (card.getAttribute('data-appointment-group') || 'history') === activeGroup;
+            if (matchesGroup) inActiveGroup += 1;
 
-            var show = matchesQuery && matchesDate && matchesFilter;
+            var show = matchesGroup && matchesQuery && matchesDate && matchesFilter;
             card.hidden = !show;
             if (show) visible += 1;
         });
 
         if (filterEmpty) {
             filterEmpty.classList.toggle('txn-hidden', visible > 0);
+            if (visible === 0) {
+                filterEmpty.textContent = inActiveGroup === 0
+                    ? (activeGroup === 'upcoming' ? 'You have no upcoming appointments.' : 'Your appointment history is empty.')
+                    : 'No appointments in this section match your search or filters.';
+            }
         }
 
         if (sortSelect) {
@@ -217,6 +256,13 @@
         applySearchAndFilter();
     });
 
+    groupTabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            setActiveGroup(tab.getAttribute('data-txn-group') || 'upcoming');
+        });
+    });
+
+    updateGroupCounts();
     applySearchAndFilter();
 
     var cancelForm = document.getElementById('tnr-cancel-booking-form');
@@ -345,6 +391,7 @@
     function markCardCancelled(card, reason, refundData) {
         if (!card) return;
         card.classList.remove('txn-card-cancellable');
+        card.setAttribute('data-appointment-group', 'history');
         var badge = card.querySelector('.txn-badge');
         if (badge) {
             badge.textContent = 'Cancelled booking';
@@ -407,6 +454,8 @@
                 statusPill.className = 'txn-payment-status txn-payment-status--' + displayedRefundStatus;
             }
         }
+        updateGroupCounts();
+        applySearchAndFilter();
     }
 
     cancelForm?.addEventListener('submit', function (e) {

@@ -4,5 +4,6 @@
         data-chatbot-url="{{ route('chatbot.reply') }}"
         data-chatbot-session-url="{{ route('chatbot.session') }}"
         data-chatbot-csrf="{{ csrf_token() }}"
+        data-chatbot-name="{{ auth()->user()?->name ?? '' }}"
         data-chatbot-role="{{ auth()->guest() ? 'guest' : (auth()->user()->isAdmin() ? 'admin' : (auth()->user()->isReceptionist() ? 'receptionist' : 'customer')) }}"></script>
 @endonce

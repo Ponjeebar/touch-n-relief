@@ -16,7 +16,15 @@ class ChatbotController extends Controller
     public function reply(Request $request, ChatbotService $chatbot): JsonResponse
     {
         $validated = $request->validate(['message' => ['required', 'string', 'min:2', 'max:500']]);
+        $identity = $request->user()?->id ? 'user:'.$request->user()->id : 'guest';
+        $stored = $request->session()->get('chatbot.context', []);
+        $context = is_array($stored) && ($stored['identity'] ?? null) === $identity ? $stored : [];
+        $result = $chatbot->answer($validated['message'], $request->user(), $context);
 
-        return response()->json($chatbot->answer($validated['message'], $request->user()));
+        $nextContext = is_array($result['context'] ?? null) ? $result['context'] : [];
+        $request->session()->put('chatbot.context', [...$nextContext, 'identity' => $identity]);
+        unset($result['context']);
+
+        return response()->json($result);
     }
 }

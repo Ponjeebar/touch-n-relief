@@ -151,7 +151,32 @@ class CustomerPaymentRecoveryTest extends TestCase
 
         $row = app(SpaSessionService::class)->toUserTransactionRow($booking->fresh());
         $this->assertSame('Payment hold expired', $row['status']);
+        $this->assertSame('history', $row['appointment_group']);
         $this->assertFalse($row['can_resume_payment']);
+    }
+
+    public function test_active_and_expired_payment_holds_are_separated_in_my_appointments(): void
+    {
+        Carbon::setTestNow('2026-09-24 09:00:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $activeBooking = $this->pendingBooking($customer);
+        $expiredBooking = $this->pendingBooking($customer);
+        $expiredBooking->forceFill([
+            'created_at' => now()->subMinutes(15),
+            'updated_at' => now()->subMinutes(15),
+        ])->saveQuietly();
+
+        $sessionService = app(SpaSessionService::class);
+        $this->assertSame('upcoming', $sessionService->toUserTransactionRow($activeBooking)['appointment_group']);
+        $this->assertSame('history', $sessionService->toUserTransactionRow($expiredBooking->fresh())['appointment_group']);
+
+        $this->actingAs($customer)
+            ->get(route('landing'))
+            ->assertOk()
+            ->assertSee('data-txn-group="upcoming"', false)
+            ->assertSee('data-txn-group="history"', false)
+            ->assertSee('data-appointment-group="upcoming"', false)
+            ->assertSee('data-appointment-group="history"', false);
     }
 
     public function test_late_payment_is_cancelled_and_refunded_when_released_slot_was_taken(): void

@@ -96,6 +96,17 @@ class SpaSessionService
         $paymentAmountRaw = (float) ($booking->payment_amount ?? 0);
         $displayAmountRaw = $amountRaw > 0 ? $amountRaw : $paymentAmountRaw;
         $durationMinutes = (int) ($booking->duration_minutes ?? 0);
+        $sortTimestamp = $this->sortTimestamp($date, (string) $booking->time_slot);
+        $terminalStatus = in_array($status, [
+            SpaBooking::STATUS_CANCELLED,
+            SpaBooking::STATUS_COMPLETED,
+            SpaBooking::STATUS_NO_SHOW,
+        ], true);
+        $sessionHasEnded = $status === SpaBooking::STATUS_CONFIRMED
+            && ($this->sessionEndAt($booking)?->lte(now()) ?? false);
+        $appointmentGroup = $booking->isPaymentHoldExpired() || $terminalStatus || $sessionHasEnded
+            ? 'history'
+            : 'upcoming';
 
         return [
             'booking_id' => $booking->id,
@@ -118,7 +129,8 @@ class SpaSessionService
                     ? 'Payment pending'
                     : $this->userTransactionLabel($status))),
             'session_status' => $status,
-            'sort_ts' => $this->sortTimestamp($date, (string) $booking->time_slot),
+            'appointment_group' => $appointmentGroup,
+            'sort_ts' => $sortTimestamp,
             'activity_ts' => $this->activityTimestamp($booking),
             'can_cancel' => false,
             'can_resume_payment' => $status === SpaBooking::STATUS_CONFIRMED

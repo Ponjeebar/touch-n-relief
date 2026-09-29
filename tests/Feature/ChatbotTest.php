@@ -61,6 +61,44 @@ class ChatbotTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('message');
     }
 
+    public function test_chatbot_remembers_a_service_for_natural_follow_up_questions(): void
+    {
+        $this->postJson(route('chatbot.reply'), ['message' => 'How much is Hot Stone?'])
+            ->assertOk()
+            ->assertSee('Hot Stone')
+            ->assertSee('PHP 145.00')
+            ->assertJsonPath('actions.0.label', 'Book this service')
+            ->assertJsonStructure(['suggestions']);
+
+        $this->postJson(route('chatbot.reply'), ['message' => 'How long is it?'])
+            ->assertOk()
+            ->assertSee('Hot Stone')
+            ->assertSee('90 min')
+            ->assertJsonMissingPath('context');
+    }
+
+    public function test_chatbot_handles_local_phrasing_and_personalized_conversation(): void
+    {
+        $customer = User::factory()->create([
+            'role' => User::ROLE_USER,
+            'name' => 'Maria Santos',
+        ]);
+
+        $this->postJson(route('chatbot.reply'), ['message' => 'Magkano ang Thai Massage?'])
+            ->assertOk()
+            ->assertSee('Thai Massage')
+            ->assertSee('PHP 110.00');
+
+        $this->actingAs($customer)->postJson(route('chatbot.reply'), ['message' => 'Hello'])
+            ->assertOk()
+            ->assertSee('Maria')
+            ->assertJsonPath('suggestions.0', 'My appointments');
+
+        $this->actingAs($customer)->postJson(route('chatbot.reply'), ['message' => 'Salamat'])
+            ->assertOk()
+            ->assertSee('welcome');
+    }
+
     public function test_chatbot_session_endpoint_returns_a_fresh_csrf_token(): void
     {
         $this->getJson(route('chatbot.session'))
