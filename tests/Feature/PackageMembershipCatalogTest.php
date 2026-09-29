@@ -59,6 +59,25 @@ class PackageMembershipCatalogTest extends TestCase
             ->assertRedirect(route('dashboard'));
     }
 
+    public function test_booking_page_renders_the_guided_step_before_javascript_initializes(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+
+        $this->actingAs($customer)
+            ->get(route('booking.index'))
+            ->assertOk()
+            ->assertSee('class="booking-grid booking-mobile-wizard-ready"', false)
+            ->assertSee('data-mobile-step="date"', false)
+            ->assertSee('booking-panel-schedule is-mobile-active', false);
+
+        $this->actingAs($customer)
+            ->get(route('booking.index', ['date' => now()->addDay()->toDateString()]))
+            ->assertOk()
+            ->assertSee('data-mobile-step="service"', false)
+            ->assertSee('booking-panel-service is-mobile-active', false)
+            ->assertSee('aria-disabled="false"', false);
+    }
+
     public function test_staff_can_create_a_package_without_turning_it_into_an_individual_service(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);

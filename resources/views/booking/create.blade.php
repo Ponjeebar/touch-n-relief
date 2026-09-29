@@ -73,21 +73,50 @@
                 </div>
             @endif
 
+            @php
+                $bookingInitialDate = (string) old('booking_date', request('date', ''));
+                $bookingInitialService = (string) old('service', $selectedServiceName ?? '');
+                $bookingInitialTherapist = (string) old('therapist', $selectedTherapistName ?? '');
+                $bookingHasService = collect($services)->contains(
+                    fn ($service) => ($service['name'] ?? '') === $bookingInitialService
+                );
+                $bookingHasTherapist = collect($therapists)->contains(
+                    fn ($therapist) => ($therapist['name'] ?? '') === $bookingInitialTherapist
+                        && ! empty($therapist['is_bookable'])
+                );
+                $bookingInitialStep = blank($bookingInitialDate)
+                    ? 'date'
+                    : (! $bookingHasService
+                        ? 'service'
+                        : (! $bookingHasTherapist ? 'therapist' : 'time'));
+                $bookingServiceEnabled = filled($bookingInitialDate);
+                $bookingTherapistEnabled = $bookingServiceEnabled && $bookingHasService;
+                $bookingStepOrder = ['date', 'service', 'therapist', 'time'];
+                $bookingInitialStepIndex = array_search($bookingInitialStep, $bookingStepOrder, true);
+            @endphp
             <div class="booking-layout">
-            <div class="booking-grid" id="booking-grid" data-mobile-step="date">
+            <div class="booking-grid booking-mobile-wizard-ready" id="booking-grid" data-mobile-step="{{ $bookingInitialStep }}">
                 <div class="booking-mobile-progress" aria-label="Booking progress">
-                    <button type="button" class="booking-mobile-back" id="booking-mobile-back" aria-label="Go to the previous booking step">
+                    <button type="button" class="booking-mobile-back" id="booking-mobile-back" aria-label="Go to the previous booking step" @if ($bookingInitialStep === 'date') hidden @endif>
                         <i class="bi bi-arrow-left" aria-hidden="true"></i>
                         Back
                     </button>
                     <ol>
-                        <li data-booking-progress="date"><span>1</span>Date</li>
-                        <li data-booking-progress="service"><span>2</span>Service</li>
-                        <li data-booking-progress="therapist"><span>3</span>Therapist</li>
-                        <li data-booking-progress="time"><span>4</span>Time</li>
+                        @foreach ($bookingStepOrder as $bookingStepIndex => $bookingStep)
+                            <li
+                                data-booking-progress="{{ $bookingStep }}"
+                                @class([
+                                    'is-active' => $bookingStep === $bookingInitialStep,
+                                    'is-complete' => $bookingStepIndex < $bookingInitialStepIndex,
+                                ])
+                                @if ($bookingStep === $bookingInitialStep) aria-current="step" @endif
+                            >
+                                <span>{{ $bookingStepIndex + 1 }}</span>{{ ucfirst($bookingStep) }}
+                            </li>
+                        @endforeach
                     </ol>
                 </div>
-                <section class="booking-panel booking-panel-schedule" id="booking-panel-schedule">
+                <section class="booking-panel booking-panel-schedule {{ in_array($bookingInitialStep, ['date', 'time'], true) ? 'is-mobile-active' : '' }}" id="booking-panel-schedule">
                     <h2>
                         <span class="booking-heading-desktop">1. Your Schedule</span>
                         <span class="booking-heading-mobile booking-heading-mobile-date">1. Choose a Date</span>
@@ -125,7 +154,16 @@
                     </form>
                 </section>
 
-                <section class="booking-panel booking-panel-service is-locked" id="booking-panel-service" aria-disabled="true">
+                <section
+                    @class([
+                        'booking-panel',
+                        'booking-panel-service',
+                        'is-locked' => ! $bookingServiceEnabled,
+                        'is-mobile-active' => $bookingInitialStep === 'service',
+                    ])
+                    id="booking-panel-service"
+                    aria-disabled="{{ $bookingServiceEnabled ? 'false' : 'true' }}"
+                >
                     <h2>2. Choose a Service</h2>
                     <p class="booking-panel-lock-hint" id="service-lock-hint">Select a date first to choose a service.</p>
                     <div class="service-list" id="service-list">
@@ -169,7 +207,17 @@
                     </div>
                 </section>
 
-                <section class="booking-panel booking-panel-therapist is-locked {{ !empty($fromLandingTherapist) ? 'therapist-from-landing' : '' }}" id="booking-panel-therapist" aria-disabled="true">
+                <section
+                    @class([
+                        'booking-panel',
+                        'booking-panel-therapist',
+                        'is-locked' => ! $bookingTherapistEnabled,
+                        'is-mobile-active' => $bookingInitialStep === 'therapist',
+                        'therapist-from-landing' => ! empty($fromLandingTherapist),
+                    ])
+                    id="booking-panel-therapist"
+                    aria-disabled="{{ $bookingTherapistEnabled ? 'false' : 'true' }}"
+                >
                     <h2>3. Choose Your Therapist</h2>
                     <p class="booking-panel-lock-hint" id="therapist-lock-hint">Select a service first to choose a therapist.</p>
                     <p class="booking-therapist-hint" id="booking-therapist-hint" hidden></p>
