@@ -45,6 +45,95 @@
         return description + '<span class="tnr-tour-example"><strong>Example:</strong> ' + exampleText + '</span>';
     }
 
+    function hideDuringTour(element) {
+        if (!element) return;
+        element.dataset.tourWasHidden = element.hidden ? '1' : '0';
+        element.hidden = true;
+    }
+
+    function prepareOngoingSessionExample() {
+        var cards = document.getElementById('ongoing-cards');
+        if (!cards || cards.querySelector('[data-session-card]')) return;
+
+        hideDuringTour(cards.querySelector('[data-ongoing-empty]'));
+
+        var example = document.createElement('article');
+        example.className = 'ongoing-card tnr-tour-demo-record';
+        example.dataset.tourDemo = 'ongoing';
+        example.innerHTML = [
+            '<span class="tnr-tour-demo-label">Tutorial example</span>',
+            '<div class="ongoing-head">',
+                '<div><div class="ongoing-client-row"><h3>Sample Customer</h3></div><p>Therapist: Juan dela Cruz</p></div>',
+                '<button class="complete-btn" type="button" tabindex="-1" aria-disabled="true" data-tour-demo-action>',
+                    '<i class="bi bi-check-circle"></i> Complete Session',
+                '</button>',
+            '</div>',
+            '<div class="ongoing-meta-grid">',
+                '<div class="meta-box"><span class="meta-label">Service</span><strong>Hot Stone</strong></div>',
+                '<div class="meta-box"><span class="meta-label">Duration</span><strong>60 minutes</strong></div>',
+                '<div class="meta-box"><span class="meta-label">Elapsed Time</span><strong>15 minutes</strong></div>',
+                '<div class="meta-box"><span class="meta-label">Remaining</span><strong><i class="bi bi-clock"></i> 45 minutes</strong></div>',
+            '</div>',
+            '<div class="progress-row"><span class="meta-label">Progress</span><span class="progress-pct">25%</span></div>',
+            '<div class="progress-track" role="progressbar" aria-label="Tutorial session progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="25"><span style="width: 25%"></span></div>',
+            '<div class="ongoing-footer"><span class="meta-label">Session Price</span><strong>PHP 145.00</strong></div>',
+        ].join('');
+        cards.appendChild(example);
+    }
+
+    function prepareCompletedSessionExample() {
+        var tableBody = document.getElementById('completed-txn-tbody');
+        if (!tableBody || tableBody.querySelector('[data-completed-search-row="true"]')) return;
+
+        hideDuringTour(tableBody.querySelector('[data-completed-empty="true"]'));
+
+        var example = document.createElement('tr');
+        example.className = 'tnr-tour-demo-record';
+        example.dataset.tourDemo = 'completed';
+        example.dataset.completedSearchRow = 'true';
+        example.innerHTML = [
+            '<td><strong>TXN-DEMO</strong><span class="tnr-tour-demo-label">Tutorial example</span></td>',
+            '<td>Sample Customer</td>',
+            '<td>Tutorial</td>',
+            '<td>Juan dela Cruz</td>',
+            '<td>Hot Stone</td>',
+            '<td>Sep 29, 2026 2:00 PM</td>',
+            '<td>60 min</td>',
+            '<td class="amount">PHP 145.00</td>',
+            '<td><button type="button" class="notes-btn" tabindex="-1" aria-disabled="true" data-tour-demo-action>View Example Notes</button></td>',
+        ].join('');
+        tableBody.insertBefore(example, document.getElementById('completed-search-empty'));
+    }
+
+    function prepareTutorialExamples() {
+        if (role !== 'receptionist') return;
+        if (page === 'ongoing-sessions.index') prepareOngoingSessionExample();
+        if (page === 'completed-sessions.index') prepareCompletedSessionExample();
+    }
+
+    function cleanupTutorialExamples() {
+        document.querySelectorAll('[data-tour-demo]').forEach(function (example) { example.remove(); });
+        document.querySelectorAll('[data-tour-was-hidden]').forEach(function (element) {
+            element.hidden = element.dataset.tourWasHidden === '1';
+            delete element.dataset.tourWasHidden;
+        });
+    }
+
+    function resolveVisibleSteps(steps) {
+        return steps.reduce(function (visibleSteps, tourStep) {
+            if (!Object.prototype.hasOwnProperty.call(tourStep, 'element')) {
+                visibleSteps.push(tourStep);
+                return visibleSteps;
+            }
+
+            var element = typeof tourStep.element === 'function' ? tourStep.element() : tourStep.element;
+            if (!isVisible(element)) return visibleSteps;
+
+            visibleSteps.push(Object.assign({}, tourStep, { element: element }));
+            return visibleSteps;
+        }, []);
+    }
+
     function customerLandingSteps() {
         return [
             introduction('Welcome to TouchNRelief', 'This guide follows the complete customer journey: compare treatments, choose a therapist, book and pay, then manage every appointment status.'),
@@ -233,13 +322,20 @@
         if (!window.driver?.js?.driver) return;
         closeMenus();
         activeTour?.destroy();
+        cleanupTutorialExamples();
+        prepareTutorialExamples();
+        var visibleSteps = resolveVisibleSteps(buildSteps(scope));
+        if (!visibleSteps.length) {
+            cleanupTutorialExamples();
+            return;
+        }
         activeTour = window.driver.js.driver({
-            steps: buildSteps(scope), popoverClass: 'tnr-customer-tour', showProgress: true,
+            steps: visibleSteps, popoverClass: 'tnr-customer-tour', showProgress: true,
             progressText: '{{current}} of {{total}}', nextBtnText: 'Next', prevBtnText: 'Back', doneBtnText: 'Finish',
             smoothScroll: true, allowClose: true, allowKeyboardControl: true, overlayOpacity: 0.72,
             stagePadding: 8, stageRadius: 10, skipMissingElement: true,
             animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-            onDestroyed: function () { markSeen(); activeTour = null; },
+            onDestroyed: function () { markSeen(); cleanupTutorialExamples(); activeTour = null; },
         });
         activeTour.drive();
     }

@@ -99,6 +99,11 @@ class CustomerTourTest extends TestCase
         $this->assertStringNotContainsString('return staffFoundationSteps().concat(pageSteps[page]', $tourScript);
         $this->assertStringContainsString("'Appointments guide'", $tourScript);
         $this->assertStringContainsString("'Client Records guide'", $tourScript);
+        $this->assertStringContainsString("example.dataset.tourDemo = 'ongoing'", $tourScript);
+        $this->assertStringContainsString("example.dataset.tourDemo = 'completed'", $tourScript);
+        $this->assertStringContainsString('prepareTutorialExamples()', $tourScript);
+        $this->assertStringContainsString('resolveVisibleSteps(buildSteps(scope))', $tourScript);
+        $this->assertStringContainsString('cleanupTutorialExamples()', $tourScript);
     }
 
     public function test_completing_wellness_onboarding_starts_the_tour_on_the_next_landing_visit(): void
