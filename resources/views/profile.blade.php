@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="{{ asset('css/password-toggle.css') }}">
     <script src="{{ asset('js/password-capslock.js') }}" defer></script>
     <script src="{{ asset('js/password-toggle.js') }}" defer></script>
+    @include('partials.customer-tour-assets', ['tourPage' => 'profile.edit'])
     <style>
         body{
             font-family:"Inter","Segoe UI",Arial,sans-serif;

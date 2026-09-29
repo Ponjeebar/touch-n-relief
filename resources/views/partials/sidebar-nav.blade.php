@@ -190,6 +190,7 @@
         <i class="bi bi-grid" aria-hidden="true"></i><span>More</span>
     </button>
 </nav>
+@include('partials.customer-tour-assets')
 @once
     <script src="{{ asset('js/mobile-navigation.js') }}" defer></script>
 @endonce

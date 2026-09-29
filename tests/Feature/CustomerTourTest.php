@@ -27,7 +27,49 @@ class CustomerTourTest extends TestCase
             ->assertOk()
             ->assertSee('data-start-customer-tour', false)
             ->assertSee('driver.js@1.8.0', false)
+            ->assertSee('data-customer-tour-role="customer"', false)
             ->assertSee('data-customer-tour-auto-start="0"', false);
+    }
+
+    public function test_customer_receives_contextual_tours_on_booking_and_profile_pages(): void
+    {
+        $customer = User::factory()->create([
+            'role' => User::ROLE_USER,
+            'profile_completed_at' => now(),
+        ]);
+
+        $this->actingAs($customer)
+            ->get(route('booking.index'))
+            ->assertOk()
+            ->assertSee('data-customer-tour-page="booking.create"', false)
+            ->assertSee('Booking guide');
+
+        $this->actingAs($customer)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertSee('data-customer-tour-page="profile.edit"', false)
+            ->assertSee('driver.js@1.8.0', false);
+    }
+
+    public function test_receptionist_gets_first_visit_and_replay_tours_across_staff_pages(): void
+    {
+        $receptionist = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+
+        $this->actingAs($receptionist)
+            ->get(route('receptionist.dashboard'))
+            ->assertOk()
+            ->assertSee('data-customer-tour-role="receptionist"', false)
+            ->assertSee('data-customer-tour-page="receptionist.dashboard"', false)
+            ->assertSee('data-customer-tour-auto-start="1"', false)
+            ->assertSee('data-start-customer-tour', false)
+            ->assertSee('Take a tour');
+
+        $this->actingAs($receptionist)
+            ->get(route('appointments.index'))
+            ->assertOk()
+            ->assertSee('data-customer-tour-page="appointments.index"', false)
+            ->assertSee('data-customer-tour-auto-start="0"', false)
+            ->assertSee('data-start-customer-tour', false);
     }
 
     public function test_completing_wellness_onboarding_starts_the_tour_on_the_next_landing_visit(): void

@@ -43,6 +43,12 @@
                 <span>Activity Log</span>
             </a>
         @endif
+        @if ($u->isReceptionist())
+            <button type="button" class="profile-dropdown-item" data-start-customer-tour role="menuitem">
+                <span class="profile-dropdown-icon" aria-hidden="true"><i class="bi bi-signpost-split"></i></span>
+                <span>Take a tour</span>
+            </button>
+        @endif
         @if (! $u->isAdmin() && ! $u->isReceptionist())
             <button type="button" class="profile-dropdown-item" data-tnr-open-transactions role="menuitem">
                 <span class="profile-dropdown-icon" aria-hidden="true"><i class="bi bi-receipt"></i></span>

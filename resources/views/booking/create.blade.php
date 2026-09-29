@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ asset('css/payment-receipt.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     @include('partials.chatbot-assets')
+    @include('partials.customer-tour-assets', ['tourPage' => 'booking.create'])
 </head>
 <body class="booking-page-body">
     @include('partials.landing-nav', ['navMode' => 'booking', 'solidNav' => true])
@@ -29,10 +30,18 @@
                             ? 'Back to dashboard'
                             : 'Back to home';
                     @endphp
-                    <a class="booking-return-link" href="{{ $bookingReturnUrl }}">
-                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
-                        <span>{{ $bookingReturnLabel }}</span>
-                    </a>
+                    <div class="booking-head-actions">
+                        <a class="booking-return-link" href="{{ $bookingReturnUrl }}">
+                            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                            <span>{{ $bookingReturnLabel }}</span>
+                        </a>
+                        @if (auth()->user()?->isUser() && ! auth()->user()?->isWalkIn())
+                            <button type="button" class="booking-return-link booking-guide-button" data-start-customer-tour>
+                                <i class="bi bi-signpost-split" aria-hidden="true"></i>
+                                <span>Booking guide</span>
+                            </button>
+                        @endif
+                    </div>
                     <div class="booking-head-copy">
                         <p class="booking-eyebrow">Appointment Booking</p>
                         <h1>Secure Your Wellness Session</h1>

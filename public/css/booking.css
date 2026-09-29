@@ -105,6 +105,18 @@ body:has(.booking-page) {
     min-width: 0;
 }
 
+.booking-head-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+}
+
+.booking-guide-button {
+    cursor: pointer;
+    font-family: inherit;
+}
+
 .booking-return-link {
     position: relative;
     z-index: 1;
@@ -131,6 +143,11 @@ body:has(.booking-page) {
     border-color: rgba(216, 235, 243, 0.72);
     background: rgba(8, 30, 38, 0.52);
     transform: translateX(-2px);
+}
+
+.booking-guide-button:hover,
+.booking-guide-button:focus-visible {
+    transform: none;
 }
 
 .booking-return-link:focus-visible {
