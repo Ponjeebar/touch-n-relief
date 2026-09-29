@@ -36,8 +36,20 @@ class AccessibilityMarkupTest extends TestCase
             ->assertSee('data-customer-mobile-item="book"', false)
             ->assertSee('data-customer-mobile-item="appointments"', false)
             ->assertSee('data-customer-mobile-item="profile"', false)
-            ->assertSee('customer-mobile-shortcut-primary', false)
+            ->assertDontSee('customer-mobile-shortcut-primary', false)
             ->assertSee('aria-controls="tnr-transactions-modal"', false)
             ->assertSee('aria-expanded="false"', false);
+
+        $profileResponse = $this->actingAs($customer)->get(route('profile.edit'));
+
+        $profileResponse->assertOk();
+        $this->assertMatchesRegularExpression(
+            '/<a\b(?=[^>]*data-customer-mobile-item="book")(?![^>]*aria-current=)[^>]*>/',
+            $profileResponse->getContent()
+        );
+        $this->assertMatchesRegularExpression(
+            '/<a\b(?=[^>]*data-customer-mobile-item="profile")(?=[^>]*aria-current="page")[^>]*>/',
+            $profileResponse->getContent()
+        );
     }
 }

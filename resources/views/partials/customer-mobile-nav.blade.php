@@ -9,7 +9,7 @@
                 <span class="customer-mobile-shortcut-icon"><i class="bi bi-grid" aria-hidden="true"></i></span>
                 <span class="customer-mobile-shortcut-label">Services</span>
             </a>
-            <a class="customer-mobile-shortcut-primary" href="{{ route('booking.index') }}" data-customer-mobile-item="book" data-customer-tour="book" @if(request()->routeIs('booking.index')) aria-current="page" @endif>
+            <a href="{{ route('booking.index') }}" data-customer-mobile-item="book" data-customer-tour="book" @if(request()->routeIs('booking.index')) aria-current="page" @endif>
                 <span class="customer-mobile-shortcut-icon"><i class="bi bi-calendar-plus" aria-hidden="true"></i></span>
                 <span class="customer-mobile-shortcut-label">Book</span>
             </a>
