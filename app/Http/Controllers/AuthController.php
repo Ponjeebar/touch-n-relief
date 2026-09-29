@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\AuthVerificationCode;
 use App\Models\User;
 use App\Rules\NotRecentlyUsedPassword;
@@ -175,10 +176,19 @@ class AuthController extends Controller
         }
 
         $rememberCustomer = $request->boolean('remember') && $user->isUser();
+        $isFirstReceptionistLogin = $user->isReceptionist()
+            && ! ActivityLog::query()
+                ->where('user_id', $user->getKey())
+                ->where('action', 'login')
+                ->exists();
 
         Auth::login($user, $rememberCustomer);
 
         $request->session()->regenerate();
+
+        if ($isFirstReceptionistLogin) {
+            $request->session()->put('receptionist_tour_enabled', true);
+        }
 
         ActivityLogger::log(
             'login',

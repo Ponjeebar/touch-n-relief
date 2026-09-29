@@ -54,7 +54,7 @@ class CustomerTourTest extends TestCase
             ->assertSee('driver.js@1.8.0', false);
     }
 
-    public function test_receptionist_gets_first_visit_and_replay_tours_across_staff_pages(): void
+    public function test_existing_receptionist_gets_manual_replay_without_automatic_tours(): void
     {
         $receptionist = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
 
@@ -63,7 +63,7 @@ class CustomerTourTest extends TestCase
             ->assertOk()
             ->assertSee('data-customer-tour-role="receptionist"', false)
             ->assertSee('data-customer-tour-page="receptionist.dashboard"', false)
-            ->assertSee('data-customer-tour-auto-start="1"', false)
+            ->assertSee('data-customer-tour-auto-start="0"', false)
             ->assertSee('data-start-customer-tour', false)
             ->assertSee('Take a tour');
 
@@ -71,8 +71,42 @@ class CustomerTourTest extends TestCase
             ->get(route('appointments.index'))
             ->assertOk()
             ->assertSee('data-customer-tour-page="appointments.index"', false)
-            ->assertSee('data-customer-tour-auto-start="1"', false)
+            ->assertSee('data-customer-tour-auto-start="0"', false)
             ->assertSee('data-start-customer-tour', false);
+    }
+
+    public function test_new_receptionist_gets_automatic_tours_during_the_first_login_session_only(): void
+    {
+        $receptionist = User::factory()->create([
+            'role' => User::ROLE_RECEPTIONIST,
+            'password' => 'CorrectPassword123!',
+        ]);
+
+        $this->post(route('login.attempt'), [
+            'login' => $receptionist->email,
+            'password' => 'CorrectPassword123!',
+        ])->assertRedirect(route('receptionist.dashboard'))
+            ->assertSessionHas('receptionist_tour_enabled', true);
+
+        $this->get(route('receptionist.dashboard'))
+            ->assertOk()
+            ->assertSee('data-customer-tour-auto-start="1"', false);
+
+        $this->get(route('appointments.index'))
+            ->assertOk()
+            ->assertSee('data-customer-tour-auto-start="1"', false);
+
+        $this->post(route('logout'))->assertRedirect(route('login'));
+
+        $this->post(route('login.attempt'), [
+            'login' => $receptionist->email,
+            'password' => 'CorrectPassword123!',
+        ])->assertRedirect(route('receptionist.dashboard'))
+            ->assertSessionMissing('receptionist_tour_enabled');
+
+        $this->get(route('receptionist.dashboard'))
+            ->assertOk()
+            ->assertSee('data-customer-tour-auto-start="0"', false);
     }
 
     public function test_receptionist_training_covers_every_major_operational_page_with_examples(): void
@@ -85,7 +119,7 @@ class CustomerTourTest extends TestCase
                 ->assertOk()
                 ->assertSee('data-customer-tour-role="receptionist"', false)
                 ->assertSee('data-customer-tour-page="'.$routeName.'"', false)
-                ->assertSee('data-customer-tour-auto-start="1"', false);
+                ->assertSee('data-customer-tour-auto-start="0"', false);
         }
 
         $tourScript = file_get_contents(public_path('js/customer-tour.js'));
@@ -99,6 +133,10 @@ class CustomerTourTest extends TestCase
         $this->assertStringNotContainsString('return staffFoundationSteps().concat(pageSteps[page]', $tourScript);
         $this->assertStringContainsString("'Appointments guide'", $tourScript);
         $this->assertStringContainsString("'Client Records guide'", $tourScript);
+        $this->assertLessThan(
+            strpos($tourScript, "step(['a[href*=\"/appointments\"]']"),
+            strpos($tourScript, "step(['a[href*=\"/ongoing-sessions\"]']")
+        );
         $this->assertStringContainsString("example.dataset.tourDemo = 'ongoing'", $tourScript);
         $this->assertStringContainsString("example.dataset.tourDemo = 'completed'", $tourScript);
         $this->assertStringContainsString('prepareTutorialExamples()', $tourScript);

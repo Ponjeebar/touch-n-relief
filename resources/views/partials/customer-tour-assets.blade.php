@@ -8,9 +8,11 @@
     }
 
     $autoStartCustomerTour = (bool) session()->pull('customer_tour_pending', false);
+    $autoStartReceptionistTour = $tourRole === 'receptionist'
+        && (bool) session('receptionist_tour_enabled', false);
     $tourPage = $tourPage ?? Route::currentRouteName() ?? 'page';
     $autoStartTour = $autoStartCustomerTour
-        || $tourRole === 'receptionist'
+        || $autoStartReceptionistTour
         || in_array($tourPage, ['booking.create', 'profile.edit'], true);
 @endphp
 @once
