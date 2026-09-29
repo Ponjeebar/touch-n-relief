@@ -19,6 +19,7 @@
         @endif
         @if (! $user->isAdmin() && ! $user->isReceptionist())
             <button type="button" role="menuitem" class="nav-user-menu-btn" data-tnr-open-transactions>My Appointments</button>
+            <button type="button" role="menuitem" class="nav-user-menu-btn" data-start-customer-tour>Take a tour</button>
         @endif
         <form method="POST" action="{{ route('logout') }}">
             @csrf

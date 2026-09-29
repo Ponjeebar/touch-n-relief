@@ -81,6 +81,7 @@
         @endif
     @endauth
         @include('partials.chatbot-assets')
+        @include('partials.customer-tour-assets')
     </head>
 <body id="top">
     @include('partials.landing-nav', ['navMode' => 'full'])
@@ -95,7 +96,7 @@
             </p>
             <div class="hero-actions reveal delay-4">
                 <a href="#services" class="btn btn-light">View Our Services</a>
-            <a href="{{ route('booking.index') }}" class="btn btn-outline hero-book-btn">Book Now</a>
+            <a href="{{ route('booking.index') }}" class="btn btn-outline hero-book-btn" data-customer-tour="book">Book Now</a>
             </div>
         </div>
     </section>

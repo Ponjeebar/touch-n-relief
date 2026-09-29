@@ -55,6 +55,8 @@ class OnboardingController extends Controller
             request: $request,
         );
 
+        $request->session()->put('customer_tour_pending', true);
+
         $returnTo = trim((string) $request->input('return_to', ''));
         if ($this->isSafeReturnTo($request, $returnTo)) {
             return redirect()->to($returnTo);
