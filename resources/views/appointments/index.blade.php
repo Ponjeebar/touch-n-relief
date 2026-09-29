@@ -155,6 +155,7 @@
                                 <div class="appointments-title">
                                     <h3>Clients</h3>
                                     <span class="appointments-sub" data-pill-group-current="true" @if(($isPastDay ?? false) === true) style="display:none" @endif>
+                                        <button class="pill all pill-filter" type="button" data-status-filter="">{{ $stats['total'] ?? 0 }} All Appointments</button>
                                         <button class="pill pending pill-filter" type="button" data-pill-pending="true" data-status-filter="pending">{{ $stats['pending'] ?? 0 }} Pending</button>
                                         <button class="pill rescheduled pill-filter" type="button" data-pill-rescheduled="true" data-status-filter="rescheduled">{{ $stats['rescheduled'] ?? 0 }} Rescheduled</button>
                                         <button class="pill confirmed pill-filter" type="button" data-pill-confirmed="true" data-status-filter="confirmed">{{ $stats['confirmed'] ?? 0 }} Confirmed</button>
@@ -163,6 +164,7 @@
                                         <button class="pill no-show pill-filter" type="button" data-pill-no-show="true" data-status-filter="no-show">{{ $stats['no_show'] ?? 0 }} No Show</button>
                                     </span>
                                     <span class="appointments-sub" data-pill-group-past="true" @if(($isPastDay ?? false) !== true) style="display:none" @endif>
+                                        <button class="pill all pill-filter" type="button" data-status-filter="">{{ $stats['total'] ?? 0 }} All Appointments</button>
                                         <button class="pill completed pill-filter" type="button" data-pill-completed="true" data-status-filter="completed">{{ $stats['completed'] ?? 0 }} Completed</button>
                                         <button class="pill cancelled pill-filter" type="button" data-pill-cancelled="true" data-status-filter="cancelled">{{ $stats['cancelled'] ?? 0 }} Cancelled</button>
                                         <button class="pill no-show pill-filter" type="button" data-pill-no-show="true" data-status-filter="no-show">{{ $stats['no_show'] ?? 0 }} No Show</button>
@@ -175,20 +177,9 @@
                                             Add Appointment
                                         </button>
                                     @endif
-                                    <a
-                                        class="icon-btn slim"
-                                        href="#"
-                                        data-appt-sort-status="true"
-                                        data-status-sort-current="{{ $statusSort }}"
-                                        data-status-sort-next="{{ $nextStatusSort }}"
-                                        aria-label="Sort by status"
-                                        title="Sort by status"
-                                    >
-                                        <i class="bi bi-list-check"></i>
-                                    </a>
-                                    <a class="icon-btn slim" href="{{ route('appointments.export', ['date' => $selectedDateIso]) }}" id="appointments-export-link" aria-label="Export appointments" title="Export appointments as CSV">
+                                    <button class="icon-btn slim" type="button" id="appointments-export-link" aria-label="Export appointments" title="Choose appointments to export">
                                         <i class="bi bi-download"></i>
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
 
@@ -207,6 +198,40 @@
                 </section>
             </main>
         </div>
+    </div>
+
+    <div class="profile-modal hidden-section" id="appointments-export-modal" role="dialog" aria-modal="true" aria-labelledby="appointments-export-title">
+        <div class="profile-modal-backdrop" data-close-appointments-export="true"></div>
+        <form class="profile-modal-content appointments-export-modal" method="GET" action="{{ route('appointments.export') }}">
+            <button class="profile-modal-close" type="button" aria-label="Close export options" data-close-appointments-export="true">&times;</button>
+            <h3 class="profile-modal-title" id="appointments-export-title">Export appointments</h3>
+            <p class="appointments-export-intro">Choose the date coverage and whether the current status filter should apply.</p>
+
+            <fieldset class="appointments-export-options">
+                <legend>Date coverage</legend>
+                <label><input type="radio" name="scope" value="today"> Today</label>
+                <label><input type="radio" name="scope" value="date" checked> Specific date</label>
+                <label><input type="radio" name="scope" value="range"> Custom date range</label>
+            </fieldset>
+            <div class="appointments-export-dates">
+                <label data-export-specific-date>Specific date<input type="date" name="specific_date" value="{{ $selectedDateIso }}"></label>
+                <label data-export-range hidden>From<input type="date" name="date_from" value="{{ $selectedDateIso }}"></label>
+                <label data-export-range hidden>To<input type="date" name="date_to" value="{{ $selectedDateIso }}"></label>
+            </div>
+
+            <fieldset class="appointments-export-options">
+                <legend>Status coverage</legend>
+                <label><input type="radio" name="status_scope" value="all" checked> All statuses</label>
+                <label><input type="radio" name="status_scope" value="current"> Current status filter</label>
+            </fieldset>
+            <input type="hidden" name="status_filter" id="appointments-export-status-filter" value="">
+            <input type="hidden" name="search" id="appointments-export-search" value="{{ $search ?? '' }}">
+            <div class="appointments-export-summary" id="appointments-export-summary" role="status"></div>
+            <div class="profile-modal-actions">
+                <button type="button" class="user-action" data-close-appointments-export="true">Cancel</button>
+                <button type="submit" class="user-action primary"><i class="bi bi-download" aria-hidden="true"></i> Download CSV</button>
+            </div>
+        </form>
     </div>
 
     @if ($isStaff ?? false)
@@ -2021,13 +2046,56 @@
         let currentStatusSort = statusSortBtn?.dataset.statusSortCurrent ?? 'asc';
         let currentStatusFilter = '';
 
-        document.getElementById('appointments-export-link')?.addEventListener('click', function (event) {
-            event.preventDefault();
-            const url = new URL(this.href, window.location.origin);
-            if (currentSelectedDateIso) url.searchParams.set('date', currentSelectedDateIso);
-            else url.searchParams.delete('date');
-            window.location.href = url.toString();
+        const exportModal = document.getElementById('appointments-export-modal');
+        const exportSummary = document.getElementById('appointments-export-summary');
+        const exportStatusFilter = document.getElementById('appointments-export-status-filter');
+        const exportSearch = document.getElementById('appointments-export-search');
+
+        function updateExportOptions() {
+            if (!exportModal) return;
+            const scope = exportModal.querySelector('input[name="scope"]:checked')?.value || 'date';
+            const specificDate = exportModal.querySelector('[name="specific_date"]');
+            const dateFrom = exportModal.querySelector('[name="date_from"]');
+            const dateTo = exportModal.querySelector('[name="date_to"]');
+            exportModal.querySelectorAll('[data-export-specific-date]').forEach((el) => { el.hidden = scope !== 'date'; });
+            exportModal.querySelectorAll('[data-export-range]').forEach((el) => { el.hidden = scope !== 'range'; });
+            if (specificDate) specificDate.required = scope === 'date';
+            if (dateFrom) dateFrom.required = scope === 'range';
+            if (dateTo) dateTo.required = scope === 'range';
+
+            const statusScope = exportModal.querySelector('input[name="status_scope"]:checked')?.value || 'all';
+            const currentStatusOption = exportModal.querySelector('input[name="status_scope"][value="current"]');
+            if (currentStatusOption) {
+                currentStatusOption.disabled = !currentStatusFilter;
+                if (!currentStatusFilter && currentStatusOption.checked) {
+                    exportModal.querySelector('input[name="status_scope"][value="all"]')?.click();
+                }
+            }
+            const statusLabel = currentStatusFilter
+                ? currentStatusFilter.replace('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+                : 'All statuses';
+            if (exportStatusFilter) exportStatusFilter.value = currentStatusFilter;
+            if (exportSearch) exportSearch.value = currentSearchQuery;
+            if (exportSummary) {
+                const dateLabel = scope === 'today' ? 'Today' : (scope === 'range' ? 'Custom date range' : formatDateLabelFromIso(specificDate?.value || currentSelectedDateIso));
+                exportSummary.textContent = `Export scope: ${dateLabel} · ${statusScope === 'current' ? statusLabel : 'All statuses'}${currentSearchQuery ? ' · Current search' : ''}`;
+            }
+        }
+
+        document.getElementById('appointments-export-link')?.addEventListener('click', function () {
+            if (!exportModal) return;
+            exportModal.classList.remove('hidden-section');
+            document.body.classList.add('modal-open');
+            updateExportOptions();
+            exportModal.querySelector('input[name="scope"]:checked')?.focus();
         });
+        exportModal?.querySelectorAll('[data-close-appointments-export]').forEach((el) => {
+            el.addEventListener('click', () => {
+                exportModal.classList.add('hidden-section');
+                document.body.classList.remove('modal-open');
+            });
+        });
+        exportModal?.querySelectorAll('input').forEach((input) => input.addEventListener('change', updateExportOptions));
 
         const initialParams = new URLSearchParams(window.location.search);
         const initialStatusFilter = (initialParams.get('status_filter') ?? '').toLowerCase();
@@ -2043,7 +2111,7 @@
             statusFilterButtons.forEach((btn) => {
                 if (!(btn instanceof HTMLElement)) return;
                 const value = btn.dataset.statusFilter ?? '';
-                btn.classList.toggle('is-active', value === currentStatusFilter && value !== '');
+                btn.classList.toggle('is-active', value === currentStatusFilter);
             });
         }
 
@@ -2166,6 +2234,7 @@
             const cancelled = meta?.getAttribute('data-cancelled') ?? null;
             const noShow = meta?.getAttribute('data-no-show') ?? null;
             const completed = meta?.getAttribute('data-completed') ?? null;
+            const total = meta?.getAttribute('data-total') ?? null;
             const isPastDay = meta?.getAttribute('data-is-past-day') === '1';
 
             const currentGroup = document.querySelector('[data-pill-group-current="true"]');
@@ -2203,6 +2272,11 @@
             if (completed !== null) {
                 document.querySelectorAll('[data-pill-completed="true"]').forEach((el) => {
                     el.textContent = `${completed} Completed`;
+                });
+            }
+            if (total !== null) {
+                document.querySelectorAll('.pill-filter[data-status-filter=""]').forEach((el) => {
+                    el.textContent = `${total} All Appointments`;
                 });
             }
 

@@ -8,6 +8,7 @@
         data-cancelled="{{ $stats['cancelled'] ?? 0 }}"
         data-no-show="{{ $stats['no_show'] ?? 0 }}"
         data-in-session="{{ $stats['in_session'] ?? 0 }}"
+        data-total="{{ $stats['total'] ?? 0 }}"
         data-is-past-day="{{ ($isPastDay ?? false) ? 1 : 0 }}"
         hidden
     ></div>

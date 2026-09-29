@@ -132,6 +132,7 @@ Route::middleware(['auth', 'admin', 'staff.activity'])->group(function () {
     Route::post('/dashboard/customers', [DashboardController::class, 'storeCustomer'])->name('dashboard.customers.store');
     Route::put('/dashboard/customers/{customer}', [DashboardController::class, 'updateCustomer'])->name('dashboard.customers.update');
     Route::delete('/dashboard/customers/{customer}', [DashboardController::class, 'destroyCustomer'])->name('dashboard.customers.destroy');
+    Route::patch('/dashboard/customers/{customer}/restore', [DashboardController::class, 'restoreCustomer'])->name('dashboard.customers.restore');
     Route::post('/dashboard/receptionists', [DashboardController::class, 'storeReceptionist'])->name('dashboard.receptionists.store');
     Route::put('/dashboard/receptionists/{receptionist}', [DashboardController::class, 'updateReceptionist'])->name('dashboard.receptionists.update');
     Route::delete('/dashboard/receptionists/{receptionist}', [DashboardController::class, 'destroyReceptionist'])->name('dashboard.receptionists.destroy');

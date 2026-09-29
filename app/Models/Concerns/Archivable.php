@@ -34,6 +34,21 @@ trait Archivable
         return $this->save();
     }
 
+    public function restoreFromArchive(): bool
+    {
+        if (! $this->hasArchivedColumn()) {
+            return false;
+        }
+
+        if (! $this->isArchived()) {
+            return true;
+        }
+
+        $this->archived_at = null;
+
+        return $this->save();
+    }
+
     /**
      * @param  Builder<static>  $query
      * @return Builder<static>

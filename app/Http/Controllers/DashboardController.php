@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\MembershipPlan;
 use App\Models\PaymentLedgerEntry;
@@ -142,21 +143,67 @@ class DashboardController extends Controller
     {
         $validated = $request->validate([
             'date' => ['nullable', 'date_format:Y-m-d'],
+            'scope' => ['nullable', Rule::in(['today', 'date', 'range'])],
+            'specific_date' => ['nullable', 'required_if:scope,date', 'date_format:Y-m-d'],
+            'date_from' => ['nullable', 'required_if:scope,range', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'required_if:scope,range', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+            'status_scope' => ['nullable', Rule::in(['all', 'current'])],
+            'status_filter' => ['nullable', Rule::in(['confirmed', 'pending', 'rescheduled', 'completed', 'cancelled', 'no-show', 'in-session'])],
+            'search' => ['nullable', 'string', 'max:100'],
         ]);
-        $date = $validated['date'] ?? now()->toDateString();
-        $bookings = SpaBooking::query()
+        $scope = $validated['scope'] ?? (isset($validated['date']) ? 'date' : 'today');
+        $from = match ($scope) {
+            'range' => Carbon::createFromFormat('Y-m-d', $validated['date_from'] ?? now()->toDateString())->startOfDay(),
+            'date' => Carbon::createFromFormat('Y-m-d', $validated['specific_date'] ?? $validated['date'] ?? now()->toDateString())->startOfDay(),
+            default => now()->startOfDay(),
+        };
+        $to = $scope === 'range'
+            ? Carbon::createFromFormat('Y-m-d', $validated['date_to'] ?? $from->format('Y-m-d'))->startOfDay()
+            : $from->copy();
+
+        $query = SpaBooking::query()
             ->visibleToStaff()
             ->with('user:id,name,email')
-            ->whereDate('booking_date', $date)
+            ->whereDate('booking_date', '>=', $from->format('Y-m-d'))
+            ->whereDate('booking_date', '<=', $to->format('Y-m-d'));
+
+        $statusFilter = ($validated['status_scope'] ?? 'all') === 'current'
+            ? ($validated['status_filter'] ?? null)
+            : null;
+
+        $search = trim((string) ($validated['search'] ?? ''));
+        if ($search !== '') {
+            $query->where(function ($searchQuery) use ($search): void {
+                $like = '%'.$search.'%';
+                $searchQuery->where('client_name', 'like', $like)
+                    ->orWhere('service_name', 'like', $like)
+                    ->orWhere('therapist_name', 'like', $like)
+                    ->orWhereHas('user', fn ($userQuery) => $userQuery->where('email', 'like', $like));
+            });
+        }
+
+        $bookings = $query
+            ->orderBy('booking_date')
             ->orderBy('time_slot')
             ->orderBy('id')
             ->get();
-        $filename = 'appointments-'.$date.'.csv';
+        if ($statusFilter !== null) {
+            $sessionService = app(SpaSessionService::class);
+            $bookings = $bookings
+                ->filter(function (SpaBooking $booking) use ($sessionService, $statusFilter): bool {
+                    $resolved = strtolower(str_replace(' ', '-', $sessionService->appointmentStatus($booking)));
+
+                    return $resolved === $statusFilter;
+                })
+                ->values();
+        }
+        $scopeSlug = $from->format('Y-m-d').($to->isSameDay($from) ? '' : '-to-'.$to->format('Y-m-d'));
+        $filename = 'appointments-'.$scopeSlug.($statusFilter ? '-'.$statusFilter : '').'.csv';
 
         ActivityLogger::log(
             'appointment.export',
             'Exported appointment records',
-            ['filename' => $filename, 'date' => $date, 'rows' => $bookings->count()],
+            ['filename' => $filename, 'from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d'), 'status' => $statusFilter ?? 'all', 'rows' => $bookings->count()],
             request: $request,
         );
 
@@ -266,6 +313,7 @@ class DashboardController extends Controller
 
         $validated = $request->validate([
             'return_to' => ['nullable', 'string', 'in:users.index,client-records.index'],
+            'archive_reason' => ['nullable', 'string', 'max:500'],
         ]);
         $returnTo = $validated['return_to'] ?? 'users.index';
 
@@ -279,11 +327,42 @@ class DashboardController extends Controller
         ActivityLogger::log(
             'customer.archived',
             'Archived customer '.$name,
-            ['email' => $email, 'customer_id' => $customerId],
+            ['email' => $email, 'customer_id' => $customerId, 'reason' => trim((string) ($validated['archive_reason'] ?? '')) ?: 'Manual archive'],
+            subject: $customer,
             request: $request,
         );
 
         return $this->redirectAfterCustomerWrite($returnTo, null, 'Customer archived successfully. Their records are kept but hidden from active lists.');
+    }
+
+    public function restoreCustomer(Request $request, Customer $customer): RedirectResponse
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'return_to' => ['nullable', 'string', 'in:users.index,client-records.index'],
+        ]);
+        $customer->restoreFromArchive();
+        if (Schema::hasColumn('users', 'archived_at')) {
+            User::query()
+                ->whereRaw('LOWER(email) = ?', [strtolower(trim((string) $customer->email))])
+                ->get()
+                ->each(fn (User $user) => $user->restoreFromArchive());
+        }
+
+        ActivityLogger::log(
+            'customer.restored',
+            'Restored customer '.$customer->full_name,
+            ['email' => $customer->email, 'customer_id' => $customer->customer_id],
+            subject: $customer,
+            request: $request,
+        );
+
+        return $this->redirectAfterCustomerWrite(
+            $validated['return_to'] ?? 'client-records.index',
+            $customer,
+            'Customer restored to active records successfully.',
+        );
     }
 
     private function ensureCatalogSeeded(): void
@@ -1456,41 +1535,52 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function therapistTracking(TherapistCatalog $catalog): View
+    public function therapistTracking(Request $request, TherapistCatalog $catalog): View
     {
         $this->ensureCatalogSeeded();
 
         $therapists = collect($catalog->forTracking());
+        $selectedYear = (int) $request->integer('year', (int) now()->year);
+        if ($selectedYear < 2000 || $selectedYear > ((int) now()->year + 1)) {
+            $selectedYear = (int) now()->year;
+        }
+        $targetHours = max((int) config('touchnrelief.therapist_annual_service_target_hours', 240), 1);
+        $serviceHourYears = collect([(int) now()->year]);
 
         if (Schema::hasTable('transactions') && Schema::hasColumn('transactions', 'therapist_id') && Schema::hasColumn('transactions', 'duration')) {
-            $minutesByTherapistId = DB::table('transactions')
-                ->selectRaw('therapist_id, SUM(duration) as total_minutes')
+            $transactionRows = DB::table('transactions')->get(['therapist_id', 'duration', 'date']);
+            $serviceHourYears = $transactionRows
+                ->map(fn ($row): int => (int) Carbon::parse((string) $row->date)->year)
+                ->push((int) now()->year)
+                ->unique()
+                ->sortDesc()
+                ->values();
+            if (! $serviceHourYears->contains($selectedYear)) {
+                $serviceHourYears = $serviceHourYears->push($selectedYear)->sortDesc()->values();
+            }
+            $minutesByTherapistId = $transactionRows
+                ->filter(fn ($row): bool => (int) Carbon::parse((string) $row->date)->year === $selectedYear)
                 ->groupBy('therapist_id')
-                ->pluck('total_minutes', 'therapist_id')
-                ->map(fn ($minutes) => (int) $minutes);
+                ->map(fn (Collection $rows): int => (int) $rows->sum('duration'));
+            $lifetimeMinutesByTherapistId = $transactionRows
+                ->groupBy('therapist_id')
+                ->map(fn (Collection $rows): int => (int) $rows->sum('duration'));
+            $therapistDatabaseIds = Therapist::query()->pluck('id', 'therapist_code');
 
-            $therapists = $therapists->map(function (array $therapist) use ($minutesByTherapistId): array {
+            $therapists = $therapists->map(function (array $therapist) use ($minutesByTherapistId, $lifetimeMinutesByTherapistId, $therapistDatabaseIds, $targetHours): array {
                 $therapistId = (string) ($therapist['id'] ?? '');
-                $numericId = preg_replace('/\D+/', '', $therapistId);
-                $dbId = $numericId !== '' ? (int) $numericId : null;
+                $dbId = $therapistDatabaseIds->has($therapistId)
+                    ? (int) $therapistDatabaseIds->get($therapistId)
+                    : null;
 
                 $minutes = 0;
                 if ($dbId !== null) {
                     $minutes = (int) ($minutesByTherapistId->get($dbId) ?? 0);
                 }
 
-                $therapist['total_hours'] = (int) round($minutes / 60);
-
-                return $therapist;
-            });
-
-            $fullServiceHoursWindow = 240;
-            $therapists = $therapists->map(function (array $therapist) use ($fullServiceHoursWindow): array {
-                $hours = (int) ($therapist['total_hours'] ?? 0);
-                $therapist['service_hours_pct'] = (int) round((max($hours, 0) / $fullServiceHoursWindow) * 100);
-                if ($therapist['service_hours_pct'] > 100) {
-                    $therapist['service_hours_pct'] = 100;
-                }
+                $therapist['total_hours'] = round($minutes / 60, 1);
+                $therapist['lifetime_hours'] = round(((int) ($lifetimeMinutesByTherapistId->get($dbId) ?? 0)) / 60, 1);
+                $therapist['service_hours_pct'] = min((int) round(($therapist['total_hours'] / $targetHours) * 100), 100);
 
                 return $therapist;
             });
@@ -1500,13 +1590,16 @@ class DashboardController extends Controller
             'total_therapists' => $therapists->count(),
             'available_now' => $therapists->where('status', 'available')->count(),
             'currently_busy' => $therapists->where('status', 'busy')->count(),
-            'avg_service_hours' => (int) round($therapists->avg('total_hours') ?? 0),
+            'avg_service_hours' => round((float) ($therapists->avg('total_hours') ?? 0), 1),
         ];
 
         return view('therapist-tracking.index', [
             'therapists' => $therapists,
             'stats' => $stats,
             'scheduleSettings' => app(SiteSettingsService::class)->therapistSchedule(),
+            'selectedServiceHoursYear' => $selectedYear,
+            'serviceHourYears' => $serviceHourYears,
+            'serviceHoursTarget' => $targetHours,
             'specializationOptions' => collect(app(SpaServiceCatalog::class)->all())
                 ->pluck('name')
                 ->filter()
@@ -1817,7 +1910,7 @@ class DashboardController extends Controller
         $this->syncCustomersFromRegisteredUsers();
 
         $sort = (string) $request->query('sort', 'all');
-        $allowedSorts = ['all', 'active', 'inactive', 'new_user'];
+        $allowedSorts = ['all', 'active', 'inactive', 'new_user', 'archived'];
         if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'all';
         }
@@ -1831,6 +1924,9 @@ class DashboardController extends Controller
         $lastBookingByUserId = collect();
         if (Schema::hasTable('spa_bookings') && Schema::hasColumn('spa_bookings', 'user_id')) {
             $lastBookingByUserId = SpaBooking::query()
+                ->where(function ($query): void {
+                    $query->whereNotNull('completed_at')->orWhere('session_status', SpaBooking::STATUS_COMPLETED);
+                })
                 ->whereNotNull('user_id')
                 ->selectRaw('user_id, MAX(booking_date) as last_booking_date')
                 ->groupBy('user_id')
@@ -1848,6 +1944,9 @@ class DashboardController extends Controller
         $lastBookingByClientName = collect();
         if (Schema::hasTable('spa_bookings') && Schema::hasColumn('spa_bookings', 'client_name')) {
             $lastBookingByClientName = SpaBooking::query()
+                ->where(function ($query): void {
+                    $query->whereNotNull('completed_at')->orWhere('session_status', SpaBooking::STATUS_COMPLETED);
+                })
                 ->whereNotNull('client_name')
                 ->selectRaw('LOWER(TRIM(client_name)) as client_name_key, MAX(booking_date) as last_booking_date')
                 ->groupBy(DB::raw('LOWER(TRIM(client_name))'))
@@ -1863,7 +1962,7 @@ class DashboardController extends Controller
         }
 
         $customers = Customer::query()
-            ->active()
+            ->when($sort === 'archived', fn ($query) => $query->archived(), fn ($query) => $query->active())
             ->registered()
             ->orderBy('full_name')
             ->get()
@@ -1903,18 +2002,33 @@ class DashboardController extends Controller
                     }
                 }
 
-                $activeCutoff = now()->subMonth()->startOfDay();
+                $activeMonths = max((int) config('touchnrelief.client_active_months', 12), 1);
+                $activeCutoff = now()->subMonths($activeMonths)->startOfDay();
                 $customer->is_active = $lastBookingAt !== null && $lastBookingAt->gte($activeCutoff);
                 $inactivityStart = null;
                 if ($lastBookingAt !== null) {
-                    $inactivityStart = $lastBookingAt->copy()->addMonth()->startOfDay();
+                    $inactivityStart = $lastBookingAt->copy()->addMonths($activeMonths)->startOfDay();
                 }
                 $customer->inactivity_duration = $customer->is_active
                     ? null
                     : $this->formatInactivityDuration($inactivityStart);
                 $customer->is_new_user = $customer->created_at !== null
-                    ? $customer->created_at->greaterThanOrEqualTo(now()->subDays(30))
+                    ? $customer->created_at->greaterThanOrEqualTo(now()->subDays(max((int) config('touchnrelief.client_new_days', 30), 1)))
                     : false;
+                $customer->last_completed_at = $lastBookingAt;
+
+                if ($customer->isArchived()) {
+                    $archiveLog = ActivityLog::query()
+                        ->where('action', 'customer.archived')
+                        ->where('subject_type', $customer->getMorphClass())
+                        ->where('subject_id', $customer->getKey())
+                        ->latest('created_at')
+                        ->first();
+                    $customer->archive_reason = (string) data_get($archiveLog?->properties, 'reason', 'Archived by staff');
+                    $customer->archived_by = $archiveLog?->user_role === 'system'
+                        ? 'System'
+                        : trim(($archiveLog?->user_name ?: 'Staff').' · '.($archiveLog?->roleLabel() ?: 'Staff'));
+                }
 
                 return $customer;
             });
@@ -1926,6 +2040,7 @@ class DashboardController extends Controller
                 ->where('is_new_user', true)
                 ->sortByDesc('created_at')
                 ->values(),
+            'archived' => $customers->sortByDesc('archived_at')->values(),
             default => $customers,
         };
 

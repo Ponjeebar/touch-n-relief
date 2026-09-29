@@ -463,6 +463,8 @@
             var conflictDate = document.getElementById('bkConflictDate');
             var conflictTime = document.getElementById('bkConflictTime');
             var currentUserConflicts = {};
+            var lastDateValue = dateInput ? dateInput.value : '';
+            var datePickerWasOpened = false;
 
             if (paymongoBrowserNotice && /FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(navigator.userAgent || '')) {
                 paymongoBrowserNotice.hidden = false;
@@ -624,11 +626,11 @@
                 syncBookingSteps();
             }
 
-            function fetchTherapistSchedule(dateKey) {
+            function fetchTherapistSchedule(dateKey, forceRefresh) {
                 if (!therapistAvailabilityUrl || !dateKey) {
                     return Promise.resolve(null);
                 }
-                if (therapistScheduleDateKey === dateKey && Object.keys(therapistScheduleMap).length) {
+                if (!forceRefresh && therapistScheduleDateKey === dateKey && Object.keys(therapistScheduleMap).length) {
                     return Promise.resolve(therapistScheduleMap);
                 }
                 var url = new URL(therapistAvailabilityUrl, window.location.origin);
@@ -807,18 +809,61 @@
                     return;
                 }
 
-                if (sumService) sumService.textContent = svc;
-                if (sumTherapist) sumTherapist.textContent = therapist;
-                if (sumDate) sumDate.textContent = formatDate(date);
-                if (sumTime) sumTime.textContent = time;
-                if (sumNotes) {
-                    var notes = (notesInput && notesInput.value || '').trim();
-                    sumNotes.textContent = notes ? notes : '—';
-                }
+                var params = new URLSearchParams({ booking_date: date, service: svc, therapist: therapist });
+                var selectionKey = [date, svc, therapist, time].join('|');
+                if (confirmBtn) confirmBtn.disabled = true;
 
-                resetPaymentModal();
-                updatePaymentSummary(svc);
-                openModal();
+                fetch(availabilityUrl + '?' + params.toString(), {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                })
+                    .then(function (response) {
+                        if (!response.ok) throw new Error('availability');
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        var currentKey = [dateInput?.value || '', selectedService(), selectedTherapist(), hiddenSlot?.value || ''].join('|');
+                        if (currentKey !== selectionKey) {
+                            showBookingToast('Your booking choices changed. Please review the available time again.');
+                            return;
+                        }
+
+                        var offered = Array.isArray(data.offered_slots) ? data.offered_slots : [];
+                        var booked = Array.isArray(data.booked_slots) ? data.booked_slots : [];
+                        var fullyBooked = Array.isArray(data.fully_booked_slots) ? data.fully_booked_slots : [];
+                        var past = Array.isArray(data.past_slots) ? data.past_slots : [];
+                        var conflicts = data.user_conflicts || {};
+                        var unavailable = booked.concat(fullyBooked, past);
+                        var therapistUnavailable = data.therapist_schedule && data.therapist_schedule.bookable === false;
+
+                        fullPaymentRequiredSlots = Array.isArray(data.full_payment_required_slots) ? data.full_payment_required_slots : [];
+                        paintSlots(offered, booked, therapist, conflicts, date, fullyBooked, data.therapist_busy_details || {}, past);
+
+                        if (therapistUnavailable || offered.indexOf(time) === -1 || unavailable.indexOf(time) !== -1 || !!conflicts[time]) {
+                            hiddenSlot.value = '';
+                            showBookingToast('That time is no longer available for the selected date, service, and therapist. Please choose another time.');
+                            return;
+                        }
+
+                        if (sumService) sumService.textContent = svc;
+                        if (sumTherapist) sumTherapist.textContent = therapist;
+                        if (sumDate) sumDate.textContent = formatDate(date);
+                        if (sumTime) sumTime.textContent = time;
+                        if (sumNotes) {
+                            var notes = (notesInput && notesInput.value || '').trim();
+                            sumNotes.textContent = notes ? notes : '—';
+                        }
+
+                        resetPaymentModal();
+                        updatePaymentSummary(svc);
+                        openModal();
+                    })
+                    .catch(function () {
+                        showBookingToast('We could not verify live availability. Please check your connection and try again.');
+                    })
+                    .finally(function () {
+                        if (confirmBtn) confirmBtn.disabled = false;
+                    });
             }
 
             function paintServiceCards() {
@@ -1244,16 +1289,45 @@
                 });
             });
 
-            dateInput?.addEventListener('change', function () {
+            function refreshForDateSelection(clearSelectedTime) {
+                if (!dateInput) return;
+                if (clearSelectedTime && hiddenSlot) {
+                    hiddenSlot.value = '';
+                    oldSlot = '';
+                }
                 therapistScheduleDateKey = '';
+                resetAvailabilityCache();
                 syncBookingSteps();
                 if (dateInput.value) {
                     showMobileStep('service', 'forward');
                 }
-                fetchTherapistSchedule(dateInput.value).finally(function () {
+                fetchTherapistSchedule(dateInput.value, true).finally(function () {
                     syncTherapistRecommendations();
                     renderSlots();
                 });
+            }
+
+            dateInput?.addEventListener('focus', function () {
+                datePickerWasOpened = true;
+            });
+
+            dateInput?.addEventListener('change', function () {
+                lastDateValue = dateInput.value;
+                datePickerWasOpened = false;
+                refreshForDateSelection(true);
+            });
+
+            dateInput?.addEventListener('blur', function () {
+                if (!datePickerWasOpened || !dateInput.value) return;
+                datePickerWasOpened = false;
+                var sameDateReselected = dateInput.value === lastDateValue;
+                lastDateValue = dateInput.value;
+                refreshForDateSelection(sameDateReselected);
+            });
+
+            window.addEventListener('pageshow', function (event) {
+                if (!event.persisted || !dateInput?.value) return;
+                refreshForDateSelection(true);
             });
 
             form?.addEventListener('submit', function (e) {

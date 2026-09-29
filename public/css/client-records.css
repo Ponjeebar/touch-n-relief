@@ -779,6 +779,52 @@
     border-color: #f2ceda;
 }
 
+.cr-customer-dates {
+    font-size: 11px !important;
+    line-height: 1.45;
+    color: var(--cr-muted-soft) !important;
+}
+
+.pill-new {
+    background: #eaf8ef;
+    border-color: #bfe6cd;
+    color: #17643c;
+}
+
+.pill-archived {
+    background: #f0f2f4;
+    border-color: #d1d8de;
+    color: #4f5e69;
+}
+
+.user-action.restore {
+    border-color: #9ccfb2;
+    background: #eef9f2;
+    color: #17643c;
+}
+
+.archive-reason-field {
+    display: grid;
+    gap: 7px;
+    margin: 14px 0;
+    color: #344a57;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.archive-reason-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    padding: 10px 12px;
+    border: 1px solid #ccd9df;
+    border-radius: 10px;
+    background: var(--cr-surface);
+    color: #1f2b33;
+    font: inherit;
+    font-weight: 500;
+}
+
 .cr-customer-meta .go {
     width: 30px;
     height: 30px;

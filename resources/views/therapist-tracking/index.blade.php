@@ -54,6 +54,20 @@
                 @include('partials.status-toast')
 
                 <section class="tt-grid" id="tt-tracking-panel" aria-label="Therapist monitoring content">
+                    <div class="tt-period-bar">
+                        <div>
+                            <strong>{{ $selectedServiceHoursYear }} service hours</strong>
+                            <span>Completed session time against the {{ number_format($serviceHoursTarget) }} hour annual target.</span>
+                        </div>
+                        <form method="GET" action="{{ route('therapist-tracking.index') }}">
+                            <label for="service-hours-year">Reporting year</label>
+                            <select id="service-hours-year" name="year" onchange="this.form.submit()">
+                                @foreach ($serviceHourYears as $year)
+                                    <option value="{{ $year }}" @selected((int) $year === (int) $selectedServiceHoursYear)>{{ $year }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+                    </div>
                     <section class="tt-metrics" aria-label="Therapist monitoring metrics">
                         <article class="tt-metric">
                             <div class="top">
@@ -88,12 +102,12 @@
                         <article class="tt-metric">
                             <div class="top">
                                 <div>
-                                    <div class="label">Avg. Service Hours</div>
+                                    <div class="label">Avg. {{ $selectedServiceHoursYear }} Hours</div>
                                     <div class="value">{{ $stats['avg_service_hours'] ?? 0 }}</div>
                                 </div>
                                 <div class="icon" aria-hidden="true"><i class="bi bi-clock"></i></div>
                             </div>
-                            <div class="sub">Hours per therapist</div>
+                            <div class="sub">Completed sessions this year</div>
                         </article>
                     </section>
 
@@ -144,7 +158,7 @@
                                                     data-email="{{ $t['email'] ?? '' }}"
                                                     data-birthday="{{ $t['birthday'] ?? '' }}"
                                                     data-status="{{ $t['status'] }}"
-                                                    data-total-hours="{{ (int) ($t['total_hours'] ?? 0) }}"
+                                                    data-total-hours="{{ number_format((float) ($t['total_hours'] ?? 0), 1, '.', '') }}"
                                                     data-service-hours-pct="{{ (int) ($t['service_hours_pct'] ?? 0) }}"
                                                     data-specializations="{{ implode(', ', array_map('strval', $t['specializations'] ?? [])) }}"
                                                 >
@@ -174,7 +188,7 @@
                                                 <span class="tt-status {{ $t['status'] }}">{{ $t['status'] }}</span>
                                             </td>
                                             <td>
-                                                <span class="tt-meta"><i class="bi bi-clock"></i> {{ (int) ($t['total_hours'] ?? 0) }} hrs</span>
+                                                <span class="tt-meta"><i class="bi bi-clock"></i> {{ number_format((float) ($t['total_hours'] ?? 0), 1) }} / {{ number_format($serviceHoursTarget) }} hrs ({{ (int) ($t['service_hours_pct'] ?? 0) }}%)</span>
                                             </td>
                                             @if (auth()->user()->isAdmin())
                                                 <td class="tt-td-actions">
@@ -211,7 +225,7 @@
                                                             data-email="{{ $t['email'] ?? '' }}"
                                                             data-birthday="{{ $t['birthday'] ?? '' }}"
                                                             data-status="{{ $t['status'] }}"
-                                                            data-total-hours="{{ (int) ($t['total_hours'] ?? 0) }}"
+                                                            data-total-hours="{{ number_format((float) ($t['total_hours'] ?? 0), 1, '.', '') }}"
                                                             data-service-hours-pct="{{ (int) ($t['service_hours_pct'] ?? 0) }}"
                                                             data-specializations="{{ implode(', ', array_map('strval', $t['specializations'] ?? [])) }}"
                                                             data-certifications="{{ implode(', ', array_map('strval', $t['certifications'] ?? [])) }}"
@@ -261,7 +275,7 @@
                                 data-email="{{ $t['email'] ?? '' }}"
                                 data-birthday="{{ $t['birthday'] ?? '' }}"
                                 data-status="{{ $t['status'] }}"
-                                data-total-hours="{{ (int) ($t['total_hours'] ?? 0) }}"
+                                data-total-hours="{{ number_format((float) ($t['total_hours'] ?? 0), 1, '.', '') }}"
                                 data-service-hours-pct="{{ (int) ($t['service_hours_pct'] ?? 0) }}"
                                 data-specializations="{{ implode(', ', array_map('strval', $t['specializations'] ?? [])) }}"
                             >
@@ -286,12 +300,13 @@
                                 </div>
 
                                 <div class="tt-person-section">
-                                    <div class="k">Service Hours</div>
+                                    <div class="k">{{ $selectedServiceHoursYear }} Service Hours</div>
                                     <div class="tt-bar" aria-hidden="true">
                                         <span style="width: {{ min(max((int) ($t['service_hours_pct'] ?? 0), 0), 100) }}%"></span>
                                     </div>
                                     <div class="tt-bottom">
-                                        <span>{{ (int) ($t['total_hours'] ?? 0) }} hrs</span>
+                                        <span>{{ number_format((float) ($t['total_hours'] ?? 0), 1) }} / {{ number_format($serviceHoursTarget) }} hrs ({{ (int) ($t['service_hours_pct'] ?? 0) }}%)</span>
+                                        <span>Lifetime: {{ number_format((float) ($t['lifetime_hours'] ?? 0), 1) }} hrs</span>
                                     </div>
                                 </div>
                             </article>
@@ -366,7 +381,7 @@
                                                 data-email="{{ $t['email'] ?? '' }}"
                                                 data-birthday="{{ $t['birthday'] ?? '' }}"
                                                 data-status="{{ $t['status'] }}"
-                                                data-total-hours="{{ (int) ($t['total_hours'] ?? 0) }}"
+                                                data-total-hours="{{ number_format((float) ($t['total_hours'] ?? 0), 1, '.', '') }}"
                                                 data-service-hours-pct="{{ (int) ($t['service_hours_pct'] ?? 0) }}"
                                                 data-specializations="{{ implode(', ', array_map('strval', $t['specializations'] ?? [])) }}"
                                                 data-certifications="{{ $certs }}"
@@ -567,11 +582,11 @@
                                 <div class="tt-view-v" id="ttViewSpecs">—</div>
                             </div>
                             <div class="tt-view-card">
-                                <div class="tt-view-k">Total Hours</div>
+                                <div class="tt-view-k">{{ $selectedServiceHoursYear }} Service Hours</div>
                                 <div class="tt-view-v" id="ttViewHours">—</div>
                             </div>
                             <div class="tt-view-card">
-                                <div class="tt-view-k">Service Hours %</div>
+                                <div class="tt-view-k">Annual target progress</div>
                                 <div class="tt-view-v">
                                     <div class="tt-bar" aria-hidden="true"><span id="ttViewBar" style="width: 0%"></span></div>
                                     <div class="tt-view-mini" id="ttViewPct">0%</div>
@@ -1241,7 +1256,7 @@
                 if (viewBirthday) viewBirthday.textContent = ds.birthday || '—';
                 if (viewAge) viewAge.textContent = ageFromBirthday(ds.birthday || '');
                 if (viewSpecs) viewSpecs.textContent = ds.specializations || '—';
-                if (viewHours) viewHours.textContent = `${ds.totalHours || 0} hrs`;
+                if (viewHours) viewHours.textContent = `${ds.totalHours || 0} / {{ $serviceHoursTarget }} hrs in {{ $selectedServiceHoursYear }}`;
 
                 const pctVal = Math.max(0, Math.min(parseInt(ds.serviceHoursPct || '0', 10) || 0, 100));
                 if (viewBar) viewBar.style.width = `${pctVal}%`;

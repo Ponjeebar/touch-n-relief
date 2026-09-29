@@ -58,6 +58,39 @@
     gap: var(--tt-gap);
 }
 
+.tt-period-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--primary);
+    border-radius: 12px;
+    background: var(--surface);
+}
+
+.tt-period-bar > div { display: grid; gap: 3px; }
+.tt-period-bar strong { color: var(--text); }
+.tt-period-bar span { color: var(--muted); font-size: 12px; }
+.tt-period-bar form { display: flex; align-items: center; gap: 8px; }
+.tt-period-bar label { color: var(--muted); font-size: 12px; font-weight: 800; }
+.tt-period-bar select {
+    min-height: 38px;
+    padding: 7px 30px 7px 10px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-weight: 700;
+}
+
+@media (max-width: 680px) {
+    .tt-period-bar { align-items: stretch; flex-direction: column; }
+    .tt-period-bar form { justify-content: space-between; }
+}
+
 .tt-metrics {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

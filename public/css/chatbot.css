@@ -138,21 +138,18 @@
 .tnr-chat-actions a { color: #045b3f; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
 
 .tnr-chat-prompts {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     flex: 0 0 auto;
     gap: 7px;
-    overflow-x: auto;
     padding: 10px 12px;
     border-top: 1px solid #e1e9e3;
     background: #fff;
-    scrollbar-width: none;
-    scroll-snap-type: x proximity;
 }
 
-.tnr-chat-prompts::-webkit-scrollbar { display: none; }
-
 .tnr-chat-prompts button {
-    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
     padding: 7px 11px;
     border: 1px solid #91b4a1;
     border-radius: 18px;
@@ -162,8 +159,9 @@
     font: inherit;
     font-size: 12px;
     line-height: 1.25;
-    scroll-snap-align: start;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
 }
 
 .tnr-chat-prompts button:hover { background: #e8f5ed; }
@@ -245,7 +243,10 @@ html[data-theme="dark"] .tnr-chat-actions a { color: #a8e4ba; }
     .tnr-chat-header { min-height: 62px; padding: 10px 12px 10px 14px; }
     .tnr-chat-messages { gap: 9px; padding: 13px; }
     .tnr-chat-message { max-width: 86%; padding: 9px 11px; font-size: 13px; }
-    .tnr-chat-prompts { padding: 9px 11px; }
+    .tnr-chat-prompts {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 9px 11px;
+    }
     .tnr-chat-form { padding: 9px 11px 11px; }
     .tnr-chat-compose input { font-size: 16px; }
 

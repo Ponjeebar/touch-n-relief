@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\SiteSetting;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
+use App\Models\Customer;
+use App\Models\Therapist;
 use App\Models\User;
 use App\Services\BookingSlotService;
 use App\Services\SiteSettingsService;
@@ -12,6 +14,7 @@ use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -57,6 +60,129 @@ class RevisionAdjustmentsTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('appointments-2026-09-24.csv', (string) $response->headers->get('content-disposition'));
         $this->assertStringContainsString('Swedish Massage', $response->streamedContent());
+    }
+
+    public function test_appointment_export_honors_date_range_and_current_status_filter(): void
+    {
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        foreach ([
+            ['date' => '2026-09-20', 'status' => SpaBooking::STATUS_COMPLETED, 'service' => 'Thai Massage'],
+            ['date' => '2026-09-21', 'status' => SpaBooking::STATUS_CANCELLED, 'service' => 'Hot Stone'],
+            ['date' => '2026-10-01', 'status' => SpaBooking::STATUS_COMPLETED, 'service' => 'Foot Reflexology'],
+        ] as $row) {
+            SpaBooking::create([
+                'user_id' => $client->id,
+                'client_name' => $client->name,
+                'service_name' => $row['service'],
+                'therapist_name' => 'Liza Reyes',
+                'booking_date' => $row['date'],
+                'time_slot' => '10:00 AM',
+                'session_status' => $row['status'],
+                'completed_at' => $row['status'] === SpaBooking::STATUS_COMPLETED ? $row['date'].' 11:00:00' : null,
+                'cancelled_at' => $row['status'] === SpaBooking::STATUS_CANCELLED ? $row['date'].' 09:00:00' : null,
+            ]);
+        }
+
+        $response = $this->actingAs($staff)->get(route('appointments.export', [
+            'scope' => 'range',
+            'date_from' => '2026-09-20',
+            'date_to' => '2026-09-30',
+            'status_scope' => 'current',
+            'status_filter' => 'completed',
+        ]));
+
+        $csv = $response->streamedContent();
+        $response->assertOk();
+        $this->assertStringContainsString('Thai Massage', $csv);
+        $this->assertStringNotContainsString('Hot Stone', $csv);
+        $this->assertStringNotContainsString('Foot Reflexology', $csv);
+    }
+
+    public function test_therapist_service_hours_use_selected_year_and_configured_target(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $this->actingAs($admin)->get(route('therapist-tracking.index'))->assertOk();
+        $therapist = Therapist::query()->firstOrFail();
+        DB::table('transactions')->insert([
+            'transaction_id' => 'TRX-YEARLY-HOURS',
+            'client_name' => 'Hours Client',
+            'therapist_id' => $therapist->id,
+            'service_name' => 'Swedish Massage',
+            'date' => '2025-06-10',
+            'time' => '10:00:00',
+            'duration' => 120,
+            'amount' => 100,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->get(route('therapist-tracking.index', ['year' => 2025]))
+            ->assertOk()
+            ->assertSee('2025 service hours')
+            ->assertSee('2.0 / 240 hrs (1%)');
+    }
+
+    public function test_archived_clients_can_be_filtered_and_restored_without_deleting_history(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $client = User::factory()->create(['role' => User::ROLE_USER, 'email' => 'restore@example.com']);
+        $customer = Customer::query()->create([
+            'customer_id' => 'CUS-RESTORE',
+            'full_name' => 'Restore Client',
+            'email' => $client->email,
+            'password' => 'Password1',
+        ]);
+        $customer->archive();
+        $client->archive();
+
+        $this->actingAs($admin)->get(route('client-records.index', ['sort' => 'archived']))
+            ->assertOk()
+            ->assertSee('Restore Client')
+            ->assertSee('Archived');
+
+        $this->patch(route('dashboard.customers.restore', $customer), ['return_to' => 'client-records.index'])
+            ->assertRedirect(route('client-records.index'));
+
+        $this->assertNull($customer->fresh()->archived_at);
+        $this->assertNull($client->fresh()->archived_at);
+    }
+
+    public function test_inactive_client_command_soft_archives_records_after_retention_period(): void
+    {
+        Carbon::setTestNow('2026-09-29 02:15:00');
+        $client = User::factory()->create([
+            'role' => User::ROLE_USER,
+            'email' => 'inactive@example.com',
+            'created_at' => '2023-01-01 09:00:00',
+        ]);
+        $customer = Customer::query()->create([
+            'customer_id' => 'CUS-INACTIVE',
+            'full_name' => 'Inactive Client',
+            'email' => $client->email,
+            'password' => 'Password1',
+            'created_at' => '2023-01-01 09:00:00',
+        ]);
+        SpaBooking::query()->create([
+            'user_id' => $client->id,
+            'client_name' => $customer->full_name,
+            'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
+            'booking_date' => '2023-02-01',
+            'time_slot' => '10:00 AM',
+            'session_status' => SpaBooking::STATUS_COMPLETED,
+            'completed_at' => '2023-02-01 11:00:00',
+        ]);
+
+        Artisan::call('clients:archive-inactive');
+
+        $this->assertNotNull($customer->fresh()->archived_at);
+        $this->assertNotNull($client->fresh()->archived_at);
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'customer.archived',
+            'subject_id' => $customer->id,
+            'user_name' => 'System',
+        ]);
     }
 
     public function test_weekly_reporting_returns_the_selected_monday_to_sunday_range(): void

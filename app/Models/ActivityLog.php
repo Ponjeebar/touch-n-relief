@@ -80,6 +80,8 @@ class ActivityLog extends Model
             'booking.created' => 'Booked an appointment',
             'customer.created' => 'Added customer',
             'customer.updated' => 'Updated customer',
+            'customer.archived' => 'Archived customer',
+            'customer.restored' => 'Restored customer',
             'customer.deleted' => 'Deleted customer',
             'receptionist.created' => 'Added receptionist',
             'receptionist.updated' => 'Updated receptionist',

@@ -288,6 +288,84 @@
     color: var(--accent-blue);
 }
 
+.pill.all {
+    background: #eef4f2;
+    border-color: #cadbd5;
+    color: #264f43;
+}
+
+.appointments-export-modal {
+    width: min(560px, calc(100vw - 28px));
+}
+
+.appointments-export-intro {
+    margin: 4px 0 18px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.appointments-export-options {
+    display: grid;
+    gap: 9px;
+    margin: 0 0 16px;
+    padding: 0;
+    border: 0;
+}
+
+.appointments-export-options legend {
+    margin-bottom: 8px;
+    font-weight: 800;
+    color: #1f2b33;
+}
+
+.appointments-export-options label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #344a57;
+    font-weight: 600;
+}
+
+.appointments-export-dates {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.appointments-export-dates label {
+    display: grid;
+    gap: 6px;
+    color: #344a57;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.appointments-export-dates input {
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #ccd9df;
+    border-radius: 10px;
+    background: #fff;
+    color: #1f2b33;
+    font: inherit;
+}
+
+.appointments-export-summary {
+    margin: 4px 0 18px;
+    padding: 11px 12px;
+    border-left: 3px solid var(--primary);
+    background: #eef8f3;
+    color: #234c3e;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+@media (max-width: 560px) {
+    .appointments-export-dates { grid-template-columns: 1fr; }
+}
+
 
 .appointments-notif-empty {
     padding: 10px;

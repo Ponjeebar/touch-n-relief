@@ -82,6 +82,7 @@
                                 <a class="cr-filter-badge @if(($sort ?? 'all') === 'active') is-active @endif" href="{{ route('client-records.index', ['sort' => 'active']) }}">Active</a>
                                 <a class="cr-filter-badge @if(($sort ?? 'all') === 'inactive') is-active @endif" href="{{ route('client-records.index', ['sort' => 'inactive']) }}">Inactive</a>
                                 <a class="cr-filter-badge @if(($sort ?? 'all') === 'new_user') is-active @endif" href="{{ route('client-records.index', ['sort' => 'new_user']) }}">New User</a>
+                                <a class="cr-filter-badge @if(($sort ?? 'all') === 'archived') is-active @endif" href="{{ route('client-records.index', ['sort' => 'archived']) }}">Archived</a>
                             </div>
                         </div>
                         <div class="cr-list-tools">
@@ -109,17 +110,34 @@
                                         <div class="cr-customer-text">
                                             <strong>{{ $customer->full_name }}</strong>
                                             <span>{{ $customer->email }}</span>
+                                            <span class="cr-customer-dates">
+                                                Created {{ optional($customer->created_at)->format('M d, Y') ?? '—' }}
+                                                @if ($customer->isArchived())
+                                                    · Archived {{ optional($customer->archived_at)->format('M d, Y') }} by {{ $customer->archived_by ?? 'System' }}
+                                                    · {{ $customer->archive_reason ?? 'Archived record' }}
+                                                @elseif (!empty($customer->last_completed_at))
+                                                    · Last completed visit {{ $customer->last_completed_at->format('M d, Y') }}
+                                                @else
+                                                    · No completed visits
+                                                @endif
+                                            </span>
                                         </div>
                                     </div>
                                     <div class="cr-customer-meta">
-                                        @if (($customer->is_active ?? false) === false && !empty($customer->inactivity_duration))
+                                        @if (($customer->is_new_user ?? false) && !$customer->isArchived())
+                                            <span class="pill pill-new">New</span>
+                                        @endif
+                                        @if (($customer->is_active ?? false) === false && !empty($customer->inactivity_duration) && !$customer->isArchived())
                                             <span class="pill pill-inactive">{{ $customer->inactivity_duration }}</span>
+                                        @endif
+                                        @if ($customer->isArchived())
+                                            <span class="pill pill-archived" title="{{ $customer->archive_reason ?? 'Archived' }}">Archived</span>
                                         @endif
                                         <span class="pill">{{ $customer->number ?: 'No number' }}</span>
                                         <span class="go"><i class="bi bi-chevron-right"></i></span>
                                     </div>
                                 </a>
-                                @if (auth()->user()->isAdmin())
+                                @if (auth()->user()->isAdmin() && !$customer->isArchived())
                                     <div class="cr-customer-actions">
                                         <button
                                             type="button"
@@ -130,6 +148,15 @@
                                         >
                                             <i class="bi bi-archive" aria-hidden="true"></i> Archive
                                         </button>
+                                    </div>
+                                @elseif (auth()->user()->isAdmin() && $customer->isArchived())
+                                    <div class="cr-customer-actions">
+                                        <form method="POST" action="{{ route('dashboard.customers.restore', $customer) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="return_to" value="client-records.index">
+                                            <button type="submit" class="user-action restore"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Restore</button>
+                                        </form>
                                     </div>
                                 @endif
                             </div>
@@ -163,6 +190,10 @@
             <p class="archive-confirm-copy">
                 Archive <strong id="archive-customer-name">this customer</strong>? Their record stays in the system but will no longer appear here.
             </p>
+            <label class="archive-reason-field" for="archive-customer-reason">
+                Reason
+                <textarea id="archive-customer-reason" name="archive_reason" form="archive-customer-form" maxlength="500" rows="3" placeholder="Example: Requested by client or inactive account"></textarea>
+            </label>
             <div class="profile-modal-actions archive-confirm-actions">
                 <button type="button" class="user-action" data-close-archive-customer="true">Cancel</button>
                 <button type="button" class="user-action archive archive-confirm-btn" id="archive-customer-confirm">
