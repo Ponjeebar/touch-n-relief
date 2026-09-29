@@ -1,0 +1,218 @@
+:root {
+    color-scheme: light;
+    --error-bg: #f4f1ea;
+    --error-surface: #ffffff;
+    --error-text: #17242b;
+    --error-muted: #5f7078;
+    --error-line: #d4ded9;
+    --error-accent: #087d58;
+    --error-accent-dark: #056445;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --error-bg: #0f1419;
+    --error-surface: #18222c;
+    --error-text: #e9f0f3;
+    --error-muted: #a2b2bc;
+    --error-line: #33434d;
+    --error-accent: #48d7ae;
+    --error-accent-dark: #87e8cc;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+    background: var(--error-bg);
+    color: var(--error-text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.error-header {
+    width: min(1080px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--error-line);
+}
+
+.error-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--error-text);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.45rem, 3vw, 2rem);
+    text-decoration: none;
+}
+
+.error-brand img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.error-main {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.65fr) minmax(0, 1.35fr);
+    align-items: center;
+    gap: clamp(40px, 8vw, 110px);
+    width: min(980px, calc(100% - 40px));
+    min-height: calc(100vh - 106px);
+    margin: 0 auto;
+    padding: 70px 0 100px;
+}
+
+.error-status {
+    color: var(--error-accent);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(6rem, 16vw, 11rem);
+    line-height: 0.8;
+    letter-spacing: -0.08em;
+}
+
+.error-content {
+    max-width: 590px;
+    padding-left: clamp(24px, 4vw, 54px);
+    border-left: 1px solid var(--error-line);
+}
+
+.error-eyebrow {
+    margin: 0 0 14px;
+    color: var(--error-accent);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.error-content h1 {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2.25rem, 5vw, 4.2rem);
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    overflow-wrap: anywhere;
+}
+
+.error-message,
+.error-guidance {
+    max-width: 58ch;
+    color: var(--error-muted);
+    font-size: clamp(1rem, 2vw, 1.12rem);
+    line-height: 1.7;
+}
+
+.error-message {
+    margin: 26px 0 0;
+}
+
+.error-guidance {
+    margin: 10px 0 0;
+}
+
+.error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 32px;
+}
+
+.error-actions a {
+    display: inline-flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    border: 1px solid var(--error-accent);
+    border-radius: 8px;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.error-action-primary {
+    background: var(--error-accent);
+    color: #ffffff;
+}
+
+.error-action-primary:hover,
+.error-action-primary:focus-visible {
+    background: var(--error-accent-dark);
+    border-color: var(--error-accent-dark);
+}
+
+.error-action-secondary {
+    color: var(--error-accent-dark);
+}
+
+.error-actions a:focus-visible,
+.error-brand:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--error-accent) 35%, transparent);
+    outline-offset: 3px;
+}
+
+.error-reference {
+    margin: 34px 0 0;
+    color: var(--error-muted);
+    font-size: 0.82rem;
+}
+
+.error-reference code {
+    color: var(--error-text);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+    .error-header,
+    .error-main {
+        width: calc(100% - 30px);
+        max-width: 560px;
+    }
+
+    .error-header {
+        padding: 18px 0;
+    }
+
+    .error-brand img {
+        width: 42px;
+        height: 42px;
+    }
+
+    .error-main {
+        display: block;
+        min-height: auto;
+        padding: 54px 0 70px;
+    }
+
+    .error-status {
+        margin-bottom: 34px;
+        font-size: clamp(5.5rem, 32vw, 8rem);
+    }
+
+    .error-content {
+        padding: 0;
+        border-left: 0;
+    }
+
+    .error-content h1 {
+        font-size: clamp(2.2rem, 12vw, 3.2rem);
+    }
+
+    .error-actions {
+        display: grid;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+    }
+}
