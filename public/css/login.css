@@ -222,6 +222,19 @@ body.auth-page #container button.hidden:hover {
     box-shadow: none;
 }
 
+body.auth-page #container button[type="submit"]:focus-visible,
+body.auth-page #container button.hidden:focus-visible,
+body.auth-page #container .mobile-toggle .link:focus-visible,
+body.auth-page #container .auth-password-toggle:focus-visible,
+body.auth-page #container .auth-login-options a:focus-visible {
+    outline: 3px solid var(--auth-accent-teal);
+    outline-offset: 3px;
+}
+
+body.auth-page #container button.hidden:focus-visible {
+    outline-color: #fff;
+}
+
 body.auth-page #container form {
     background-color: var(--auth-surface);
     display: flex;

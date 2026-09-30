@@ -8,6 +8,43 @@
     }
 
     let switching = false;
+    const signUpContainer = container.querySelector('.form-container.sign-up');
+    const signInContainer = container.querySelector('.form-container.sign-in');
+    const registerForm = container.querySelector('[data-auth-register-form="true"]');
+    const loginPanel = container.querySelector('.auth-login-panel');
+    const forgotPanel = container.querySelector('.auth-forgot-panel');
+    const toggleLeft = container.querySelector('.toggle-left');
+    const toggleRight = container.querySelector('.toggle-right');
+
+    function setInteractive(element, interactive) {
+        if (!(element instanceof HTMLElement)) return;
+        element.toggleAttribute('inert', !interactive);
+        element.setAttribute('aria-hidden', interactive ? 'false' : 'true');
+    }
+
+    function focusFirstField(panel) {
+        const field = panel?.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
+        if (field instanceof HTMLElement) field.focus({ preventScroll: true });
+    }
+
+    function syncPanelAccessibility(moveFocus) {
+        const showRegister = container.classList.contains('active');
+        const showForgot = !showRegister && container.classList.contains('sign-in-forgot-active');
+
+        setInteractive(signUpContainer, showRegister);
+        setInteractive(signInContainer, !showRegister);
+        setInteractive(registerForm, showRegister);
+        setInteractive(loginPanel, !showRegister && !showForgot);
+        setInteractive(forgotPanel, showForgot);
+        setInteractive(toggleLeft, showRegister);
+        setInteractive(toggleRight, !showRegister);
+
+        if (moveFocus) {
+            window.requestAnimationFrame(function () {
+                focusFirstField(showRegister ? registerForm : (showForgot ? forgotPanel : loginPanel));
+            });
+        }
+    }
 
     async function setPanel(showRegister) {
         if (switching || container.classList.contains('active') === showRegister) return;
@@ -37,6 +74,8 @@
         } else {
             container.classList.remove('active');
         }
+        container.classList.remove('sign-in-forgot-active');
+        syncPanelAccessibility(false);
         exitAnimation?.cancel();
 
         if (switching) {
@@ -51,28 +90,26 @@
                 }
             }
             switching = false;
-            incoming.closest('.form-container')?.querySelector('h1')?.focus({ preventScroll: true });
         }
+
+        syncPanelAccessibility(true);
     }
 
     if (registerBtn) {
         registerBtn.addEventListener('click', function () {
             setPanel(true);
-            container.classList.remove('sign-in-forgot-active');
         });
     }
 
     if (loginBtn) {
         loginBtn.addEventListener('click', function () {
             setPanel(false);
-            container.classList.remove('sign-in-forgot-active');
         });
     }
 
     document.querySelectorAll('[data-auth-panel]').forEach(function (el) {
         el.addEventListener('click', function () {
             setPanel(el.getAttribute('data-auth-panel') === 'register');
-            container.classList.remove('sign-in-forgot-active');
         });
     });
 
@@ -82,13 +119,13 @@
     forgotOpenBtn?.addEventListener('click', function (event) {
         event.preventDefault();
         container.classList.add('sign-in-forgot-active');
+        syncPanelAccessibility(true);
     });
 
     forgotCloseBtn?.addEventListener('click', function () {
         window.location.assign(forgotCloseBtn.getAttribute('data-login-url') || '/login');
     });
 
-    var registerForm = document.querySelector('[data-auth-register-form="true"]');
     if (registerForm) {
         var passwordInput = registerForm.querySelector('input[name="password"]');
         var confirmInput = registerForm.querySelector('input[name="password_confirmation"]');
@@ -134,4 +171,6 @@
             }
         });
     }
+
+    syncPanelAccessibility(false);
 })();

@@ -152,3 +152,35 @@ test('report downloads keep the reporting overview visible', async ({ page }) =>
         await expect(page.locator('body')).not.toHaveAttribute('aria-busy', 'true');
     }
 });
+
+test('authentication panels expose only the visible form to keyboard focus', async ({ page }) => {
+    for (const viewport of [{ width: 390, height: 844 }, { width: 1366, height: 768 }]) {
+        const mobile = viewport.width <= 700;
+        await page.setViewportSize(viewport);
+        await page.goto('/login');
+
+        const signUp = page.locator('.form-container.sign-up');
+        const signIn = page.locator('.form-container.sign-in');
+        const loginInput = page.locator('.auth-login-panel input[name="login"]');
+        const registrationName = page.locator('#register-form input[name="name"]');
+
+        await expect(signUp).toHaveAttribute('inert', '');
+        await expect(signIn).not.toHaveAttribute('inert', '');
+        await registrationName.focus();
+        await expect(registrationName).not.toBeFocused();
+
+        await page.locator(mobile ? '.auth-login-panel [data-auth-panel="register"]' : '#register').click();
+        await expect(signUp).not.toHaveAttribute('inert', '');
+        await expect(signIn).toHaveAttribute('inert', '');
+        await expect(registrationName).toBeFocused();
+        await loginInput.focus();
+        await expect(loginInput).not.toBeFocused();
+
+        await page.locator(mobile ? '#register-form [data-auth-panel="login"]' : '#login').click();
+        await expect(loginInput).toBeFocused();
+        await page.locator('[data-auth-forgot-open="true"]').click();
+        await expect(page.locator('.auth-login-panel')).toHaveAttribute('inert', '');
+        await expect(page.locator('.auth-forgot-panel')).not.toHaveAttribute('inert', '');
+        await expect(page.locator('.auth-forgot-panel input[name="email"]')).toBeFocused();
+    }
+});

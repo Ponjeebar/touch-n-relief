@@ -22,8 +22,8 @@
     @endif
 
     <div class="container {{ $showRegister ? 'active' : '' }} {{ $showForgot ? 'sign-in-forgot-active' : '' }}" id="container">
-        <div class="form-container sign-up">
-            <form method="POST" action="{{ route('register') }}" id="register-form" data-auth-register-form="true">
+        <div class="form-container sign-up" aria-hidden="{{ $showRegister ? 'false' : 'true' }}" @if (! $showRegister) inert @endif>
+            <form method="POST" action="{{ route('register') }}" id="register-form" data-auth-register-form="true" aria-hidden="{{ $showRegister ? 'false' : 'true' }}" @if (! $showRegister) inert @endif>
                 @csrf
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <h1 tabindex="-1">Create Account</h1>
@@ -170,8 +170,8 @@
             </form>
         </div>
 
-        <div class="form-container sign-in">
-            <form method="POST" action="{{ route('login.attempt') }}" novalidate class="auth-login-panel">
+        <div class="form-container sign-in" aria-hidden="{{ $showRegister ? 'true' : 'false' }}" @if ($showRegister) inert @endif>
+            <form method="POST" action="{{ route('login.attempt') }}" novalidate class="auth-login-panel" aria-hidden="{{ $showRegister || $showForgot ? 'true' : 'false' }}" @if ($showRegister || $showForgot) inert @endif>
                 @csrf
                 <h1 tabindex="-1">Sign In</h1>
                 @error('social')
@@ -228,7 +228,7 @@
                 </div>
             </form>
 
-            <form method="POST" action="{{ route('password.email') }}" class="auth-forgot-panel">
+            <form method="POST" action="{{ route('password.email') }}" class="auth-forgot-panel" aria-hidden="{{ ! $showRegister && $showForgot ? 'false' : 'true' }}" @if ($showRegister || ! $showForgot) inert @endif>
                 @csrf
                 <h1>Forgot Password</h1>
                 <p class="auth-forgot-copy">Enter your email and we will send a six digit verification code.</p>
@@ -255,7 +255,7 @@
 
         <div class="toggle-container">
             <div class="toggle">
-                <div class="toggle-panel toggle-left">
+                <div class="toggle-panel toggle-left" aria-hidden="{{ $showRegister ? 'false' : 'true' }}" @if (! $showRegister) inert @endif>
                     <div class="toggle-panel-logo-wrap">
                         <img
                             src="{{ asset('images/dashboard/logo.png') }}"
@@ -269,7 +269,7 @@
                     <h1>Welcome to<br>{{ $brandName }}</h1>
                     <button type="button" class="hidden" id="login">Sign In</button>
                 </div>
-                <div class="toggle-panel toggle-right">
+                <div class="toggle-panel toggle-right" aria-hidden="{{ $showRegister ? 'true' : 'false' }}" @if ($showRegister) inert @endif>
                     <div class="toggle-panel-logo-wrap">
                         <img
                             src="{{ asset('images/dashboard/logo.png') }}"

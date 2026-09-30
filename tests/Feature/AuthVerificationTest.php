@@ -97,6 +97,18 @@ class AuthVerificationTest extends TestCase
         $this->get(route('data-deletion'))->assertOk()->assertSee('User Data Deletion');
     }
 
+    public function test_authentication_page_makes_only_the_visible_form_keyboard_interactive(): void
+    {
+        $loginHtml = $this->get(route('login'))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/class="form-container sign-up"[^>]*aria-hidden="true"[^>]*\binert\b/', $loginHtml);
+        $this->assertMatchesRegularExpression('/class="form-container sign-in"[^>]*aria-hidden="false"/', $loginHtml);
+        $this->assertMatchesRegularExpression('/class="auth-forgot-panel"[^>]*aria-hidden="true"[^>]*\binert\b/', $loginHtml);
+
+        $registerHtml = $this->get(route('login', ['register' => 1]))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/class="form-container sign-up"[^>]*aria-hidden="false"/', $registerHtml);
+        $this->assertMatchesRegularExpression('/class="form-container sign-in"[^>]*aria-hidden="true"[^>]*\binert\b/', $registerHtml);
+    }
+
     public function test_authentication_header_does_not_show_redundant_home_navigation(): void
     {
         $this->get(route('login'))
