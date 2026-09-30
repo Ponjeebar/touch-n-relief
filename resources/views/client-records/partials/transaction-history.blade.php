@@ -46,19 +46,19 @@
                 data-amount="{{ preg_replace('/[^0-9.]/', '', $txn['amount']) }}"
                 data-status="{{ $txn['status_key'] ?? 'completed' }}"
             >
-                <div role="cell" class="txn-id">{{ $txn['transaction_id'] ?? '—' }}</div>
-                <div role="cell" class="txn-service">{{ $txn['service'] }}</div>
-                <div role="cell" class="txn-therapist">{{ $txn['therapist'] }}</div>
-                <div role="cell" class="txn-date">{{ \Illuminate\Support\Carbon::parse($txn['date'])->format('M d, Y') }}</div>
-                <div role="cell">
+                <div role="cell" class="txn-id" data-label="Transaction ID">{{ $txn['transaction_id'] ?? '—' }}</div>
+                <div role="cell" class="txn-service" data-label="Service">{{ $txn['service'] }}</div>
+                <div role="cell" class="txn-therapist" data-label="Therapist">{{ $txn['therapist'] }}</div>
+                <div role="cell" class="txn-date" data-label="Date">{{ \Illuminate\Support\Carbon::parse($txn['date'])->format('M d, Y') }}</div>
+                <div role="cell" data-label="Status">
                     <span class="cr-txn-status cr-txn-status-{{ $txn['status_key'] ?? 'completed' }}">
                         {{ $txn['status'] ?? 'Completed' }}
                     </span>
                 </div>
-                <div role="cell">{{ $txn['time'] }}</div>
-                <div role="cell">{{ $txn['duration'] }}</div>
-                <div role="cell" class="right amount">{{ $txn['amount'] }}</div>
-                <div role="cell" class="txn-note-cell">{{ $txn['notes'] ?: 'No notes.' }}</div>
+                <div role="cell" data-label="Time">{{ $txn['time'] }}</div>
+                <div role="cell" data-label="Duration">{{ $txn['duration'] }}</div>
+                <div role="cell" class="right amount" data-label="Amount">{{ $txn['amount'] }}</div>
+                <div role="cell" class="txn-note-cell" data-label="Session notes">{{ $txn['notes'] ?: 'No notes.' }}</div>
             </div>
         @empty
             <p class="cr-note-empty" style="padding: 8px 4px 0;">No bookings or treatments found for this client yet.</p>

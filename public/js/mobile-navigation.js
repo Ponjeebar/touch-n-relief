@@ -177,9 +177,9 @@
 
     function setupStaffHeaderActions() {
         var mobileHeader = document.querySelector('[data-staff-mobile-header-actions]');
-        var topbar = document.querySelector('.main .topbar');
-        var actions = topbar?.querySelector(':scope > .right');
-        if (!mobileHeader || !topbar || !actions) return;
+        var pageHeader = document.querySelector('.main > .topbar, .main > .tt-hero-with-profile');
+        var actions = pageHeader?.querySelector(':scope > .right');
+        if (!mobileHeader || !pageHeader || !actions) return;
 
         var placeholder = document.createComment('staff header actions');
         actions.parentNode.insertBefore(placeholder, actions);

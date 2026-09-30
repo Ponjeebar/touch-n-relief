@@ -78,6 +78,7 @@ class AccessibilityMarkupTest extends TestCase
         $mobileNavigationScript = file_get_contents(public_path('js/mobile-navigation.js'));
         $this->assertStringContainsString('setupStaffHeaderActions()', $mobileNavigationScript);
         $this->assertStringContainsString("window.matchMedia('(max-width: 1024px)')", $mobileNavigationScript);
+        $this->assertStringContainsString('.main > .topbar, .main > .tt-hero-with-profile', $mobileNavigationScript);
 
         $mobileStyles = file_get_contents(public_path('css/staff-mobile.css'));
         $this->assertMatchesRegularExpression(

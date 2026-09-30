@@ -1021,15 +1021,112 @@
 }
 
 @media (max-width: 780px) {
+    .cr-record-main {
+        gap: 12px;
+    }
+
     .cr-grid {
         grid-template-columns: 1fr;
         grid-template-areas:
             "profile"
             "contact"
             "txn";
+        gap: 12px;
+        padding-top: 0;
     }
+
+    .cr-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .cr-profile-top {
+        grid-template-columns: 72px minmax(0, 1fr);
+        margin-bottom: 12px;
+    }
+
+    .cr-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 14px;
+    }
+
+    .cr-stats {
+        padding-top: 12px;
+        border-top: 1px solid var(--cr-border);
+    }
+
     .cr-contact-fields {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 13px 16px;
+    }
+
+    .cr-kv .v {
+        font-size: 14px;
+        overflow-wrap: anywhere;
+    }
+
+    .cr-labs .cr-card-head {
+        align-items: stretch;
+        flex-direction: column;
+        margin-bottom: 12px;
+    }
+
+    .cr-history-tools {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .cr-history-search {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .cr-history-select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .cr-txn-head {
+        display: none;
+    }
+
+    .cr-txn-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: 12px 14px;
+        padding: 13px;
+    }
+
+    .cr-txn-row > [role="cell"] {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+
+    .cr-txn-row > [role="cell"]::before {
+        content: attr(data-label);
+        color: var(--cr-muted);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        line-height: 1.2;
+        text-transform: uppercase;
+    }
+
+    .cr-txn-row .txn-service,
+    .cr-txn-row .txn-note-cell {
+        grid-column: 1 / -1;
+        white-space: normal;
+    }
+
+    .cr-txn-row .txn-note-cell {
+        padding-top: 10px;
+        border-top: 1px solid var(--cr-border);
     }
 }
 

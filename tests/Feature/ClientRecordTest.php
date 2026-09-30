@@ -39,6 +39,8 @@ class ClientRecordTest extends TestCase
             ->get(route('client-records.show', $customer))
             ->assertOk()
             ->assertSee('TXN-CLIENT-001')
-            ->assertSee('Swedish Massage');
+            ->assertSee('Swedish Massage')
+            ->assertSee('data-label="Transaction ID"', false)
+            ->assertSee('data-label="Session notes"', false);
     }
 }
