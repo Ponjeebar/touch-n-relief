@@ -88,11 +88,18 @@ class AccessibilityMarkupTest extends TestCase
         );
         $this->assertStringContainsString('max-height: calc(100dvh - 88px - env(safe-area-inset-bottom));', $mobileStyles);
 
-        $this->actingAs($receptionist)
-            ->get(route('therapist-tracking.index'))
-            ->assertOk()
+        $therapistResponse = $this->actingAs($receptionist)
+            ->get(route('therapist-tracking.index'));
+
+        $therapistResponse->assertOk()
             ->assertSee('therapist-tracking.css?v=', false)
-            ->assertSee('mobile-navigation.js?v=', false);
+            ->assertSee('mobile-navigation.js?v=', false)
+            ->assertSee('data-label="Specializations"', false)
+            ->assertSee('data-label="'.now()->year.' service hours"', false);
+
+        $therapistStyles = file_get_contents(public_path('css/therapist-tracking.css'));
+        $this->assertStringContainsString('.tt-table tbody tr', $therapistStyles);
+        $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) auto;', $therapistStyles);
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 

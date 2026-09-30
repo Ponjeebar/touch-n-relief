@@ -143,7 +143,7 @@
                                 <tbody>
                                     @foreach ($therapists as $t)
                                         <tr data-tt-id="{{ $t['id'] }}">
-                                            <td>
+                                            <td data-label="Therapist">
                                                 <button
                                                     type="button"
                                                     class="tt-view-link"
@@ -175,7 +175,7 @@
                                                     </span>
                                                 </button>
                                             </td>
-                                            <td>
+                                            <td data-label="Specializations">
                                                 <span class="tt-specs">
                                                     @include('partials.therapist-card-tags', [
                                                         'specialties' => $t['specializations'] ?? [],
@@ -184,14 +184,14 @@
                                                     ])
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td data-label="Status">
                                                 <span class="tt-status {{ $t['status'] }}">{{ $t['status'] }}</span>
                                             </td>
-                                            <td>
+                                            <td data-label="{{ $selectedServiceHoursYear }} service hours">
                                                 <span class="tt-meta"><i class="bi bi-clock"></i> {{ number_format((float) ($t['total_hours'] ?? 0), 1) }} / {{ number_format($serviceHoursTarget) }} hrs ({{ (int) ($t['service_hours_pct'] ?? 0) }}%)</span>
                                             </td>
                                             @if (auth()->user()->isAdmin())
-                                                <td class="tt-td-actions">
+                                                <td class="tt-td-actions" data-label="Actions">
                                                     <div class="tt-row-actions">
                                                         <button
                                                             type="button"
