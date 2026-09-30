@@ -31,7 +31,7 @@
             || $errors->profile->has('password_confirmation');
     @endphp
 
-    <div class="mp-modal mp-hidden" id="tnr-my-profile-modal" role="dialog" aria-modal="true" aria-labelledby="mp-modal-title">
+    <div class="mp-modal mp-hidden" id="tnr-my-profile-modal" role="dialog" aria-modal="true" aria-labelledby="mp-modal-title" data-return-focus="#tnr-profile-menu-trigger">
         <div class="mp-modal-backdrop" data-mp-close="true"></div>
         <div class="mp-dialog" role="document">
             <div class="mp-header">

@@ -30,4 +30,18 @@ class CanonicalHostTest extends TestCase
 
         $this->get('https://touchnrelief.app/login')->assertOk();
     }
+
+    public function test_local_ip_does_not_receive_an_invalid_shared_domain_cookie(): void
+    {
+        config()->set('app.url', 'http://127.0.0.1:8010');
+
+        $response = $this->get('http://127.0.0.1:8010/login')->assertOk();
+
+        $domains = collect($response->headers->getCookies())
+            ->map(fn ($cookie): ?string => $cookie->getDomain())
+            ->filter()
+            ->all();
+
+        $this->assertNotContains('.127.0.0.1', $domains);
+    }
 }

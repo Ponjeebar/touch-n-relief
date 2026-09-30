@@ -24,7 +24,7 @@ class UseCanonicalHost
 
         $response = $next($request);
 
-        if ($canonicalHost !== '' && $requestHost === $canonicalHost) {
+        if ($canonicalHost !== '' && $requestHost === $canonicalHost && $this->supportsDomainCookies($canonicalHost)) {
             $this->expireSharedDomainCookies($response, $canonicalHost);
         }
 
@@ -46,6 +46,13 @@ class UseCanonicalHost
         foreach ($this->cookieNames() as $name) {
             $response->headers->setCookie($this->expiredCookie($name, '.'.$canonicalHost));
         }
+    }
+
+    private function supportsDomainCookies(string $host): bool
+    {
+        return $host !== 'localhost'
+            && str_contains($host, '.')
+            && filter_var($host, FILTER_VALIDATE_IP) === false;
     }
 
     /** @return array<int, string> */

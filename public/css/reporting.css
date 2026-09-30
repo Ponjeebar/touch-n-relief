@@ -654,6 +654,18 @@
     }
 }
 
+@media (max-width: 1024px) {
+    .reporting-page .topbar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .reporting-page .topbar > .welcome,
+    .reporting-page .rep-toolbar {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+}
+
 @media (max-width: 820px) {
     .rep-metrics {
         grid-template-columns: 1fr;

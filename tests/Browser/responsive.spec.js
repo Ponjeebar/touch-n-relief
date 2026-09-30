@@ -1,0 +1,135 @@
+import { expect, test } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+const password = 'AuditPassword9';
+const viewports = [
+    { name: 'mobile-360', width: 360, height: 800 },
+    { name: 'mobile-390', width: 390, height: 844 },
+    { name: 'tablet-portrait', width: 768, height: 1024 },
+    { name: 'tablet-landscape', width: 1024, height: 768 },
+    { name: 'desktop', width: 1366, height: 768 },
+    { name: 'desktop-wide', width: 1920, height: 1080 },
+];
+const themes = ['light', 'dark'];
+const accounts = {
+    customer: { login: 'customer@browser.test', landing: '/', paths: ['/', '/booking', '/profile'] },
+    receptionist: {
+        login: 'receptionist@browser.test',
+        landing: '/receptionist-dashboard',
+        paths: [
+            '/receptionist-dashboard',
+            '/appointments',
+            '/ongoing-sessions',
+            '/completed-sessions',
+            '/therapist-tracking',
+            '/client-records',
+            '/services',
+        ],
+    },
+    admin: {
+        login: 'admin@browser.test',
+        landing: '/dashboard',
+        paths: ['/dashboard', '/reporting', '/activity-log', '/users', '/landing-settings', '/services'],
+    },
+};
+
+async function setTheme(page, theme) {
+    await page.addInitScript((mode) => {
+        localStorage.setItem('tnr-theme-preference-version', 'light-default-v1');
+        localStorage.setItem('tnr-theme', mode);
+    }, theme);
+}
+
+async function login(page, account) {
+    await page.goto('/login');
+    const form = page.locator('form[action$="/login"]');
+    await form.locator('input[name="login"]').fill(account.login);
+    await form.locator('input[name="password"]').fill(password);
+    await Promise.all([
+        page.waitForURL((url) => !url.pathname.endsWith('/login')),
+        form.locator('button[type="submit"]').click(),
+    ]);
+    await expect(page).toHaveURL(new RegExp(`${account.landing.replaceAll('/', '\\/')}(?:\\?.*)?$`));
+}
+
+async function dismissOptionalTour(page) {
+    const close = page.locator('.driver-popover-close-btn');
+    if (await close.isVisible().catch(() => false)) await close.click();
+}
+
+async function assertPageFits(page, path, theme, viewport, role, consoleErrors) {
+    const response = await page.goto(path, { waitUntil: 'domcontentloaded' });
+    expect(response?.status(), `${path} should not return an HTTP error`).toBeLessThan(400);
+    await dismissOptionalTour(page);
+    await page.waitForTimeout(150);
+
+    const layout = await page.evaluate(() => ({
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: document.documentElement.clientWidth,
+        bodyWidth: document.body.scrollWidth,
+        theme: document.documentElement.getAttribute('data-theme') || 'light',
+    }));
+    expect(layout.documentWidth, `${path} has horizontal document overflow`).toBeLessThanOrEqual(layout.viewportWidth + 2);
+    expect(layout.bodyWidth, `${path} has horizontal body overflow`).toBeLessThanOrEqual(layout.viewportWidth + 2);
+    expect(layout.theme).toBe(theme);
+    expect(consoleErrors, `${path} emitted browser console errors`).toEqual([]);
+
+    const captureReviewSet = (viewport.name === 'mobile-390' && theme === 'dark')
+        || (viewport.name === 'desktop' && theme === 'light');
+    if (captureReviewSet) {
+        const directory = join('storage', 'app', 'browser-audit', viewport.name, theme);
+        mkdirSync(directory, { recursive: true });
+        const name = path === '/' ? 'landing' : path.slice(1).replaceAll('/', '-');
+        await page.screenshot({ path: join(directory, `${role}-${name}.png`), fullPage: true });
+    }
+}
+
+for (const viewport of viewports) {
+    for (const theme of themes) {
+        for (const [role, account] of Object.entries(accounts)) {
+            test(`${role} pages fit ${viewport.name} in ${theme} mode`, async ({ page }) => {
+                await page.setViewportSize({ width: viewport.width, height: viewport.height });
+                await setTheme(page, theme);
+                const consoleErrors = [];
+                page.on('console', (message) => {
+                    if (message.type() === 'error') consoleErrors.push(message.text());
+                });
+                await login(page, account);
+
+                for (const path of account.paths) {
+                    consoleErrors.length = 0;
+                    await assertPageFits(page, path, theme, viewport, role, consoleErrors);
+                }
+            });
+        }
+    }
+}
+
+test('profile dialog traps keyboard focus and restores it when closed', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setTheme(page, 'dark');
+    await login(page, accounts.admin);
+
+    const menuButton = page.locator('#tnr-profile-menu-trigger');
+    await menuButton.focus();
+    await page.keyboard.press('Enter');
+    const openButton = page.locator('#tnr-profile-open-modal');
+    await expect(openButton).toBeVisible();
+    await openButton.focus();
+    await page.keyboard.press('Enter');
+
+    const dialog = page.locator('#tnr-my-profile-modal');
+    await expect(dialog).toBeVisible();
+    await expect.poll(() => dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+
+    const focusable = dialog.locator('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    const last = focusable.last();
+    await last.focus();
+    await page.keyboard.press('Tab');
+    await expect.poll(() => dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(menuButton).toBeFocused();
+});

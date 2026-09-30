@@ -8,28 +8,8 @@
 <script src="{{ asset('js/password-capslock.js') }}" defer></script>
 <script src="{{ asset('js/password-toggle.js') }}" defer></script>
 <script src="{{ asset('js/modal-accessibility.js') }}?v={{ filemtime(public_path('js/modal-accessibility.js')) }}" defer></script>
+@include('partials.theme-bootstrap')
 <script>
-(function () {
-    try {
-        var k = 'tnr-theme';
-        var versionKey = 'tnr-theme-preference-version';
-        var currentVersion = 'light-default-v1';
-
-        // Reset preferences saved before light mode became the site default.
-        // Choices made after this release continue to persist normally.
-        if (localStorage.getItem(versionKey) !== currentVersion) {
-            localStorage.removeItem(k);
-            localStorage.setItem(versionKey, currentVersion);
-        }
-
-        var v = localStorage.getItem(k);
-        if (v === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-            document.documentElement.removeAttribute('data-theme');
-        }
-    } catch (e) {}
-})();
 (function () {
     if (window.__tnrThemeApi) return;
     window.__tnrThemeApi = true;

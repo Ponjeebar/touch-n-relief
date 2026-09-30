@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
     @include('partials.staff-mobile-style')
 </head>
-<body>
+<body class="reporting-page">
     <div class="app-shell">
         <div class="dashboard">
             <aside class="sidebar">

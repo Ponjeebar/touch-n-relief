@@ -4,9 +4,14 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test:e2e:prepare": "node tests/Browser/prepare.mjs",
+        "test:e2e": "npm run test:e2e:prepare && playwright test",
+        "test:e2e:headed": "npm run test:e2e:prepare && playwright test --headed",
+        "test:load": "npm run test:e2e:prepare && node tests/Performance/http-smoke.mjs"
     },
     "devDependencies": {
+        "@playwright/test": "^1.63.0",
         "@tailwindcss/vite": "^4.0.0",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",

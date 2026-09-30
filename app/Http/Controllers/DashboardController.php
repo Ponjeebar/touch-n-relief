@@ -13,6 +13,7 @@ use App\Models\Therapist;
 use App\Models\TimeSlot;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\BackupRecoveryService;
 use App\Services\BookingSlotService;
 use App\Services\NotificationFeedService;
 use App\Services\PaymentLedgerService;
@@ -2382,28 +2383,7 @@ class DashboardController extends Controller
 
     public function reportingBackup(): StreamedResponse|RedirectResponse
     {
-        $tables = [
-            'users',
-            'customers',
-            'receptionists',
-            'therapists',
-            'spa_services',
-            'membership_plans',
-            'time_slots',
-            'service_time_slots',
-            'store_closures',
-            'service_slot_date_overrides',
-            'spa_bookings',
-            'payment_ledger_entries',
-            'transactions',
-            'registrations',
-            'social_accounts',
-            'user_password_histories',
-            'customer_notifications',
-            'staff_notifications',
-            'activity_logs',
-            'site_settings',
-        ];
+        $tables = BackupRecoveryService::TABLES;
 
         try {
             $data = [];

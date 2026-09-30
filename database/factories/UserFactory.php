@@ -26,7 +26,7 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'username' => fake()->unique()->userName(),
+            'username' => fake()->unique()->bothify('user_########'),
             'email' => fake()->unique()->safeEmail(),
             'contact_number' => fake()->numerify('09#########'),
             'role' => User::ROLE_ADMIN,

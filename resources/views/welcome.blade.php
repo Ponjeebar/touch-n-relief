@@ -47,24 +47,7 @@
     <meta property="og:description" content="Book personalized spa services through TouchNRelief, the official appointment system of Buenos Touche Spa.">
     <meta property="og:image" content="{{ $siteLogoUrl }}">
     <script type="application/ld+json">{!! json_encode($siteIdentity, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script>
-        try {
-            var themeKey = 'tnr-theme';
-            var themeVersionKey = 'tnr-theme-preference-version';
-            var themeVersion = 'light-default-v1';
-
-            if (localStorage.getItem(themeVersionKey) !== themeVersion) {
-                localStorage.removeItem(themeKey);
-                localStorage.setItem(themeVersionKey, themeVersion);
-            }
-
-            if (localStorage.getItem(themeKey) === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            } else {
-                document.documentElement.removeAttribute('data-theme');
-            }
-        } catch (e) {}
-    </script>
+    @include('partials.theme-bootstrap')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">

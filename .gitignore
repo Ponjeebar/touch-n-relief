@@ -4,6 +4,7 @@
 .env
 .env.backup
 .env.production
+.env.e2e
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -17,6 +18,10 @@
 /public/build
 /public/hot
 /public/storage
+/playwright-report
+/test-results
+/storage/app/browser-audit
+/database/browser-tests.sqlite
 /storage/*.key
 /storage/app/public/
 /storage/app/private/

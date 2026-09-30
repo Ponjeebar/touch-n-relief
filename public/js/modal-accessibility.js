@@ -42,7 +42,12 @@
         }
 
         if (!open && wasOpen) {
-            var target = returnFocus.get(dialog);
+            var configuredTarget = dialog.dataset.returnFocus
+                ? document.querySelector(dialog.dataset.returnFocus)
+                : null;
+            var target = configuredTarget instanceof HTMLElement
+                ? configuredTarget
+                : returnFocus.get(dialog);
             if (target instanceof HTMLElement && target.isConnected) target.focus({ preventScroll: true });
             returnFocus.delete(dialog);
         }
@@ -58,10 +63,13 @@
         });
     }
 
-    document.addEventListener('pointerdown', function (event) {
+    function rememberControl(event) {
         var control = event.target instanceof Element ? event.target.closest('button, a, [role="button"]') : null;
         if (control instanceof HTMLElement) lastControl = control;
-    }, true);
+    }
+
+    document.addEventListener('pointerdown', rememberControl, true);
+    document.addEventListener('click', rememberControl, true);
 
     document.addEventListener('keydown', function (event) {
         if (event.key !== 'Tab') return;
