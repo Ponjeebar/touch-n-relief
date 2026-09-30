@@ -79,5 +79,5 @@
 </header>
 @include('partials.customer-mobile-nav')
 @once
-    <script src="{{ asset('js/mobile-navigation.js') }}" defer></script>
+    <script src="{{ asset('js/mobile-navigation.js') }}?v={{ filemtime(public_path('js/mobile-navigation.js')) }}" defer></script>
 @endonce

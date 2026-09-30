@@ -72,6 +72,7 @@ class AccessibilityMarkupTest extends TestCase
             ->assertSee('aria-controls="staff-mobile-more-menu"', false)
             ->assertSee('Secondary staff pages')
             ->assertSee('id="tnr-profile-theme-toggle"', false)
+            ->assertSee('mobile-navigation.js?v=', false)
             ->assertSee('Receptionist');
         $this->assertSame(5, substr_count($receptionistResponse->getContent(), 'data-staff-mobile-item='));
 
@@ -86,6 +87,12 @@ class AccessibilityMarkupTest extends TestCase
             $mobileStyles
         );
         $this->assertStringContainsString('max-height: calc(100dvh - 88px - env(safe-area-inset-bottom));', $mobileStyles);
+
+        $this->actingAs($receptionist)
+            ->get(route('therapist-tracking.index'))
+            ->assertOk()
+            ->assertSee('therapist-tracking.css?v=', false)
+            ->assertSee('mobile-navigation.js?v=', false);
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 

@@ -40,6 +40,8 @@ class ClientRecordTest extends TestCase
             ->assertOk()
             ->assertSee('TXN-CLIENT-001')
             ->assertSee('Swedish Massage')
+            ->assertSee('client-records.css?v=', false)
+            ->assertSee('mobile-navigation.js?v=', false)
             ->assertSee('data-label="Transaction ID"', false)
             ->assertSee('data-label="Session notes"', false);
     }
