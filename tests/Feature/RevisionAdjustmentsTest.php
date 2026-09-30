@@ -274,6 +274,21 @@ class RevisionAdjustmentsTest extends TestCase
         $this->assertStringStartsWith('%PDF-', (string) $response->getContent());
     }
 
+    public function test_reporting_downloads_do_not_leave_the_page_transition_skeleton_open(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $html = $this->actingAs($admin)
+            ->get(route('reporting.index'))
+            ->assertOk()
+            ->assertSee('id="repExportLink"', false)
+            ->assertSee('id="repPdfLink"', false)
+            ->assertSee('id="repBackupLink"', false)
+            ->getContent();
+
+        $this->assertSame(3, substr_count($html, 'data-page-transition="off"'));
+    }
+
     public function test_landing_settings_save_and_render_social_links(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);

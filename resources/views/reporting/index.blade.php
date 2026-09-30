@@ -61,16 +61,16 @@
                             <label>To <input type="date" name="date_to" value="{{ $dateTo ?? now()->toDateString() }}" max="{{ now()->toDateString() }}" required></label>
                             <button type="submit">Apply</button>
                         </form>
-                        <a href="{{ route('reporting.export', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-export-btn" id="repExportLink">
+                        <a href="{{ route('reporting.export', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-export-btn" id="repExportLink" data-page-transition="off">
                             <i class="bi bi-download" aria-hidden="true"></i>
                             <span>Export Excel</span>
                         </a>
-                        <a href="{{ route('reporting.pdf', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-print-btn" id="repPdfLink">
+                        <a href="{{ route('reporting.pdf', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-print-btn" id="repPdfLink" data-page-transition="off">
                             <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
                             <span>Generate PDF</span>
                         </a>
                         @if (auth()->user()->isAdmin())
-                            <a href="{{ route('reporting.backup') }}" class="rep-backup-btn" title="Download a sensitive recovery export. Store it securely.">
+                            <a href="{{ route('reporting.backup') }}" class="rep-backup-btn" id="repBackupLink" data-page-transition="off" title="Download a sensitive recovery export. Store it securely.">
                                 <i class="bi bi-database-down" aria-hidden="true"></i>
                                 <span>Recovery export</span>
                             </a>

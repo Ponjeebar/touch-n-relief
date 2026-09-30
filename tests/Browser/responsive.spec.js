@@ -133,3 +133,22 @@ test('profile dialog traps keyboard focus and restores it when closed', async ({
     await expect(dialog).toBeHidden();
     await expect(menuButton).toBeFocused();
 });
+
+test('report downloads keep the reporting overview visible', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await setTheme(page, 'light');
+    await login(page, accounts.admin);
+    await page.goto('/reporting', { waitUntil: 'networkidle' });
+
+    for (const selector of ['#repExportLink', '#repPdfLink', '#repBackupLink']) {
+        const [download] = await Promise.all([
+            page.waitForEvent('download'),
+            page.locator(selector).click(),
+        ]);
+
+        expect(await download.suggestedFilename()).toBeTruthy();
+        await expect(page).toHaveURL(/\/reporting(?:\?.*)?$/);
+        await expect(page.locator('.page-transition-skeleton')).toBeHidden();
+        await expect(page.locator('body')).not.toHaveAttribute('aria-busy', 'true');
+    }
+});
