@@ -304,7 +304,6 @@ class SpaSessionService
     {
         $now = $now ?? now();
 
-        $this->autoCancelMissedAppointments($now);
         $this->autoCompleteAllExpired($now);
 
         SpaBooking::query()
@@ -387,42 +386,10 @@ class SpaSessionService
             return 'This session can be started at '.$window['start']->format('g:i A').'.';
         }
         if ($now->gte($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES))) {
-            return 'The 10-minute start window has passed. This appointment has been automatically cancelled.';
+            return 'The 10-minute start window has passed. Staff must confirm whether this appointment is a no-show.';
         }
 
         return 'This appointment cannot be started.';
-    }
-
-    public function autoCancelMissedAppointments(?Carbon $now = null): Collection
-    {
-        $now ??= now();
-        $cancelled = collect();
-
-        SpaBooking::query()
-            ->visibleToStaff()
-            ->whereNull('cancelled_at')
-            ->whereNull('completed_at')
-            ->whereNull('session_started_at')
-            ->where(function (Builder $query): void {
-                $query->whereNull('session_status')
-                    ->orWhere('session_status', SpaBooking::STATUS_CONFIRMED);
-            })
-            ->get()
-            ->each(function (SpaBooking $booking) use ($now, $cancelled): void {
-                $start = $this->window($booking)['start'] ?? null;
-                if ($start === null || $now->lt($start->copy()->addMinutes(self::START_GRACE_MINUTES))) {
-                    return;
-                }
-
-                $booking->forceFill([
-                    'cancelled_at' => $now,
-                    'cancellation_reason' => 'Automatically cancelled because the session was not started within 10 minutes.',
-                    'session_status' => SpaBooking::STATUS_CANCELLED,
-                ])->save();
-                $cancelled->push($booking->fresh());
-            });
-
-        return $cancelled->values();
     }
 
     public function start(SpaBooking $booking): void
@@ -594,11 +561,18 @@ class SpaSessionService
     /**
      * @return array<string, mixed>
      */
-    public function toAppointmentRow(SpaBooking $booking, ?Carbon $now = null): array
+    public function toAppointmentRow(SpaBooking $booking, ?Carbon $now = null, int $customerNoShowCount = 0): array
     {
+        $now ??= now();
         $window = $this->window($booking);
         $start = $window['start'] ?? Carbon::parse($booking->booking_date->format('Y-m-d').' 09:00 AM');
         $end = $window['end'] ?? $start->copy()->addMinutes(max((int) ($booking->duration_minutes ?? 60), 1));
+        $canMarkNoShow = in_array($booking->session_status, [null, SpaBooking::STATUS_CONFIRMED], true)
+            && $booking->cancelled_at === null
+            && $booking->completed_at === null
+            && $booking->session_started_at === null
+            && $now->gte($start->copy()->addMinutes(self::START_GRACE_MINUTES));
+        $status = $canMarkNoShow ? 'Late' : $this->appointmentStatus($booking, $now);
 
         return [
             'booking_id' => (string) $booking->id,
@@ -615,16 +589,15 @@ class SpaSessionService
             'starts_at' => $start,
             'start_at_iso' => $start->toIso8601String(),
             'start_cutoff_at_iso' => $start->copy()->addMinutes(self::START_GRACE_MINUTES)->toIso8601String(),
-            'status' => $this->appointmentStatus($booking, $now),
+            'status' => $status,
             'notes' => trim((string) ($booking->notes ?? '')) !== '' ? trim((string) $booking->notes) : 'No notes provided.',
             'can_start' => $this->canStart($booking, $now),
             'can_reschedule' => app(BookingRescheduleService::class)->canStaffReschedule($booking),
             'can_cancel' => app(BookingCancellationService::class)->canStaffCancel($booking),
-            'can_mark_no_show' => $booking->session_status !== SpaBooking::STATUS_NO_SHOW
-                && $booking->cancelled_at === null
-                && $booking->completed_at === null
-                && $booking->session_started_at === null
-                && ($now ?? now())->gte($start->copy()->addMinutes(10)),
+            'can_mark_no_show' => $canMarkNoShow,
+            'no_show_count' => $customerNoShowCount,
+            'next_no_show_count' => $customerNoShowCount + 1,
+            'will_ban_on_no_show' => $customerNoShowCount + 1 >= 3,
             'client_user_id' => (int) $booking->user_id,
             ...$this->paymentMeta($booking),
         ];

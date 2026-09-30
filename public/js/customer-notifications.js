@@ -33,6 +33,10 @@
                 return 'bi-calendar2-event';
             case 'reminder':
                 return 'bi-alarm';
+            case 'no_show':
+                return 'bi-person-x';
+            case 'no_show_reversed':
+                return 'bi-arrow-counterclockwise';
             default:
                 return 'bi-bell';
         }
@@ -46,6 +50,10 @@
                 return 'Rescheduled';
             case 'reminder':
                 return 'Reminder';
+            case 'no_show':
+                return 'No-show';
+            case 'no_show_reversed':
+                return 'Corrected';
             default:
                 return 'Update';
         }
@@ -81,6 +89,10 @@
 
         if (type === 'reminder') {
             push('Reminder', details.reminder_window === '2h' ? 'About 2 hours before' : 'About 24 hours before', true);
+        }
+
+        if (type === 'no_show' || type === 'no_show_reversed') {
+            push('No-show count', `${details.no_show_count ?? 0} of 3`, true);
         }
 
         return rows;
@@ -186,7 +198,7 @@
         const detailsEl = modal.querySelector('[data-customer-notif-modal-details]');
         const details = note.details ?? {};
 
-        const knownTypes = ['cancelled', 'rescheduled', 'reminder'];
+        const knownTypes = ['cancelled', 'rescheduled', 'reminder', 'no_show', 'no_show_reversed'];
         if (panel instanceof HTMLElement) {
             panel.className = 'cn-modal__panel' + (knownTypes.includes(type) ? ' cn-modal__panel--' + type : '');
         }
@@ -204,8 +216,10 @@
             noteWrap.hidden = !(note.message ?? '').trim();
             const noteIcon = noteWrap.querySelector('.bi');
             if (noteIcon instanceof HTMLElement) {
-                const icon = type === 'cancelled'
+                const icon = type === 'cancelled' || type === 'no_show'
                     ? 'bi-x-circle'
+                    : type === 'no_show_reversed'
+                        ? 'bi-arrow-counterclockwise'
                     : type === 'reminder'
                         ? 'bi-alarm'
                         : 'bi-info-circle';

@@ -158,6 +158,7 @@
                                         <button class="pill all pill-filter" type="button" data-status-filter="">{{ $stats['total'] ?? 0 }} All Appointments</button>
                                         <button class="pill pending pill-filter" type="button" data-pill-pending="true" data-status-filter="pending">{{ $stats['pending'] ?? 0 }} Pending</button>
                                         <button class="pill rescheduled pill-filter" type="button" data-pill-rescheduled="true" data-status-filter="rescheduled">{{ $stats['rescheduled'] ?? 0 }} Rescheduled</button>
+                                        <button class="pill late pill-filter" type="button" data-pill-late="true" data-status-filter="late">{{ $stats['late'] ?? 0 }} Late</button>
                                         <button class="pill confirmed pill-filter" type="button" data-pill-confirmed="true" data-status-filter="confirmed">{{ $stats['confirmed'] ?? 0 }} Confirmed</button>
                                         <button class="pill completed pill-filter" type="button" data-pill-completed="true" data-status-filter="completed">{{ $stats['completed'] ?? 0 }} Completed</button>
                                         <button class="pill cancelled pill-filter" type="button" data-pill-cancelled="true" data-status-filter="cancelled">{{ $stats['cancelled'] ?? 0 }} Cancelled</button>
@@ -165,6 +166,7 @@
                                     </span>
                                     <span class="appointments-sub" data-pill-group-past="true" @if(($isPastDay ?? false) !== true) style="display:none" @endif>
                                         <button class="pill all pill-filter" type="button" data-status-filter="">{{ $stats['total'] ?? 0 }} All Appointments</button>
+                                        <button class="pill late pill-filter" type="button" data-pill-late="true" data-status-filter="late">{{ $stats['late'] ?? 0 }} Late</button>
                                         <button class="pill completed pill-filter" type="button" data-pill-completed="true" data-status-filter="completed">{{ $stats['completed'] ?? 0 }} Completed</button>
                                         <button class="pill cancelled pill-filter" type="button" data-pill-cancelled="true" data-status-filter="cancelled">{{ $stats['cancelled'] ?? 0 }} Cancelled</button>
                                         <button class="pill no-show pill-filter" type="button" data-pill-no-show="true" data-status-filter="no-show">{{ $stats['no_show'] ?? 0 }} No Show</button>
@@ -575,6 +577,35 @@
                 <button type="button" class="user-action delete" id="cancel-confirm-btn">Confirm cancellation</button>
             </div>
         </div>
+    </div>
+
+    <div class="profile-modal hidden-section" id="no-show-appointment-modal" role="dialog" aria-modal="true" aria-labelledby="no-show-appointment-modal-title">
+        <div class="profile-modal-backdrop" data-close-no-show="true"></div>
+        <form class="profile-modal-content no-show-modal-content" id="no-show-appointment-form" method="POST">
+            @csrf
+            @method('PATCH')
+            <button class="profile-modal-close" type="button" aria-label="Close no-show confirmation" data-close-no-show="true">&times;</button>
+            <p class="no-show-modal-eyebrow">Attendance review</p>
+            <h3 class="profile-modal-title" id="no-show-appointment-modal-title">Mark appointment as no-show?</h3>
+            <p class="reschedule-subtitle">Confirm the appointment details before changing the customer record.</p>
+
+            <dl class="no-show-summary">
+                <div><dt>Customer</dt><dd id="no-show-client">—</dd></div>
+                <div><dt>Service</dt><dd id="no-show-service">—</dd></div>
+                <div class="no-show-summary-wide"><dt>Schedule</dt><dd id="no-show-schedule">—</dd></div>
+            </dl>
+
+            <div class="no-show-impact" id="no-show-impact" role="status"></div>
+            <div class="no-show-ban-warning hidden-section" id="no-show-ban-warning">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                <span id="no-show-ban-warning-text">This is the third no-show. Confirming it will restrict the customer account.</span>
+            </div>
+
+            <div class="profile-modal-actions">
+                <button class="user-action user-action-cancel" type="button" data-close-no-show="true">Go back</button>
+                <button class="user-action user-action-danger" type="submit">Confirm no-show</button>
+            </div>
+        </form>
     </div>
     @endif
 
@@ -1713,6 +1744,84 @@
             }
         });
 
+        const noShowModal = document.getElementById('no-show-appointment-modal');
+        const noShowForm = document.getElementById('no-show-appointment-form');
+        const noShowClient = document.getElementById('no-show-client');
+        const noShowService = document.getElementById('no-show-service');
+        const noShowSchedule = document.getElementById('no-show-schedule');
+        const noShowImpact = document.getElementById('no-show-impact');
+        const noShowBanWarning = document.getElementById('no-show-ban-warning');
+        const noShowBanWarningText = document.getElementById('no-show-ban-warning-text');
+        let noShowReturnFocus = null;
+
+        function openNoShowModal(button) {
+            if (!(noShowModal instanceof HTMLElement) || !(noShowForm instanceof HTMLFormElement)) return;
+
+            noShowReturnFocus = button;
+            noShowForm.action = button.getAttribute('data-no-show-url') ?? '';
+            if (noShowClient) noShowClient.textContent = button.getAttribute('data-client') ?? '—';
+            if (noShowService) noShowService.textContent = button.getAttribute('data-service') ?? '—';
+            if (noShowSchedule) {
+                noShowSchedule.textContent = `${button.getAttribute('data-date') ?? ''} · ${button.getAttribute('data-time') ?? ''}`;
+            }
+
+            const currentCount = Number.parseInt(button.getAttribute('data-current-no-show-count') ?? '0', 10) || 0;
+            const nextCount = Number.parseInt(button.getAttribute('data-next-no-show-count') ?? '1', 10) || 1;
+            const willBan = button.getAttribute('data-will-ban') === '1';
+            if (noShowImpact) {
+                noShowImpact.textContent = `Current no-shows: ${currentCount} of 3. Confirming will update the count to ${nextCount} of 3 and notify the customer.`;
+            }
+            noShowBanWarning?.classList.toggle('hidden-section', !willBan);
+            if (willBan && noShowBanWarningText) {
+                noShowBanWarningText.textContent = nextCount === 3
+                    ? 'This is the third no-show. Confirming it will restrict the customer account.'
+                    : 'The customer already reached the no-show limit. The account will remain restricted.';
+            }
+            noShowModal.classList.remove('hidden-section');
+            window.requestAnimationFrame(() => {
+                noShowForm.querySelector('button[type="submit"]')?.focus();
+            });
+        }
+
+        function hideNoShowModal() {
+            noShowModal?.classList.add('hidden-section');
+            if (noShowForm instanceof HTMLFormElement) noShowForm.action = '';
+            if (noShowReturnFocus instanceof HTMLElement && noShowReturnFocus.isConnected) {
+                noShowReturnFocus.focus();
+            }
+            noShowReturnFocus = null;
+        }
+
+        noShowModal?.querySelectorAll('[data-close-no-show="true"]').forEach((button) => {
+            button.addEventListener('click', hideNoShowModal);
+        });
+        noShowForm?.addEventListener('submit', () => {
+            const submitButton = noShowForm.querySelector('button[type="submit"]');
+            if (submitButton instanceof HTMLButtonElement) submitButton.disabled = true;
+        });
+        document.addEventListener('keydown', (event) => {
+            if (noShowModal?.classList.contains('hidden-section')) return;
+
+            if (event.key === 'Escape') {
+                hideNoShowModal();
+                return;
+            }
+
+            if (event.key === 'Tab' && noShowForm instanceof HTMLFormElement) {
+                const focusable = Array.from(noShowForm.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])'));
+                if (focusable.length === 0) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        });
+
         const viewModal = document.getElementById('view-appointment-modal');
         const closeViewModalBtn = document.getElementById('close-view-modal');
         const viewCloseBtn = document.getElementById('view-close-btn');
@@ -2235,6 +2344,7 @@
             const confirmed = meta?.getAttribute('data-confirmed') ?? null;
             const pending = meta?.getAttribute('data-pending') ?? null;
             const rescheduled = meta?.getAttribute('data-rescheduled') ?? null;
+            const late = meta?.getAttribute('data-late') ?? null;
             const cancelled = meta?.getAttribute('data-cancelled') ?? null;
             const noShow = meta?.getAttribute('data-no-show') ?? null;
             const completed = meta?.getAttribute('data-completed') ?? null;
@@ -2261,6 +2371,11 @@
             if (rescheduled !== null) {
                 document.querySelectorAll('[data-pill-rescheduled="true"]').forEach((el) => {
                     el.textContent = `${rescheduled} Rescheduled`;
+                });
+            }
+            if (late !== null) {
+                document.querySelectorAll('[data-pill-late="true"]').forEach((el) => {
+                    el.textContent = `${late} Late`;
                 });
             }
             if (cancelled !== null) {
@@ -2310,6 +2425,13 @@
                 if (cancelBtn instanceof HTMLElement) {
                     event.preventDefault();
                     openCancelModal(cancelBtn);
+                    return;
+                }
+
+                const noShowBtn = target.closest('[data-open-no-show="true"]');
+                if (noShowBtn instanceof HTMLElement) {
+                    event.preventDefault();
+                    openNoShowModal(noShowBtn);
                     return;
                 }
 

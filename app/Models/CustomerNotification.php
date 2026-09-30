@@ -13,6 +13,10 @@ class CustomerNotification extends Model
 
     public const TYPE_REMINDER = 'reminder';
 
+    public const TYPE_NO_SHOW = 'no_show';
+
+    public const TYPE_NO_SHOW_REVERSED = 'no_show_reversed';
+
     protected $fillable = [
         'user_id',
         'spa_booking_id',

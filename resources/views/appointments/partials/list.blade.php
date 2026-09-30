@@ -4,6 +4,7 @@
         data-confirmed="{{ $stats['confirmed'] ?? 0 }}"
         data-pending="{{ $stats['pending'] ?? 0 }}"
         data-rescheduled="{{ $stats['rescheduled'] ?? 0 }}"
+        data-late="{{ $stats['late'] ?? 0 }}"
         data-completed="{{ $stats['completed'] ?? 0 }}"
         data-cancelled="{{ $stats['cancelled'] ?? 0 }}"
         data-no-show="{{ $stats['no_show'] ?? 0 }}"
@@ -21,7 +22,8 @@
             $isRescheduled = ($appointment['status'] ?? '') === 'Rescheduled';
             $isInSession = ($appointment['status'] ?? '') === 'In Session';
             $isNoShow = ($appointment['status'] ?? '') === 'No Show';
-            $isActiveBooking = $isConfirmed || $isPending || $isRescheduled;
+            $isLate = ($appointment['status'] ?? '') === 'Late';
+            $isActiveBooking = $isConfirmed || $isPending || $isRescheduled || $isLate;
             $bookingId = $appointment['booking_id'] ?? null;
         @endphp
         <div class="appt-row" role="listitem" data-booking-id="{{ $bookingId ?? '' }}">
@@ -140,11 +142,30 @@
                         </button>
                     @endif
                     @if (($isStaff ?? false) && ! empty($appointment['can_mark_no_show']) && $bookingId)
-                        <form method="POST" action="{{ route('appointments.no-show', $bookingId) }}" class="appt-start-form" onsubmit="return confirm('Mark this customer as a no-show? Three no-shows will ban the account.');">
+                        <button
+                            class="appt-icon-btn no-show"
+                            type="button"
+                            title="Review no-show"
+                            aria-label="Review no-show for {{ $appointment['client'] }}"
+                            data-open-no-show="true"
+                            data-no-show-url="{{ route('appointments.no-show', $bookingId) }}"
+                            data-client="{{ $appointment['client'] }}"
+                            data-service="{{ $appointment['service'] }}"
+                            data-date="{{ $appointment['date'] }}"
+                            data-time="{{ $appointment['time'] }}"
+                            data-current-no-show-count="{{ $appointment['no_show_count'] ?? 0 }}"
+                            data-next-no-show-count="{{ $appointment['next_no_show_count'] ?? 1 }}"
+                            data-will-ban="{{ ! empty($appointment['will_ban_on_no_show']) ? '1' : '0' }}"
+                        >
+                            <i class="bi bi-person-x" aria-hidden="true"></i>
+                        </button>
+                    @endif
+                    @if (($isAdmin ?? false) && $isNoShow && $bookingId)
+                        <form method="POST" action="{{ route('appointments.no-show.reverse', $bookingId) }}" class="appt-start-form" onsubmit="return confirm('Correct this no-show record? The customer count and account restriction will be recalculated.');">
                             @csrf
                             @method('PATCH')
-                            <button class="appt-icon-btn no-show" type="submit" title="Mark no-show" aria-label="Mark {{ $appointment['client'] }} as a no-show">
-                                <i class="bi bi-person-x" aria-hidden="true"></i>
+                            <button class="appt-icon-btn reverse-no-show" type="submit" title="Correct no-show" aria-label="Correct no-show for {{ $appointment['client'] }}">
+                                <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
                             </button>
                         </form>
                     @endif

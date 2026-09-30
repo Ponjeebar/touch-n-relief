@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CustomerNotification;
 use App\Models\SiteSetting;
 use App\Models\SpaBooking;
 use App\Models\Therapist;
@@ -56,6 +57,101 @@ class BookingPolicyTest extends TestCase
 
         $this->assertSame(3, SpaBooking::query()->where('user_id', $customer->id)->where('session_status', SpaBooking::STATUS_NO_SHOW)->count());
         $this->assertNotNull($customer->fresh()->banned_at);
+        $this->assertSame(3, CustomerNotification::query()
+            ->where('user_id', $customer->id)
+            ->where('type', CustomerNotification::TYPE_NO_SHOW)
+            ->count());
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $staff->id,
+            'action' => 'appointment.no_show',
+        ]);
+    }
+
+    public function test_admin_can_correct_no_show_and_recalculate_account_restriction(): void
+    {
+        Carbon::setTestNow('2026-09-21 12:00:00');
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER, 'banned_at' => now()]);
+
+        $bookings = collect(['2026-09-18', '2026-09-19', '2026-09-20'])
+            ->map(function (string $date) use ($customer): SpaBooking {
+                $booking = $this->booking($customer, $date, '09:00 AM');
+                $booking->update(['session_status' => SpaBooking::STATUS_NO_SHOW]);
+
+                return $booking;
+            });
+
+        $this->actingAs($admin)
+            ->patch(route('appointments.no-show.reverse', $bookings->last()))
+            ->assertRedirect(route('appointments.index', ['date' => '2026-09-20']));
+
+        $this->assertSame(SpaBooking::STATUS_CONFIRMED, $bookings->last()->fresh()->session_status);
+        $this->assertSame(2, SpaBooking::query()
+            ->where('user_id', $customer->id)
+            ->where('session_status', SpaBooking::STATUS_NO_SHOW)
+            ->count());
+        $this->assertNull($customer->fresh()->banned_at);
+        $this->assertDatabaseHas('customer_notifications', [
+            'user_id' => $customer->id,
+            'spa_booking_id' => $bookings->last()->id,
+            'type' => CustomerNotification::TYPE_NO_SHOW_REVERSED,
+        ]);
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $admin->id,
+            'action' => 'appointment.no_show_reversed',
+        ]);
+    }
+
+    public function test_receptionist_cannot_correct_a_no_show(): void
+    {
+        $receptionist = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->booking($customer, '2026-09-20', '09:00 AM');
+        $booking->update(['session_status' => SpaBooking::STATUS_NO_SHOW]);
+
+        $this->actingAs($receptionist)
+            ->patch(route('appointments.no-show.reverse', $booking))
+            ->assertRedirect(route('receptionist.dashboard'));
+
+        $this->assertSame(SpaBooking::STATUS_NO_SHOW, $booking->fresh()->session_status);
+    }
+
+    public function test_customer_cannot_record_or_correct_a_no_show(): void
+    {
+        Carbon::setTestNow('2026-09-21 12:00:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->booking($customer, '2026-09-21', '09:00 AM');
+
+        $this->actingAs($customer)
+            ->patch(route('appointments.no-show', $booking))
+            ->assertForbidden();
+        $this->actingAs($customer)
+            ->patch(route('appointments.no-show.reverse', $booking))
+            ->assertForbidden();
+
+        $this->assertSame(SpaBooking::STATUS_CONFIRMED, $booking->fresh()->session_status);
+    }
+
+    public function test_late_appointment_requires_staff_confirmation_and_shows_the_next_count(): void
+    {
+        Carbon::setTestNow('2026-09-21 10:11:00');
+        $receptionist = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $this->booking($customer, '2026-09-20', '09:00 AM')->update([
+            'session_status' => SpaBooking::STATUS_NO_SHOW,
+        ]);
+        $lateBooking = $this->booking($customer, '2026-09-21', '10:00 AM');
+
+        $this->actingAs($receptionist)
+            ->get(route('appointments.index', ['date' => '2026-09-21']))
+            ->assertOk()
+            ->assertSee('Late')
+            ->assertSee('data-open-no-show="true"', false)
+            ->assertSee('data-current-no-show-count="1"', false)
+            ->assertSee('data-next-no-show-count="2"', false)
+            ->assertSee('Mark appointment as no-show?');
+
+        $this->assertSame(SpaBooking::STATUS_CONFIRMED, $lateBooking->fresh()->session_status);
     }
 
     public function test_dashboard_counts_all_future_active_appointments_as_upcoming(): void
@@ -129,8 +225,14 @@ class BookingPolicyTest extends TestCase
 
         Carbon::setTestNow('2026-09-24 02:40:00 PM');
         $this->assertFalse($sessions->canStart($booking));
-        $sessions->autoCancelMissedAppointments();
-        $this->assertSame(SpaBooking::STATUS_CANCELLED, $booking->fresh()->session_status);
+        $sessions->releaseAvailabilityBlocks();
+        $this->assertSame(SpaBooking::STATUS_CONFIRMED, $booking->fresh()->session_status);
+
+        $row = $sessions->toAppointmentRow($booking->fresh(), now(), 1);
+        $this->assertSame('Late', $row['status']);
+        $this->assertTrue($row['can_mark_no_show']);
+        $this->assertSame(2, $row['next_no_show_count']);
+        $this->assertStringContainsString('must confirm', $sessions->startEligibilityMessage($booking->fresh()));
     }
 
     public function test_busy_status_comes_from_an_active_session_instead_of_stored_flag(): void

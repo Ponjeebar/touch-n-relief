@@ -270,6 +270,13 @@
     color: #4152d6;
 }
 
+.pill.late,
+.appt-status.late {
+    background: #fff7e8;
+    border-color: #edcf91;
+    color: #8a5900;
+}
+
 .pill.cancelled {
     background: #fff1f4;
     border-color: #f2d5dc;
@@ -722,6 +729,138 @@
     background: rgba(190, 112, 17, 0.1);
     border-color: rgba(190, 112, 17, 0.24);
     color: #9a5b08;
+}
+
+.appt-icon-btn.reverse-no-show {
+    background: rgba(79, 109, 140, 0.1);
+    border-color: rgba(79, 109, 140, 0.24);
+    color: var(--accent-blue);
+}
+
+.no-show-modal-content {
+    width: min(540px, calc(100vw - 40px));
+    border-radius: 22px;
+    font-family: var(--font-modal);
+}
+
+.no-show-modal-eyebrow {
+    margin: 0 0 4px;
+    color: #8a5900;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.no-show-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 18px 0 12px;
+}
+
+.no-show-summary > div {
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--appt-row);
+}
+
+.no-show-summary-wide {
+    grid-column: 1 / -1;
+}
+
+.no-show-summary dt {
+    margin-bottom: 3px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.no-show-summary dd {
+    margin: 0;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.no-show-impact,
+.no-show-ban-warning {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.no-show-impact {
+    border: 1px solid #d7e4e1;
+    background: #f4f8f7;
+    color: #40545e;
+}
+
+.no-show-ban-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-top: 10px;
+    border: 1px solid #edc3c3;
+    background: #fff2f2;
+    color: #8c3030;
+    font-weight: 700;
+}
+
+.no-show-modal-content .profile-modal-actions {
+    margin-top: 18px;
+}
+
+.user-action-danger {
+    border-color: #d99b9b;
+    background: #a23d3d;
+    color: #fff;
+}
+
+.user-action-danger:hover {
+    background: #8d3030;
+}
+
+html[data-theme="dark"] .no-show-impact {
+    border-color: #3d4f63;
+    background: #19232e;
+    color: var(--muted);
+}
+
+html[data-theme="dark"] .no-show-ban-warning {
+    border-color: rgba(248, 113, 113, 0.42);
+    background: rgba(127, 29, 29, 0.24);
+    color: #fecaca;
+}
+
+@media (max-width: 520px) {
+    .no-show-modal-content {
+        width: calc(100vw - 24px);
+        border-radius: 18px;
+    }
+
+    .no-show-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .no-show-summary-wide {
+        grid-column: auto;
+    }
+
+    .no-show-modal-content .profile-modal-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .no-show-modal-content .user-action {
+        justify-content: center;
+    }
 }
 
 .appt-icon-btn.reschedule {

@@ -118,6 +118,7 @@ Route::middleware(['auth', 'current.staff.session', 'staff.activity'])->group(fu
 });
 
 Route::middleware(['auth', 'current.staff.session', 'admin', 'staff.activity'])->group(function () {
+    Route::patch('/appointments/{spaBooking}/no-show/reverse', [StaffAppointmentController::class, 'reverseNoShow'])->name('appointments.no-show.reverse');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/reporting', [DashboardController::class, 'reporting'])->name('reporting.index');
     Route::get('/reporting/data', [DashboardController::class, 'reportingData'])->name('reporting.data');

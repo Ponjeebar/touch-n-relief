@@ -61,6 +61,10 @@
                                 <i class="bi bi-calendar2-event"></i>
                             @elseif ($type === 'reminder')
                                 <i class="bi bi-alarm"></i>
+                            @elseif ($type === 'no_show')
+                                <i class="bi bi-person-x"></i>
+                            @elseif ($type === 'no_show_reversed')
+                                <i class="bi bi-arrow-counterclockwise"></i>
                             @else
                                 <i class="bi bi-bell"></i>
                             @endif

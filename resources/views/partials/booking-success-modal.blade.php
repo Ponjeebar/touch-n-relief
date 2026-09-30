@@ -54,7 +54,7 @@
                     </p>
                     <p class="bk-reminder-item bk-reminder-muted">
                         <i class="bi bi-info-circle" aria-hidden="true"></i>
-                        <span><strong>Late note:</strong> your session will be automatically cancelled if you are <strong>10 minutes late</strong>.</span>
+                        <span><strong>Late note:</strong> if you arrive more than <strong>10 minutes late</strong>, staff may mark the appointment as a no-show.</span>
                     </p>
                 </div>
             </div>

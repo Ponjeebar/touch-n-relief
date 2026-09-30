@@ -68,6 +68,8 @@ class ActivityLog extends Model
             'completed_sessions.view' => 'Viewed completed sessions',
             'session.completed' => 'Completed a session',
             'session.started' => 'Started a session',
+            'appointment.no_show' => 'Recorded no-show',
+            'appointment.no_show_reversed' => 'Corrected no-show',
             'therapist_tracking.view' => 'Viewed therapist tracking',
             'reporting.view' => 'Viewed reporting',
             'receptionist.view' => 'Viewed receptionist page',

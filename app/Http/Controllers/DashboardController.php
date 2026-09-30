@@ -889,8 +889,18 @@ class DashboardController extends Controller
 
         if ($usesDatabase) {
             $now = now();
+            $noShowCounts = SpaBooking::query()
+                ->whereIn('user_id', $bookings->pluck('user_id')->filter()->unique())
+                ->where('session_status', SpaBooking::STATUS_NO_SHOW)
+                ->selectRaw('user_id, COUNT(*) as aggregate')
+                ->groupBy('user_id')
+                ->pluck('aggregate', 'user_id');
             $appointments = $bookings
-                ->map(fn (SpaBooking $booking): array => $sessions->toAppointmentRow($booking, $now))
+                ->map(fn (SpaBooking $booking): array => $sessions->toAppointmentRow(
+                    $booking,
+                    $now,
+                    (int) $noShowCounts->get($booking->user_id, 0),
+                ))
                 ->values();
         }
 
@@ -955,7 +965,7 @@ class DashboardController extends Controller
         $dateSort = $request->string('date_sort')->lower()->value() === 'desc' ? 'desc' : 'asc';
         $statusSort = $request->string('status_sort')->lower()->value() === 'desc' ? 'desc' : 'asc';
         $statusFilter = $request->string('status_filter')->lower()->value();
-        $statusFilter = in_array($statusFilter, ['confirmed', 'pending', 'rescheduled', 'completed', 'cancelled', 'no-show', 'in-session'], true) ? $statusFilter : '';
+        $statusFilter = in_array($statusFilter, ['confirmed', 'pending', 'rescheduled', 'late', 'completed', 'cancelled', 'no-show', 'in-session'], true) ? $statusFilter : '';
         $search = trim($request->string('search')->toString());
         $nextDateSort = $dateSort === 'asc' ? 'desc' : 'asc';
         $nextStatusSort = $statusSort === 'asc' ? 'desc' : 'asc';
@@ -1008,20 +1018,22 @@ class DashboardController extends Controller
             'In Session' => 0,
             'Pending' => 1,
             'Rescheduled' => 2,
-            'Confirmed' => 3,
-            'Completed' => 4,
-            'Cancelled' => 5,
-            'No Show' => 6,
+            'Late' => 3,
+            'Confirmed' => 4,
+            'Completed' => 5,
+            'Cancelled' => 6,
+            'No Show' => 7,
         ];
 
         $statusRankDesc = [
             'Cancelled' => 0,
             'No Show' => 1,
             'Completed' => 2,
-            'Confirmed' => 3,
-            'Rescheduled' => 4,
-            'Pending' => 5,
-            'In Session' => 6,
+            'Late' => 3,
+            'Confirmed' => 4,
+            'Rescheduled' => 5,
+            'Pending' => 6,
+            'In Session' => 7,
         ];
 
         $appointments = $appointments
@@ -1054,6 +1066,7 @@ class DashboardController extends Controller
             'pending' => (int) ($statusCounts->get('pending', 0)),
             'rescheduled' => (int) ($statusCounts->get('rescheduled', 0)),
             'confirmed' => (int) ($statusCounts->get('confirmed', 0)),
+            'late' => (int) ($statusCounts->get('late', 0)),
             'in_session' => (int) ($statusCounts->get('in-session', 0)),
             'completed' => (int) ($statusCounts->get('completed', 0)),
             'cancelled' => (int) ($statusCounts->get('cancelled', 0)),
@@ -1116,6 +1129,7 @@ class DashboardController extends Controller
 
         $user = $request->user();
         $isStaff = $user instanceof User && ($user->isAdmin() || $user->isReceptionist());
+        $isAdmin = $user instanceof User && $user->isAdmin();
         $slots = app(BookingSlotService::class);
 
         if ($request->boolean('ajax')) {
@@ -1124,6 +1138,7 @@ class DashboardController extends Controller
                 'stats' => $stats,
                 'isPastDay' => $selectedDate->lt(now()->startOfDay()),
                 'isStaff' => $isStaff,
+                'isAdmin' => $isAdmin,
             ]);
         }
 
@@ -1145,6 +1160,7 @@ class DashboardController extends Controller
             'serviceOptions' => $serviceOptions,
             'therapistOptions' => $therapistOptions,
             'isStaff' => $isStaff,
+            'isAdmin' => $isAdmin,
             'staffAvailabilityUrl' => route('appointments.availability'),
             'appointmentStoreUrl' => route('appointments.store'),
             'clientSearchUrl' => route('appointments.clients.search'),

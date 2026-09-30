@@ -215,6 +215,16 @@ html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .customer-notif
     color: #1f6b45;
 }
 
+.customer-notif-item-icon.no_show {
+    background: #fff4e5;
+    color: #9a5b08;
+}
+
+.customer-notif-item-icon.no_show_reversed {
+    background: #eef6ff;
+    color: #2f6fad;
+}
+
 .customer-notif-item-body {
     min-width: 0;
     display: flex;

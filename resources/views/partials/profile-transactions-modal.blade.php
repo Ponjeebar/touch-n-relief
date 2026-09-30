@@ -26,7 +26,7 @@
             <p class="txn-modal-sub">Your appointments, payment status, and completed spa sessions — most recent activity shown first.</p>
             <p class="txn-modal-note">
                 <i class="bi bi-info-circle" aria-hidden="true"></i>
-                <span class="txn-modal-note-text"><strong>Late note:</strong> your session will be automatically cancelled if you are <strong>10 minutes late</strong>.</span>
+                <span class="txn-modal-note-text"><strong>Late note:</strong> if you arrive more than <strong>10 minutes late</strong>, staff may mark the appointment as a no-show.</span>
             </p>
             @include('partials.profile-transactions-list')
         </div>

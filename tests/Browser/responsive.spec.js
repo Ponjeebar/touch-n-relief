@@ -225,3 +225,37 @@ test('completed appointment rebooking stays usable on mobile and desktop', async
         await page.locator('[data-tnr-txn-close="true"]:visible').last().click();
     }
 });
+
+test('staff no-show confirmation stays usable on mobile, tablet, and desktop', async ({ page }) => {
+    await login(page, accounts.receptionist);
+
+    for (const setup of [
+        { viewport: { width: 390, height: 844 }, theme: 'dark' },
+        { viewport: { width: 768, height: 1024 }, theme: 'light' },
+        { viewport: { width: 1366, height: 768 }, theme: 'light' },
+    ]) {
+        await page.setViewportSize(setup.viewport);
+        await page.evaluate((theme) => localStorage.setItem('tnr-theme', theme), setup.theme);
+        await page.goto('/appointments', { waitUntil: 'domcontentloaded' });
+        await dismissOptionalTour(page);
+
+        const trigger = page.locator('[data-open-no-show="true"]').first();
+        await expect(trigger).toBeVisible();
+        await trigger.click();
+
+        const dialog = page.locator('#no-show-appointment-modal');
+        await expect(dialog).toBeVisible();
+        await expect(dialog.locator('#no-show-client')).toHaveText('Browser Customer');
+        await expect(dialog.locator('#no-show-impact')).toContainText('Confirming will update the count');
+        await expect(dialog.locator('button[type="submit"]')).toBeFocused();
+
+        const box = await dialog.locator('.no-show-modal-content').boundingBox();
+        expect(box).not.toBeNull();
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(setup.viewport.width + 1);
+
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden();
+        await expect(trigger).toBeFocused();
+    }
+});

@@ -111,6 +111,13 @@ class BrowserTestSeeder extends Seeder
                 'session_started_at' => now()->subDay()->setTime(14, 0),
                 'completed_at' => now()->subDay()->setTime(15, 30),
             ],
+            [
+                'booking_date' => now()->subMinutes(15)->toDateString(),
+                'time_slot' => now()->subMinutes(15)->format('g:i A'),
+                'service_name' => 'Thai Massage',
+                'therapist_name' => 'Carlos Mendoza',
+                'session_status' => SpaBooking::STATUS_CONFIRMED,
+            ],
         ];
 
         foreach ($bookings as $details) {

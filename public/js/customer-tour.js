@@ -182,7 +182,7 @@
             step(['.txn-card'], 'Read an appointment card', withExample('Each card shows the reference, service, therapist, schedule, duration, amount, and current status.', '“Payment hold expired” means the 15-minute payment window ended and that reservation is no longer active.')),
             step(['[data-txn-payment-toggle]', '.txn-payment-block'], 'Payment details', withExample('Expand this section to review method, type, initial payment, total paid, balance, and reference.', 'A 50% downpayment can show a remaining balance that must be collected before the session starts.')),
             step(['.txn-card-actions'], 'Available actions', withExample('Buttons appear only when the booking rules permit an action.', 'An eligible upcoming booking may be rescheduled or cancelled; an active payment hold may show Continue payment.')),
-            step(['.txn-modal-note'], 'Arrival policy', 'Arrive before the appointment time. The system can cancel a session when the customer is more than 10 minutes late.'),
+            step(['.txn-modal-note'], 'Arrival policy', 'Arrive before the appointment time. Staff can review and confirm a no-show when the customer is more than 10 minutes late.'),
         ];
     }
 

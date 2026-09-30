@@ -13,6 +13,7 @@ use App\Services\BookingCancellationService;
 use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
+use App\Services\CustomerNotificationService;
 use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
 use App\Services\SpaServiceCatalog;
@@ -45,6 +46,7 @@ class StaffAppointmentController extends Controller
         private readonly BookingRefundService $refunds,
         private readonly PaymongoService $paymongo,
         private readonly PaymentLedgerService $paymentLedger,
+        private readonly CustomerNotificationService $customerNotifications,
     ) {}
 
     public function availability(Request $request): JsonResponse
@@ -677,14 +679,26 @@ class StaffAppointmentController extends Controller
         if ($spaBooking->cancelled_at !== null
             || $spaBooking->completed_at !== null
             || $spaBooking->session_started_at !== null
-            || $spaBooking->session_status === SpaBooking::STATUS_NO_SHOW
+            || ! in_array($spaBooking->session_status, [null, SpaBooking::STATUS_CONFIRMED], true)
             || $appointmentAt === null
             || now()->lt($appointmentAt->copy()->addMinutes(10))) {
             return back()->with('error', 'This appointment cannot be marked as a no-show yet.');
         }
 
         $result = DB::transaction(function () use ($spaBooking): array {
+            $customer = User::query()->lockForUpdate()->findOrFail($spaBooking->user_id);
             $booking = SpaBooking::query()->with('user')->lockForUpdate()->findOrFail($spaBooking->id);
+            $appointmentAt = $this->cancellations->appointmentAt($booking);
+            if ($booking->cancelled_at !== null
+                || $booking->completed_at !== null
+                || $booking->session_started_at !== null
+                || ! in_array($booking->session_status, [null, SpaBooking::STATUS_CONFIRMED], true)
+                || $appointmentAt === null
+                || now()->lt($appointmentAt->copy()->addMinutes(10))) {
+                throw ValidationException::withMessages([
+                    'appointment' => 'This appointment cannot be marked as a no-show.',
+                ]);
+            }
             $booking->forceFill(['session_status' => SpaBooking::STATUS_NO_SHOW])->save();
 
             $noShowCount = SpaBooking::query()
@@ -693,13 +707,15 @@ class StaffAppointmentController extends Controller
                 ->count();
 
             $banned = false;
-            if ($noShowCount >= 3 && $booking->user instanceof User && $booking->user->isUser()) {
-                $booking->user->forceFill(['banned_at' => $booking->user->banned_at ?? now()])->save();
+            if ($noShowCount >= 3 && $customer->isUser() && ! $customer->isWalkIn()) {
+                $customer->forceFill(['banned_at' => $customer->banned_at ?? now()])->save();
                 $banned = true;
             }
 
-            return ['count' => $noShowCount, 'banned' => $banned, 'booking' => $booking];
+            return ['count' => $noShowCount, 'banned' => $banned, 'booking' => $booking->fresh(['user'])];
         });
+
+        $this->customerNotifications->notifyNoShow($result['booking'], $result['count'], $result['banned']);
 
         ActivityLogger::log(
             'appointment.no_show',
@@ -713,6 +729,68 @@ class StaffAppointmentController extends Controller
         $message = 'Appointment marked as no-show ('.$result['count'].' of 3).';
         if ($result['banned']) {
             $message .= ' The customer account is now banned.';
+        }
+
+        return redirect()
+            ->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
+            ->with('status', $message);
+    }
+
+    public function reverseNoShow(Request $request, SpaBooking $spaBooking): RedirectResponse
+    {
+        $admin = $request->user();
+        abort_unless($admin instanceof User && $admin->isAdmin(), 403);
+
+        if ($spaBooking->session_status !== SpaBooking::STATUS_NO_SHOW) {
+            return back()->with('error', 'Only a no-show appointment can be corrected.');
+        }
+
+        $result = DB::transaction(function () use ($spaBooking): array {
+            $customer = User::query()->lockForUpdate()->findOrFail($spaBooking->user_id);
+            $booking = SpaBooking::query()->lockForUpdate()->findOrFail($spaBooking->id);
+
+            if ($booking->session_status !== SpaBooking::STATUS_NO_SHOW) {
+                throw ValidationException::withMessages([
+                    'appointment' => 'This no-show has already been corrected.',
+                ]);
+            }
+
+            $booking->forceFill(['session_status' => SpaBooking::STATUS_CONFIRMED])->save();
+
+            $noShowCount = SpaBooking::query()
+                ->where('user_id', $booking->user_id)
+                ->where('session_status', SpaBooking::STATUS_NO_SHOW)
+                ->count();
+            $unbanned = $customer->banned_at !== null && $noShowCount < 3;
+            if ($unbanned) {
+                $customer->forceFill(['banned_at' => null])->save();
+            }
+
+            return [
+                'count' => $noShowCount,
+                'unbanned' => $unbanned,
+                'booking' => $booking->fresh(['user']),
+            ];
+        });
+
+        $this->customerNotifications->notifyNoShowReversed($result['booking'], $result['count']);
+
+        ActivityLogger::log(
+            'appointment.no_show_reversed',
+            sprintf('Corrected the no-show for booking #%d.', $spaBooking->id),
+            [
+                'booking_id' => $spaBooking->id,
+                'remaining_no_show_count' => $result['count'],
+                'customer_unbanned' => $result['unbanned'],
+            ],
+            subject: $result['booking'],
+            user: $admin,
+            request: $request,
+        );
+
+        $message = 'No-show corrected. The customer now has '.$result['count'].' of 3 no-shows.';
+        if ($result['unbanned']) {
+            $message .= ' The account restriction was removed.';
         }
 
         return redirect()
