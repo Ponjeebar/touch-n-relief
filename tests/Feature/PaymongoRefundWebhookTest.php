@@ -119,6 +119,54 @@ class PaymongoRefundWebhookTest extends TestCase
         $this->assertTrue($service->canCompleteManualRefund($manual));
     }
 
+    public function test_old_paid_event_cannot_change_a_refunded_booking_back_to_paid(): void
+    {
+        $booking = $this->pendingRefundBooking();
+        $booking->forceFill([
+            'payment_status' => PaymentMethodCatalog::STATUS_REFUNDED,
+            'refund_status' => BookingRefundService::STATUS_PROCESSED,
+            'refunded_at' => now(),
+        ])->save();
+
+        $this->sendWebhook('payment.paid', [
+            'id' => 'pay_test_123',
+            'type' => 'payment',
+            'attributes' => [
+                'status' => 'paid',
+                'amount' => 5000,
+                'currency' => 'PHP',
+                'metadata' => ['booking_id' => (string) $booking->id],
+            ],
+        ])->assertOk();
+
+        $booking->refresh();
+        $this->assertSame(PaymentMethodCatalog::STATUS_REFUNDED, $booking->payment_status);
+        $this->assertSame(BookingRefundService::STATUS_PROCESSED, $booking->refund_status);
+    }
+
+    public function test_paid_event_with_wrong_amount_is_rejected(): void
+    {
+        $booking = $this->pendingRefundBooking();
+        $booking->forceFill([
+            'payment_status' => PaymentMethodCatalog::STATUS_PENDING,
+            'refund_status' => null,
+            'refund_reference' => null,
+        ])->save();
+
+        $this->sendWebhook('payment.paid', [
+            'id' => 'pay_wrong_amount',
+            'type' => 'payment',
+            'attributes' => [
+                'status' => 'paid',
+                'amount' => 4999,
+                'currency' => 'PHP',
+                'metadata' => ['booking_id' => (string) $booking->id],
+            ],
+        ])->assertOk();
+
+        $this->assertSame(PaymentMethodCatalog::STATUS_PENDING, $booking->fresh()->payment_status);
+    }
+
     private function sendWebhook(string $eventType, array $resource)
     {
         $this->mock(PaymongoService::class, function ($mock): void {

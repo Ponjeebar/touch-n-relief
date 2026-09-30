@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\SpaBooking;
 use App\Services\BookingRefundService;
 use App\Services\BookingSlotService;
-use App\Services\PaymongoService;
 use App\Services\PaymentLedgerService;
+use App\Services\PaymongoService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -399,7 +399,7 @@ class PaymongoController extends Controller
             return;
         }
 
-        $this->markBookingPaidFromPayment($booking, $paymentId, null);
+        $this->markBookingPaidFromPayment($booking, $paymentId, null, payment: $payment);
     }
 
     /**
@@ -574,6 +574,10 @@ class PaymongoController extends Controller
 
     private function markBookingPaid(SpaBooking $booking, array $session): void
     {
+        if (! $this->paymentEvidenceMatchesBooking($booking, $session)) {
+            return;
+        }
+
         $paymentId = $this->paymongo->extractPaidPaymentIdFromSession($session);
         $sessionId = (string) ($session['id'] ?? $booking->paymongo_checkout_session_id);
         $channel = $this->paymongo->extractPaymentChannelFromSession($session);
@@ -586,8 +590,29 @@ class PaymongoController extends Controller
         );
     }
 
-    private function markBookingPaidFromPayment(SpaBooking $booking, string $paymentId, ?string $sessionId, ?string $channel = null): void
-    {
+    private function markBookingPaidFromPayment(
+        SpaBooking $booking,
+        string $paymentId,
+        ?string $sessionId,
+        ?string $channel = null,
+        ?array $payment = null,
+    ): void {
+        $booking->refresh();
+
+        if ($booking->payment_status === PaymentMethodCatalog::STATUS_REFUNDED
+            || $booking->refund_status === BookingRefundService::STATUS_PROCESSED) {
+            Log::info('Ignored PayMongo paid event for an already refunded booking.', [
+                'booking_id' => $booking->id,
+                'payment_id' => $paymentId,
+            ]);
+
+            return;
+        }
+
+        if ($payment !== null && ! $this->paymentEvidenceMatchesBooking($booking, $payment)) {
+            return;
+        }
+
         $storedPaymentId = trim((string) ($booking->payment_transaction_id ?? ''));
         $resolvedPaymentId = str_starts_with($paymentId, 'pay_') ? $paymentId : '';
 
@@ -668,5 +693,81 @@ class PaymongoController extends Controller
                 'refund_status' => $refunded->refund_status,
             ]);
         }
+    }
+
+    /**
+     * Reject a paid event when PayMongo supplies an amount or currency that does not match
+     * the amount reserved for this booking. Some checkout lookup responses omit these fields;
+     * an explicit mismatch is never accepted.
+     *
+     * @param  array<string, mixed>  $resource
+     */
+    private function paymentEvidenceMatchesBooking(SpaBooking $booking, array $resource): bool
+    {
+        $attributes = is_array($resource['attributes'] ?? null) ? $resource['attributes'] : [];
+        $amount = isset($attributes['amount']) && is_numeric($attributes['amount'])
+            ? (int) $attributes['amount']
+            : null;
+        $currency = strtoupper(trim((string) ($attributes['currency'] ?? '')));
+
+        $payments = is_array($attributes['payments'] ?? null) ? $attributes['payments'] : [];
+        foreach ($payments as $payment) {
+            if (! is_array($payment)) {
+                continue;
+            }
+
+            $paymentAttributes = is_array($payment['attributes'] ?? null) ? $payment['attributes'] : [];
+            if (($paymentAttributes['status'] ?? '') !== 'paid') {
+                continue;
+            }
+
+            if (isset($paymentAttributes['amount']) && is_numeric($paymentAttributes['amount'])) {
+                $amount = (int) $paymentAttributes['amount'];
+            }
+            if (filled($paymentAttributes['currency'] ?? null)) {
+                $currency = strtoupper(trim((string) $paymentAttributes['currency']));
+            }
+            break;
+        }
+
+        if ($amount === null) {
+            $lineItems = is_array($attributes['line_items'] ?? null) ? $attributes['line_items'] : [];
+            $lineItemTotal = 0;
+            $hasLineItemAmount = false;
+            foreach ($lineItems as $lineItem) {
+                if (! is_array($lineItem)) {
+                    continue;
+                }
+                $lineItemAttributes = is_array($lineItem['attributes'] ?? null) ? $lineItem['attributes'] : $lineItem;
+                if (! isset($lineItemAttributes['amount']) || ! is_numeric($lineItemAttributes['amount'])) {
+                    continue;
+                }
+                $hasLineItemAmount = true;
+                $lineItemTotal += (int) $lineItemAttributes['amount'] * max((int) ($lineItemAttributes['quantity'] ?? 1), 1);
+                if ($currency === '' && filled($lineItemAttributes['currency'] ?? null)) {
+                    $currency = strtoupper(trim((string) $lineItemAttributes['currency']));
+                }
+            }
+            if ($hasLineItemAmount) {
+                $amount = $lineItemTotal;
+            }
+        }
+
+        $expectedAmount = (int) round((float) $booking->payment_amount * 100);
+        $amountMatches = $amount === null || hash_equals((string) $expectedAmount, (string) $amount);
+        $currencyMatches = $currency === '' || $currency === 'PHP';
+
+        if (! $amountMatches || ! $currencyMatches) {
+            Log::warning('Rejected PayMongo paid event with mismatched payment details.', [
+                'booking_id' => $booking->id,
+                'expected_amount' => $expectedAmount,
+                'received_amount' => $amount,
+                'received_currency' => $currency,
+            ]);
+
+            return false;
+        }
+
+        return true;
     }
 }

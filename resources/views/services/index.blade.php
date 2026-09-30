@@ -102,9 +102,11 @@
                                 <a class="services-clear-search" href="{{ route('services.index', ['availability' => $availability ?? 'available']) }}">Clear search</a>
                             @endif
                         </div>
-                        <button class="add-user-btn" type="button" id="toggle-add-service">
-                            <i class="bi bi-plus-circle"></i> Add Service
-                        </button>
+                        @if (auth()->user()?->isAdmin())
+                            <button class="add-user-btn" type="button" id="toggle-add-service">
+                                <i class="bi bi-plus-circle"></i> Add Service
+                            </button>
+                        @endif
                     </div>
 
                     <div class="services-grid">
@@ -113,7 +115,7 @@
                                 type="button"
                                 class="service-card {{ empty($service['is_active']) ? 'is-unavailable' : '' }}"
                                 data-service-search-item="true"
-                                data-open-service-edit="true"
+                                @if (auth()->user()?->isAdmin()) data-open-service-edit="true" @endif
                                 data-service-id="{{ $service['id'] }}"
                                 data-service-name="{{ $service['name'] }}"
                                 data-service-price="{{ $service['price_amount'] }}"
@@ -179,7 +181,7 @@
                     <div class="services-grid">
                         @forelse ($packages as $package)
                             <button type="button" class="service-card {{ empty($package['is_active']) ? 'is-unavailable' : '' }}"
-                                data-open-service-edit="true" data-service-id="{{ $package['id'] }}" data-service-name="{{ $package['name'] }}"
+                                @if (auth()->user()?->isAdmin()) data-open-service-edit="true" @endif data-service-id="{{ $package['id'] }}" data-service-name="{{ $package['name'] }}"
                                 data-service-price="{{ $package['price_amount'] }}" data-service-member-price="{{ $package['member_price_amount'] }}"
                                 data-service-duration="{{ $package['duration_minutes'] }}" data-service-best-for="{{ $package['best_for'] }}"
                                 data-service-description="{{ $package['description'] }}" data-service-inclusions="{{ $package['inclusions'] }}"

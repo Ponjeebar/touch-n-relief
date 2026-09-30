@@ -1,4 +1,5 @@
 {{-- Apply saved theme before paint to avoid flash --}}
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <link rel="icon" type="image/png" sizes="64x64" href="{{ asset('favicon-64.png') }}">
 <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 <link rel="stylesheet" href="{{ asset('css/password-capslock.css') }}">
@@ -6,6 +7,7 @@
 @include('partials.page-transition-assets')
 <script src="{{ asset('js/password-capslock.js') }}" defer></script>
 <script src="{{ asset('js/password-toggle.js') }}" defer></script>
+<script src="{{ asset('js/modal-accessibility.js') }}?v={{ filemtime(public_path('js/modal-accessibility.js')) }}" defer></script>
 <script>
 (function () {
     try {
@@ -222,12 +224,23 @@
                     var targetText = (id ? '#' + id + ' ' : '') + (className ? '.' + className.replace(/\s+/g, '.') : clickable.tagName.toLowerCase());
 
                     try {
-                        var u = new URL(clickLogUrlBase, window.location.origin);
-                        u.searchParams.set('label', 'Clicked ' + label.slice(0, 90));
-                        u.searchParams.set('target', targetText.slice(0, 120));
-                        u.searchParams.set('context', context);
-                        if (href) u.searchParams.set('url', href.slice(0, 255));
-                        fetch(u.toString(), { method: 'GET', credentials: 'same-origin', keepalive: true }).catch(function () {});
+                        var csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                        fetch(clickLogUrlBase, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            keepalive: true,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrf
+                            },
+                            body: JSON.stringify({
+                                label: 'Clicked ' + label.slice(0, 90),
+                                target: targetText.slice(0, 120),
+                                context: context,
+                                url: href ? href.slice(0, 255) : ''
+                            })
+                        }).catch(function () {});
                     } catch (e) {}
                 }, true);
             @endif

@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Receptionist;
 use App\Models\User;
+use App\Rules\NotRecentlyUsedPassword;
 use App\Services\ActivityLogger;
 use App\Services\UserActivityService;
+use App\Support\StrongPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -73,6 +75,17 @@ class ProfileController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $user = $request->user();
+        $originalEmail = strtolower(trim((string) $user->email));
+        $originalUsername = strtolower(trim((string) $user->username));
+        $linkedCustomer = $user->isUser()
+            ? Customer::query()->whereRaw('LOWER(email) = ?', [$originalEmail])->first()
+            : null;
+        $linkedReceptionist = $user->isReceptionist()
+            ? Receptionist::query()
+                ->whereRaw('LOWER(email) = ?', [$originalEmail])
+                ->orWhereRaw('LOWER(username) = ?', [$originalUsername])
+                ->first()
+            : null;
 
         $validated = $request->validateWithBag('profile', [
             'name' => ['required', 'string', 'max:255'],
@@ -82,7 +95,7 @@ class ProfileController extends Controller
             'username' => ['required', 'string', 'min:3', 'max:30', Rule::unique('users', 'username')->ignore($user->id), 'alpha_dash:ascii'],
             'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'current_password' => ['nullable', 'string', 'required_with:password'],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'password' => ['nullable', 'confirmed', StrongPassword::rule(), new NotRecentlyUsedPassword($user)],
             'sex' => ['nullable', Rule::in(User::sexOptions())],
             'therapist_gender_preference' => ['nullable', Rule::in([
                 User::THERAPIST_PREF_MALE,
@@ -149,37 +162,38 @@ class ProfileController extends Controller
             $user->profile_photo_path = $request->file('profile_photo')->store('profile-photos', media_storage_disk());
         }
 
-        $user->save();
-
-        if ($user->isReceptionist()) {
-            $receptionist = Receptionist::query()
-                ->whereRaw('LOWER(email) = ?', [strtolower((string) $user->email)])
-                ->orWhereRaw('LOWER(username) = ?', [strtolower((string) $user->username)])
-                ->first();
-
-            if ($receptionist !== null) {
-                $receptionist->full_name = (string) $user->name;
-                $receptionist->username = (string) $user->username;
-                $receptionist->email = (string) $user->email;
-                $receptionist->phone_number = $validated['contact_number'] ?? null;
-                $receptionist->address = $validated['receptionist_address'] ?? $receptionist->address;
-                $receptionist->birthday = $validated['receptionist_birthday'] ?? $receptionist->birthday;
-                $receptionist->save();
+        DB::transaction(function () use ($request, $user, $validated, $linkedCustomer, $linkedReceptionist): void {
+            if (! empty($validated['password'])) {
+                $user->passwordHistories()->create(['password' => $user->getOriginal('password')]);
             }
-        }
+            $user->save();
 
-        if ($user->isUser()) {
-            $customer = Customer::query()
-                ->whereRaw('LOWER(email) = ?', [strtolower((string) $user->email)])
-                ->first();
+            if ($linkedReceptionist !== null) {
+                $linkedReceptionist->full_name = (string) $user->name;
+                $linkedReceptionist->username = (string) $user->username;
+                $linkedReceptionist->email = (string) $user->email;
+                $linkedReceptionist->phone_number = $validated['contact_number'] ?? null;
+                $linkedReceptionist->address = $validated['receptionist_address'] ?? $linkedReceptionist->address;
+                $linkedReceptionist->birthday = $validated['receptionist_birthday'] ?? $linkedReceptionist->birthday;
+                $linkedReceptionist->save();
+            }
 
-            if ($customer !== null) {
+            if ($linkedCustomer !== null) {
+                $linkedCustomer->full_name = (string) $user->name;
+                $linkedCustomer->email = (string) $user->email;
                 if ($request->has('birthday')) {
-                    $customer->birthday = $validated['birthday'] ?? null;
+                    $linkedCustomer->birthday = $validated['birthday'] ?? null;
                 }
-                $customer->number = $validated['contact_number'] ?? $customer->number;
-                $customer->save();
+                $linkedCustomer->number = $validated['contact_number'] ?? $linkedCustomer->number;
+                if (! empty($validated['password'])) {
+                    $linkedCustomer->password = $validated['password'];
+                }
+                $linkedCustomer->save();
             }
+        });
+
+        if (! empty($validated['password'])) {
+            $user->passwordHistories()->latest()->skip(5)->take(100)->get()->each->delete();
         }
 
         Auth::login($user->refresh());
@@ -194,5 +208,4 @@ class ProfileController extends Controller
 
         return back()->with('status', 'Profile updated successfully.');
     }
-
 }

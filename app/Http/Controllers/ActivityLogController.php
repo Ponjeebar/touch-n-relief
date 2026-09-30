@@ -66,10 +66,16 @@ class ActivityLogController extends Controller
             return response()->noContent();
         }
 
-        $label = trim((string) $request->query('label', 'Clicked UI element'));
-        $target = trim((string) $request->query('target', ''));
-        $context = trim((string) $request->query('context', 'panel'));
-        $url = trim((string) $request->query('url', ''));
+        $validated = $request->validate([
+            'label' => ['nullable', 'string', 'max:100'],
+            'target' => ['nullable', 'string', 'max:120'],
+            'context' => ['nullable', 'string', 'max:60'],
+            'url' => ['nullable', 'string', 'max:255'],
+        ]);
+        $label = trim((string) ($validated['label'] ?? 'Clicked UI element'));
+        $target = trim((string) ($validated['target'] ?? ''));
+        $context = trim((string) ($validated['context'] ?? 'panel'));
+        $url = trim((string) ($validated['url'] ?? ''));
 
         ActivityLogger::log(
             'ui.click',

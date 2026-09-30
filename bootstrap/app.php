@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsCustomer;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(AssignRequestId::class);
         $middleware->prepend(UseCanonicalHost::class);
+        $middleware->append(AddSecurityHeaders::class);
 
         $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_PROTO);
 

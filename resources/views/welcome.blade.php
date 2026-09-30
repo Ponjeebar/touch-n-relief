@@ -83,6 +83,7 @@
     @endauth
         @include('partials.chatbot-assets')
         @include('partials.customer-tour-assets')
+        <script src="{{ asset('js/modal-accessibility.js') }}?v={{ filemtime(public_path('js/modal-accessibility.js')) }}" defer></script>
     </head>
 <body id="top">
     @include('partials.landing-nav', ['navMode' => 'full'])

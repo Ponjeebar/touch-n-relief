@@ -1000,7 +1000,11 @@
                 button.dataset.name = client.name ?? '';
                 button.dataset.email = client.email ?? '';
                 button.dataset.phone = client.phone ?? '';
-                button.innerHTML = `<strong>${client.name ?? ''}</strong><span>${client.email ?? ''}${client.phone ? ' · ' + client.phone : ''}</span>`;
+                const clientName = document.createElement('strong');
+                clientName.textContent = client.name ?? '';
+                const clientDetails = document.createElement('span');
+                clientDetails.textContent = `${client.email ?? ''}${client.phone ? ' · ' + client.phone : ''}`;
+                button.append(clientName, clientDetails);
                 addClientSearchResults.appendChild(button);
             });
 
