@@ -747,6 +747,33 @@
 }
 .txn-payment-btn:hover { background: #066746; border-color: #066746; }
 
+.txn-rebook-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border: 1px solid #16805d;
+    background: #edf8f3;
+    color: #0c6548;
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    transition: background 0.14s ease, border-color 0.14s ease;
+}
+
+.txn-rebook-btn:hover {
+    background: #dff2e9;
+    border-color: #0c6548;
+}
+
+.txn-rebook-btn:focus-visible {
+    outline: 3px solid rgba(12, 101, 72, 0.3);
+    outline-offset: 2px;
+}
+
 .txn-payment-hold {
     margin-top: 0.75rem;
     padding: 0.65rem 0.75rem;
@@ -1503,12 +1530,14 @@ body.txn-modal-open .tnr-chat {
     .txn-card-actions form,
     .txn-card-actions form button,
     .txn-payment-btn,
+    .txn-rebook-btn,
     .txn-reschedule-btn,
     .txn-cancel-btn {
         width: 100%;
     }
 
     .txn-payment-btn,
+    .txn-rebook-btn,
     .txn-reschedule-btn,
     .txn-cancel-btn {
         justify-content: center;
@@ -1718,4 +1747,15 @@ html[data-theme="dark"] .txn-reschedule-btn {
 html[data-theme="dark"] .txn-reschedule-btn:hover {
     background: #205169;
     border-color: #73b5d3;
+}
+
+html[data-theme="dark"] .txn-rebook-btn {
+    background: #173d32;
+    border-color: #4da98a;
+    color: #d8f5e9;
+}
+
+html[data-theme="dark"] .txn-rebook-btn:hover {
+    background: #205343;
+    border-color: #73c7aa;
 }

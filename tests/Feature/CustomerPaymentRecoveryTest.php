@@ -162,7 +162,68 @@ class CustomerPaymentRecoveryTest extends TestCase
         $this->assertSame('Payment hold expired', $row['status']);
         $this->assertSame('history', $row['appointment_group']);
         $this->assertFalse($row['can_resume_payment']);
+        $this->assertTrue($row['can_rebook']);
         $this->assertSame(0, $row['payment_hold_remaining_seconds']);
+    }
+
+    public function test_expired_and_completed_bookings_can_start_a_fresh_booking(): void
+    {
+        Carbon::setTestNow('2026-09-24 09:00:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $expiredBooking = $this->pendingBooking($customer);
+        $expiredBooking->forceFill([
+            'created_at' => now()->subMinutes(15),
+            'updated_at' => now()->subMinutes(15),
+        ])->saveQuietly();
+
+        $completedBooking = $this->pendingBooking($customer);
+        $completedBooking->forceFill([
+            'booking_date' => now()->subDay()->toDateString(),
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_status' => SpaBooking::STATUS_COMPLETED,
+            'completed_at' => now()->subDay()->setTime(21, 15),
+        ])->save();
+
+        $cancelledBooking = $this->pendingBooking($customer);
+        $cancelledBooking->forceFill([
+            'session_status' => SpaBooking::STATUS_CANCELLED,
+            'cancelled_at' => now(),
+            'cancellation_reason' => 'Customer requested another date.',
+        ])->save();
+
+        $noShowBooking = $this->pendingBooking($customer);
+        $noShowBooking->forceFill([
+            'booking_date' => now()->subDays(2)->toDateString(),
+            'session_status' => SpaBooking::STATUS_NO_SHOW,
+        ])->save();
+
+        $sessions = app(SpaSessionService::class);
+        $this->assertTrue($sessions->toUserTransactionRow($expiredBooking->fresh())['can_rebook']);
+        $this->assertTrue($sessions->toUserTransactionRow($completedBooking->fresh())['can_rebook']);
+        $this->assertTrue($sessions->toUserTransactionRow($cancelledBooking->fresh())['can_rebook']);
+        $this->assertFalse($sessions->toUserTransactionRow($noShowBooking->fresh())['can_rebook']);
+
+        $rebookUrl = route('booking.index', [
+            'service' => 'Thai Massage',
+            'therapist' => 'Juan dela Cruz',
+        ]);
+
+        $this->actingAs($customer)
+            ->get(route('landing'))
+            ->assertOk()
+            ->assertSee('Book again')
+            ->assertSee(e($rebookUrl), false);
+
+        $bookingPage = $this->get($rebookUrl)->assertOk();
+        $this->assertMatchesRegularExpression(
+            '/service-item active[\s\S]*name="service"[\s\S]*value="Thai Massage"[\s\S]*checked/',
+            $bookingPage->getContent(),
+        );
+        $this->assertMatchesRegularExpression(
+            '/therapist-item active[\s\S]*name="therapist"[\s\S]*value="Juan dela Cruz"[\s\S]*checked/',
+            $bookingPage->getContent(),
+        );
+        $bookingPage->assertDontSee('name="booking_date" value="2026-09-23"', false);
     }
 
     public function test_active_and_expired_payment_holds_are_separated_in_my_appointments(): void

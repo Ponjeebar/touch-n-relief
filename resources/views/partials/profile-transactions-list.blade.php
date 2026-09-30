@@ -237,7 +237,7 @@
                         <span class="txn-visually-hidden" data-payment-hold-live role="status" aria-live="polite"></span>
                     </div>
                 @endif
-                @if ((! empty($txn['can_cancel']) || ! empty($txn['can_reschedule']) || ! empty($txn['can_resume_payment'])) && ! empty($txn['booking_id']))
+                @if ((! empty($txn['can_cancel']) || ! empty($txn['can_reschedule']) || ! empty($txn['can_resume_payment']) || ! empty($txn['can_rebook'])) && ! empty($txn['booking_id']))
                     <div class="txn-card-actions">
                         @if (! empty($txn['can_resume_payment']))
                             <form method="POST" action="{{ route('booking.payment.retry', ['spaBooking' => $txn['booking_id']]) }}" data-payment-hold-action>
@@ -263,6 +263,19 @@
                             >
                                 Reschedule
                             </button>
+                        @endif
+                        @if (! empty($txn['can_rebook']))
+                            <a
+                                class="txn-rebook-btn"
+                                href="{{ route('booking.index', array_filter([
+                                    'service' => $txn['rebook_service'] ?? null,
+                                    'therapist' => $txn['rebook_therapist'] ?? null,
+                                ])) }}"
+                                aria-label="Book {{ $txn['service'] }} again"
+                            >
+                                <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                                Book again
+                            </a>
                         @endif
                         @if (! empty($txn['can_cancel']))
                             <button

@@ -188,3 +188,40 @@ test('authentication panels expose only the visible form to keyboard focus', asy
         await expect(page.locator('.auth-forgot-panel input[name="email"]')).toBeFocused();
     }
 });
+
+test('completed appointment rebooking stays usable on mobile and desktop', async ({ page }) => {
+    await login(page, accounts.customer);
+
+    for (const setup of [
+        { viewport: { width: 390, height: 844 }, theme: 'dark' },
+        { viewport: { width: 1366, height: 768 }, theme: 'light' },
+    ]) {
+        await page.setViewportSize(setup.viewport);
+        await page.evaluate((theme) => localStorage.setItem('tnr-theme', theme), setup.theme);
+        await page.goto('/', { waitUntil: 'domcontentloaded' });
+        await dismissOptionalTour(page);
+        const visibleAppointmentsTrigger = page.locator('[data-tnr-open-transactions]:visible');
+        if (await visibleAppointmentsTrigger.count() === 0) {
+            await page.locator('[data-user-menu]:visible .nav-user').click();
+        }
+        await page.locator('[data-tnr-open-transactions]:visible').first().click();
+        await page.locator('[data-txn-group="history"]').click();
+
+        const card = page.locator('.txn-card').filter({ hasText: 'Hot Stone' });
+        const rebook = card.locator('.txn-rebook-btn');
+        await expect(rebook).toBeVisible();
+        await expect(rebook).toHaveText(/Book again/);
+
+        const href = await rebook.getAttribute('href');
+        expect(href).toContain('service=Hot%20Stone');
+        expect(href).toContain('therapist=Angela%20Fernandez');
+
+        const [cardBox, buttonBox] = await Promise.all([card.boundingBox(), rebook.boundingBox()]);
+        expect(cardBox).not.toBeNull();
+        expect(buttonBox).not.toBeNull();
+        expect(buttonBox.x).toBeGreaterThanOrEqual(cardBox.x);
+        expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
+
+        await page.locator('[data-tnr-txn-close="true"]:visible').last().click();
+    }
+});

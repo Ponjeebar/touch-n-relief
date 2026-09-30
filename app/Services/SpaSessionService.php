@@ -113,6 +113,11 @@ class SpaSessionService
             && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
             && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING
             && $booking->hasActivePaymentHold();
+        $canRebook = $booking->isPaymentHoldExpired()
+            || in_array($status, [
+                SpaBooking::STATUS_CANCELLED,
+                SpaBooking::STATUS_COMPLETED,
+            ], true);
 
         return [
             'booking_id' => $booking->id,
@@ -140,6 +145,9 @@ class SpaSessionService
             'activity_ts' => $this->activityTimestamp($booking),
             'can_cancel' => false,
             'can_resume_payment' => $canResumePayment,
+            'can_rebook' => $canRebook,
+            'rebook_service' => (string) $booking->service_name,
+            'rebook_therapist' => $booking->therapist_name ? (string) $booking->therapist_name : null,
             'payment_hold_expires_at' => $paymentHoldExpiresAt?->toIso8601String(),
             'payment_hold_remaining_seconds' => $canResumePayment && $paymentHoldExpiresAt !== null
                 ? max(0, $paymentHoldExpiresAt->getTimestamp() - now()->getTimestamp())
