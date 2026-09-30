@@ -162,10 +162,14 @@ test('authentication panels expose only the visible form to keyboard focus', asy
         const signUp = page.locator('.form-container.sign-up');
         const signIn = page.locator('.form-container.sign-in');
         const loginInput = page.locator('.auth-login-panel input[name="login"]');
+        const loginPassword = page.locator('.auth-login-panel input[name="password"]');
         const registrationName = page.locator('#register-form input[name="name"]');
 
         await expect(signUp).toHaveAttribute('inert', '');
         await expect(signIn).not.toHaveAttribute('inert', '');
+        await loginInput.focus();
+        await page.keyboard.press('Tab');
+        await expect(loginPassword).toBeFocused();
         await registrationName.focus();
         await expect(registrationName).not.toBeFocused();
 

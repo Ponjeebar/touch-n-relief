@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\EnsureCurrentStaffSession;
 use App\Models\ActivityLog;
 use App\Models\AuthVerificationCode;
 use App\Models\User;
@@ -181,10 +182,22 @@ class AuthController extends Controller
                 ->where('user_id', $user->getKey())
                 ->where('action', 'login')
                 ->exists();
+        $staffSessionToken = null;
+        $replacedStaffSession = false;
+
+        if ($user->isAdmin() || $user->isReceptionist()) {
+            $replacedStaffSession = filled($user->staff_session_token);
+            $staffSessionToken = Str::random(64);
+            $user->forceFill(['staff_session_token' => $staffSessionToken])->save();
+        }
 
         Auth::login($user, $rememberCustomer);
 
         $request->session()->regenerate();
+
+        if ($staffSessionToken !== null) {
+            $request->session()->put(EnsureCurrentStaffSession::SESSION_KEY, $staffSessionToken);
+        }
 
         if ($isFirstReceptionistLogin) {
             $request->session()->put('receptionist_tour_enabled', true);
@@ -193,10 +206,23 @@ class AuthController extends Controller
         ActivityLogger::log(
             'login',
             'Signed in to the system',
-            ['email' => $user->email],
+            [
+                'email' => $user->email,
+                'replaced_previous_staff_session' => $replacedStaffSession,
+            ],
             user: $user,
             request: $request,
         );
+
+        if ($replacedStaffSession) {
+            ActivityLogger::log(
+                'staff.session_replaced',
+                'Replaced the previous staff session with a newer login',
+                ['email' => $user->email],
+                user: $user,
+                request: $request,
+            );
+        }
 
         return redirect()->intended($this->homeRouteFor($user));
     }
@@ -212,6 +238,14 @@ class AuthController extends Controller
                 user: $user,
                 request: $request,
             );
+
+            if (($user->isAdmin() || $user->isReceptionist())
+                && hash_equals(
+                    (string) ($user->staff_session_token ?? ''),
+                    (string) $request->session()->get(EnsureCurrentStaffSession::SESSION_KEY, ''),
+                )) {
+                $user->forceFill(['staff_session_token' => null])->save();
+            }
         }
 
         Auth::logout();

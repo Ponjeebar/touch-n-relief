@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\EnsureCurrentStaffSession;
 use App\Models\Customer;
 use App\Models\Receptionist;
 use App\Models\User;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -86,6 +88,7 @@ class ProfileController extends Controller
                 ->orWhereRaw('LOWER(username) = ?', [$originalUsername])
                 ->first()
             : null;
+        $newStaffSessionToken = null;
 
         $validated = $request->validateWithBag('profile', [
             'name' => ['required', 'string', 'max:255'],
@@ -121,6 +124,11 @@ class ProfileController extends Controller
                     ->withInput();
             }
             $user->password = $validated['password'];
+
+            if ($user->isAdmin() || $user->isReceptionist()) {
+                $newStaffSessionToken = Str::random(64);
+                $user->staff_session_token = $newStaffSessionToken;
+            }
         }
 
         $user->name = $validated['name'];
@@ -197,6 +205,10 @@ class ProfileController extends Controller
         }
 
         Auth::login($user->refresh());
+
+        if ($newStaffSessionToken !== null) {
+            $request->session()->put(EnsureCurrentStaffSession::SESSION_KEY, $newStaffSessionToken);
+        }
 
         ActivityLogger::log(
             'profile.updated',

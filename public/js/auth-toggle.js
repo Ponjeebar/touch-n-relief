@@ -107,6 +107,17 @@
         });
     }
 
+    const loginIdentifier = loginPanel?.querySelector('input[name="login"]');
+    const loginPassword = loginPanel?.querySelector('input[name="password"]');
+
+    loginIdentifier?.addEventListener('keydown', function (event) {
+        if (event.key !== 'Tab' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+        if (!(loginPassword instanceof HTMLInputElement) || loginPassword.disabled) return;
+
+        event.preventDefault();
+        loginPassword.focus();
+    });
+
     document.querySelectorAll('[data-auth-panel]').forEach(function (el) {
         el.addEventListener('click', function () {
             setPanel(el.getAttribute('data-auth-panel') === 'register');

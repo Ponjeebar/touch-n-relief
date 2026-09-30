@@ -55,7 +55,7 @@ Route::middleware('guest')->group(function () {
 Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 
-Route::middleware(['auth', 'staff.activity'])->group(function () {
+Route::middleware(['auth', 'current.staff.session', 'staff.activity'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
@@ -117,7 +117,7 @@ Route::middleware(['auth', 'staff.activity'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'admin', 'staff.activity'])->group(function () {
+Route::middleware(['auth', 'current.staff.session', 'admin', 'staff.activity'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/reporting', [DashboardController::class, 'reporting'])->name('reporting.index');
     Route::get('/reporting/data', [DashboardController::class, 'reportingData'])->name('reporting.data');
