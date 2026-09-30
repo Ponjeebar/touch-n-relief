@@ -95,6 +95,7 @@
                 data-amount-raw="{{ $txn['amount_raw'] ?? 0 }}"
                 data-has-amount="{{ (float) ($txn['amount_raw'] ?? 0) > 0 ? '1' : '0' }}"
                 data-appointment-group="{{ $txn['appointment_group'] ?? 'history' }}"
+                @if (! empty($txn['can_resume_payment'])) data-payment-hold-remaining="{{ $txn['payment_hold_remaining_seconds'] ?? 0 }}" @endif
                 @if (! empty($txn['booking_id'])) data-booking-id="{{ $txn['booking_id'] }}" @endif
             >
                 <div class="txn-card-top">
@@ -103,7 +104,7 @@
                 </div>
                 <div class="txn-card-mid">
                     <p class="txn-service">{{ $txn['service'] }}</p>
-                    <span class="txn-badge txn-badge-{{ $badgeClass }}">
+                    <span class="txn-badge txn-badge-{{ $badgeClass }}" data-txn-status-badge>
                         {{ $txn['status'] ?? '—' }}
                     </span>
                 </div>
@@ -224,10 +225,22 @@
                         {{ $txn['cancellation_reason'] }}
                     </p>
                 @endif
+                @if (! empty($txn['can_resume_payment']))
+                    <div class="txn-payment-hold" data-payment-hold>
+                        <p class="txn-payment-hold-title">
+                            Schedule reserved for
+                            <strong data-payment-hold-countdown aria-hidden="true">15:00</strong>
+                        </p>
+                        <p data-payment-hold-message>
+                            Complete payment before the timer ends. The schedule will then be released for other customers.
+                        </p>
+                        <span class="txn-visually-hidden" data-payment-hold-live role="status" aria-live="polite"></span>
+                    </div>
+                @endif
                 @if ((! empty($txn['can_cancel']) || ! empty($txn['can_reschedule']) || ! empty($txn['can_resume_payment'])) && ! empty($txn['booking_id']))
                     <div class="txn-card-actions">
                         @if (! empty($txn['can_resume_payment']))
-                            <form method="POST" action="{{ route('booking.payment.retry', ['spaBooking' => $txn['booking_id']]) }}">
+                            <form method="POST" action="{{ route('booking.payment.retry', ['spaBooking' => $txn['booking_id']]) }}" data-payment-hold-action>
                                 @csrf
                                 <button type="submit" class="txn-payment-btn">
                                     <i class="bi bi-credit-card" aria-hidden="true"></i>

@@ -26,12 +26,17 @@ class CustomerPaymentRecoveryTest extends TestCase
 
     public function test_unpaid_online_booking_is_shown_as_payment_pending_with_continue_button(): void
     {
+        Carbon::setTestNow('2026-09-24 09:00:00');
         $customer = User::factory()->create(['role' => User::ROLE_USER]);
         $booking = $this->pendingBooking($customer);
 
         $this->actingAs($customer)->get(route('landing'))
             ->assertOk()
             ->assertSee('Payment pending')
+            ->assertSee('Schedule reserved for')
+            ->assertSee('Complete payment before the timer ends.')
+            ->assertSee('data-payment-hold-remaining="900"', false)
+            ->assertSee('data-payment-hold-countdown', false)
             ->assertSee('Continue payment')
             ->assertSee(route('booking.payment.retry', $booking), false)
             ->assertDontSee(route('booking.cancel', $booking), false)
@@ -40,6 +45,10 @@ class CustomerPaymentRecoveryTest extends TestCase
 
         $this->assertFalse(app(BookingCancellationService::class)->canCancel($booking));
         $this->assertFalse(app(BookingRescheduleService::class)->canReschedule($booking));
+
+        $row = app(SpaSessionService::class)->toUserTransactionRow($booking);
+        $this->assertSame(900, $row['payment_hold_remaining_seconds']);
+        $this->assertSame('2026-09-24T09:15:00+08:00', $row['payment_hold_expires_at']);
     }
 
     public function test_customer_can_start_a_new_checkout_for_their_pending_booking(): void
@@ -153,6 +162,7 @@ class CustomerPaymentRecoveryTest extends TestCase
         $this->assertSame('Payment hold expired', $row['status']);
         $this->assertSame('history', $row['appointment_group']);
         $this->assertFalse($row['can_resume_payment']);
+        $this->assertSame(0, $row['payment_hold_remaining_seconds']);
     }
 
     public function test_active_and_expired_payment_holds_are_separated_in_my_appointments(): void

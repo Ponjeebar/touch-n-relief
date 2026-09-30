@@ -747,6 +747,44 @@
 }
 .txn-payment-btn:hover { background: #066746; border-color: #066746; }
 
+.txn-payment-hold {
+    margin-top: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border-left: 3px solid #d49a2f;
+    background: #fff9eb;
+    color: #654d1d;
+}
+
+.txn-payment-hold p {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.txn-payment-hold-title {
+    margin-bottom: 0.15rem !important;
+    font-weight: 750;
+    color: #5b4314;
+}
+
+.txn-payment-hold-title strong {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.86rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.txn-visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
 .txn-reschedule-btn:hover {
     background: #dff0fa;
     border-color: #6eaaca;
@@ -1659,6 +1697,16 @@ html[data-theme="dark"] .txn-payment-item dd {
 
 html[data-theme="dark"] .txn-card-actions {
     border-color: #465c68;
+}
+
+html[data-theme="dark"] .txn-payment-hold {
+    background: #382f1d;
+    border-left-color: #e0ad4d;
+    color: #ead8ae;
+}
+
+html[data-theme="dark"] .txn-payment-hold-title {
+    color: #ffe3a6;
 }
 
 html[data-theme="dark"] .txn-reschedule-btn {

@@ -369,6 +369,77 @@
         hideTxnStatusToast();
     });
 
+    var paymentHoldCards = Array.from(document.querySelectorAll('.txn-card[data-payment-hold-remaining]'));
+
+    function formatPaymentHoldTime(seconds) {
+        var safeSeconds = Math.max(0, seconds);
+        var minutes = Math.floor(safeSeconds / 60);
+        var remainder = safeSeconds % 60;
+
+        return String(minutes).padStart(2, '0') + ':' + String(remainder).padStart(2, '0');
+    }
+
+    function expirePaymentHold(card) {
+        if (card.getAttribute('data-payment-hold-expired') === '1') return;
+
+        card.setAttribute('data-payment-hold-expired', '1');
+        card.setAttribute('data-appointment-group', 'history');
+
+        var badge = card.querySelector('[data-txn-status-badge]');
+        if (badge) badge.textContent = 'Payment hold expired';
+
+        var title = card.querySelector('.txn-payment-hold-title');
+        if (title) title.textContent = 'Payment window expired';
+
+        var message = card.querySelector('[data-payment-hold-message]');
+        if (message) {
+            message.textContent = 'This schedule is now available to other customers. Start a new booking to choose an available time.';
+        }
+
+        var liveMessage = card.querySelector('[data-payment-hold-live]');
+        if (liveMessage) liveMessage.textContent = 'Payment window expired. This appointment moved to History.';
+
+        var paymentAction = card.querySelector('[data-payment-hold-action]');
+        var actions = paymentAction?.closest('.txn-card-actions');
+        paymentAction?.remove();
+        if (actions && actions.children.length === 0) actions.remove();
+        updateGroupCounts();
+        showTxnStatusToast('Payment window expired. The schedule is available again and the appointment moved to History.');
+        applySearchAndFilter();
+    }
+
+    if (paymentHoldCards.length > 0) {
+        var paymentHoldStartedAt = performance.now();
+
+        var updatePaymentHolds = function () {
+            var elapsedSeconds = Math.floor((performance.now() - paymentHoldStartedAt) / 1000);
+            var activeHolds = 0;
+
+            paymentHoldCards.forEach(function (card) {
+                if (card.getAttribute('data-payment-hold-expired') === '1') return;
+
+                var initialSeconds = Number(card.getAttribute('data-payment-hold-remaining')) || 0;
+                var remainingSeconds = Math.max(0, initialSeconds - elapsedSeconds);
+                var countdown = card.querySelector('[data-payment-hold-countdown]');
+                if (countdown) countdown.textContent = formatPaymentHoldTime(remainingSeconds);
+
+                if (remainingSeconds === 0) {
+                    expirePaymentHold(card);
+                    return;
+                }
+
+                activeHolds += 1;
+            });
+
+            return activeHolds;
+        };
+
+        updatePaymentHolds();
+        var paymentHoldTimer = window.setInterval(function () {
+            if (updatePaymentHolds() === 0) window.clearInterval(paymentHoldTimer);
+        }, 1000);
+    }
+
     function closeCancelModal() {
         if (!cancelModal) return;
         cancelModal.classList.add('txn-modal-hidden');

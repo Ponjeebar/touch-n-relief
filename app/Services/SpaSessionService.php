@@ -107,6 +107,12 @@ class SpaSessionService
         $appointmentGroup = $booking->isPaymentHoldExpired() || $terminalStatus || $sessionHasEnded
             ? 'history'
             : 'upcoming';
+        $paymentHoldExpiresAt = $booking->paymentHoldExpiresAt();
+        $canResumePayment = $status === SpaBooking::STATUS_CONFIRMED
+            && $booking->booking_source === SpaBooking::SOURCE_ONLINE
+            && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
+            && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING
+            && $booking->hasActivePaymentHold();
 
         return [
             'booking_id' => $booking->id,
@@ -133,11 +139,11 @@ class SpaSessionService
             'sort_ts' => $sortTimestamp,
             'activity_ts' => $this->activityTimestamp($booking),
             'can_cancel' => false,
-            'can_resume_payment' => $status === SpaBooking::STATUS_CONFIRMED
-                && $booking->booking_source === SpaBooking::SOURCE_ONLINE
-                && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
-                && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING
-                && $booking->hasActivePaymentHold(),
+            'can_resume_payment' => $canResumePayment,
+            'payment_hold_expires_at' => $paymentHoldExpiresAt?->toIso8601String(),
+            'payment_hold_remaining_seconds' => $canResumePayment && $paymentHoldExpiresAt !== null
+                ? max(0, $paymentHoldExpiresAt->getTimestamp() - now()->getTimestamp())
+                : 0,
             'is_booking' => true,
             'cancellation_reason' => $booking->cancellation_reason,
         ];
