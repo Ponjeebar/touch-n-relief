@@ -187,7 +187,12 @@
                                     <span class="service-name">{{ $service['name'] }}</span>
                                     <span class="service-meta">{{ $service['duration'] }} &middot; {{ $service['best_for'] }}</span>
                                 </span>
-                                <span class="service-price">{{ $service['price'] }}</span>
+                                <span class="service-price">
+                                    @if (! empty($service['is_member_price']))
+                                        <small>Member rate</small>
+                                    @endif
+                                    {{ $service['price'] }}
+                                </span>
                             </label>
                         @endforeach
                         @php $bookingPackages = collect($services)->where('offering_type', 'package'); @endphp
@@ -201,7 +206,12 @@
                                         <span class="service-name">{{ $service['name'] }}</span>
                                         <span class="service-meta">{{ $service['duration'] }} &middot; {{ $service['inclusions'] }}</span>
                                     </span>
-                                    <span class="service-price">{{ $service['price'] }}</span>
+                                    <span class="service-price">
+                                        @if (! empty($service['is_member_price']))
+                                            <small>Member rate</small>
+                                        @endif
+                                        {{ $service['price'] }}
+                                    </span>
                                 </label>
                             @endforeach
                         @endif

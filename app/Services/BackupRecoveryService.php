@@ -18,6 +18,7 @@ class BackupRecoveryService
         'therapists',
         'spa_services',
         'membership_plans',
+        'membership_purchases',
         'time_slots',
         'service_time_slots',
         'store_closures',

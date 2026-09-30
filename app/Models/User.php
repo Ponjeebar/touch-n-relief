@@ -136,6 +136,16 @@ class User extends Authenticatable
         return $this->hasMany(SocialAccount::class);
     }
 
+    public function membershipPurchases(): HasMany
+    {
+        return $this->hasMany(MembershipPurchase::class);
+    }
+
+    public function activeMembership(): ?MembershipPurchase
+    {
+        return $this->membershipPurchases()->active()->latest('expires_at')->first();
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;

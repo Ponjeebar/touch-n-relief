@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\MembershipPurchase;
 use App\Models\SpaBooking;
 use App\Support\PaymentMethodCatalog;
 use Illuminate\Http\Client\PendingRequest;
@@ -134,6 +135,43 @@ class PaymongoService
         }
 
         $booking->forceFill(['paymongo_checkout_session_id' => $sessionId])->save();
+
+        return $checkoutUrl;
+    }
+
+    public function startMembershipCheckout(MembershipPurchase $purchase): string
+    {
+        $purchase->loadMissing('user');
+        $session = $this->createCheckoutSession([
+            'billing' => [
+                'name' => (string) ($purchase->user?->name ?: $purchase->user?->email),
+                'email' => (string) $purchase->user?->email,
+            ],
+            'line_items' => [[
+                'name' => $purchase->plan_name,
+                'amount' => (int) round((float) $purchase->amount * 100),
+                'currency' => 'PHP',
+                'quantity' => 1,
+            ]],
+            'payment_method_types' => $this->paymentMethodTypes(),
+            'success_url' => route('membership.success', $purchase),
+            'cancel_url' => route('membership.cancel', $purchase),
+            'reference_number' => 'membership-'.$purchase->id,
+            'metadata' => [
+                'membership_purchase_id' => (string) $purchase->id,
+                'user_id' => (string) $purchase->user_id,
+                'purchase_type' => 'membership',
+            ],
+            'description' => 'Touch N Relief membership #'.$purchase->id,
+        ]);
+
+        $checkoutUrl = (string) ($session['attributes']['checkout_url'] ?? '');
+        $sessionId = (string) ($session['id'] ?? '');
+        if (! $this->isCheckoutUrl($checkoutUrl) || $sessionId === '') {
+            throw new RuntimeException('PayMongo did not return a checkout link and session ID.');
+        }
+
+        $purchase->forceFill(['paymongo_checkout_session_id' => $sessionId])->save();
 
         return $checkoutUrl;
     }

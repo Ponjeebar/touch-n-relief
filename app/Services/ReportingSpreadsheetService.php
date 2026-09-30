@@ -57,8 +57,12 @@ class ReportingSpreadsheetService
         $this->section('Summary', 2);
         $this->row([['Metric', 'String', 'Header'], ['Value', 'String', 'Header'], ['Explanation', 'String', 'Header']]);
         $this->row([[(string) ($report['primaryLabel'] ?? 'Net sales'), 'String', 'Label'], [(float) ($report['primaryAmount'] ?? 0), 'Number', 'Currency'], ['Collections less processed refunds', 'String', 'Text']]);
-        $this->row([['Gross collections', 'String', 'Label'], [(float) ($report['grossCollections'] ?? 0), 'Number', 'Currency'], ['Initial and balance payments collected', 'String', 'Text']]);
+        $this->row([['Gross collections', 'String', 'Label'], [(float) ($report['grossCollections'] ?? 0), 'Number', 'Currency'], ['Verified initial, balance, and membership payments', 'String', 'Text']]);
         $this->row([['Processed refunds', 'String', 'Label'], [-abs((float) ($report['refundTotal'] ?? 0)), 'Number', 'Refund'], ['Refunds completed during this report period', 'String', 'Text']]);
+        $this->row([['Membership collections', 'String', 'Label'], [(float) ($report['membershipCollections'] ?? 0), 'Number', 'Currency'], ['Verified membership purchases', 'String', 'Text']]);
+        $this->row([['Payment count', 'String', 'Label'], [(int) ($report['paymentCount'] ?? 0), 'Number', 'Number'], ['Collected payment entries; refunds excluded', 'String', 'Text']]);
+        $this->row([['Average payment', 'String', 'Label'], [(float) ($report['averagePayment'] ?? 0), 'Number', 'Currency'], ['Gross collections divided by payment count', 'String', 'Text']]);
+        $this->row([['Outstanding balances', 'String', 'Label'], [(float) ($report['outstandingBalanceTotal'] ?? 0), 'Number', 'Currency'], ['Not included in collected sales', 'String', 'Text']]);
         $this->row([[(string) ($report['secondaryLabel'] ?? 'New customers'), 'String', 'Label'], [(int) ($report['secondaryUserCount'] ?? 0), 'Number', 'Number'], ['Registered customer accounts only', 'String', 'Text']]);
         $this->row([[(string) ($report['hoursLabel'] ?? 'Service hours'), 'String', 'Label'], [(float) ($report['hoursValue'] ?? 0), 'Number', 'Hours'], ['Completed appointment service time', 'String', 'Text']]);
         $this->blankRow();
@@ -76,11 +80,11 @@ class ReportingSpreadsheetService
         }
         $this->blankRow();
 
-        $this->section('Service and Package Revenue', 2);
-        $this->row([['Service or package', 'String', 'Header'], ['Net revenue', 'String', 'Header']]);
+        $this->section('Service, Package, and Membership Revenue', 2);
+        $this->row([['Offering', 'String', 'Header'], ['Net revenue', 'String', 'Header']]);
         $serviceRows = $this->pairedNonZeroRows($report['serviceLabels'] ?? [], $report['serviceTotals'] ?? []);
         if ($serviceRows === []) {
-            $this->row([['No service or package revenue for this period', 'String', 'Note', 1]]);
+            $this->row([['No offering revenue for this period', 'String', 'Note', 1]]);
         } else {
             foreach ($serviceRows as [$label, $value]) {
                 $this->row([[$label, 'String', 'Text'], [$value, 'Number', $value < 0 ? 'Refund' : 'Currency']]);
@@ -112,7 +116,7 @@ class ReportingSpreadsheetService
         $this->row([['Historical estimates use the booking creation time because older bookings did not store an exact initial collection timestamp.', 'String', 'Note', 11]]);
         $this->blankRow();
 
-        $headers = ['Collected / refunded at', 'Entry type', 'Booking', 'Client', 'Service or package', 'Therapist', 'Payment method', 'Payment reference', 'Amount', 'Net amount', 'Timestamp source', 'Recorded by'];
+        $headers = ['Collected / refunded at', 'Entry type', 'Reference', 'Client', 'Service, package, or membership', 'Therapist', 'Payment method', 'Payment reference', 'Amount', 'Net amount', 'Timestamp source', 'Recorded by'];
         $this->row(array_map(fn (string $header): array => [$header, 'String', 'Header'], $headers), 28);
 
         $entries = $report['ledgerRows'] ?? [];

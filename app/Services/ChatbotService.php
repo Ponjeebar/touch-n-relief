@@ -229,8 +229,8 @@ class ChatbotService
 
         $benefits = collect($plan->benefits ?? [])->implode('; ');
 
-        return $this->respond($plan->name.' costs PHP '.number_format((float) $plan->price_amount, 2).'. '.$plan->description
-            .($benefits !== '' ? ' Benefits: '.$benefits.'.' : ''), [$this->servicesAction()],
+        return $this->respond($plan->name.' costs PHP '.number_format((float) $plan->price_amount, 2).' for '.(int) ($plan->validity_days ?? 365).' days. '.$plan->description
+            .($benefits !== '' ? ' Benefits: '.$benefits.'.' : '').' Sign in and use the membership section to purchase or renew through PayMongo.', [$this->servicesAction()],
             ['Show me the packages', 'Services and prices', 'How do I book?']);
     }
 

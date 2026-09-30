@@ -51,9 +51,16 @@
                             <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'weekly' ? 'active' : '' }}" data-period="weekly" aria-pressed="{{ ($period ?? 'monthly') === 'weekly' ? 'true' : 'false' }}">Weekly</button>
                             <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'monthly' ? 'active' : '' }}" data-period="monthly" aria-pressed="{{ ($period ?? 'monthly') === 'monthly' ? 'true' : 'false' }}">Monthly</button>
                             <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'yearly' ? 'active' : '' }}" data-period="yearly" aria-pressed="{{ ($period ?? 'monthly') === 'yearly' ? 'true' : 'false' }}">Yearly</button>
+                            <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'custom' ? 'active' : '' }}" data-period="custom" aria-pressed="{{ ($period ?? 'monthly') === 'custom' ? 'true' : 'false' }}">Custom</button>
                             <span class="rep-period-divider" aria-hidden="true"></span>
                             <select id="repPeriodValue" class="rep-period-select" aria-label="Date selection"></select>
                         </div>
+                        <form method="GET" action="{{ route('reporting.index') }}" class="rep-custom-range {{ ($period ?? '') === 'custom' ? 'is-visible' : '' }}" id="repCustomRange">
+                            <input type="hidden" name="period" value="custom">
+                            <label>From <input type="date" name="date_from" value="{{ $dateFrom ?? now()->startOfMonth()->toDateString() }}" max="{{ now()->toDateString() }}" required></label>
+                            <label>To <input type="date" name="date_to" value="{{ $dateTo ?? now()->toDateString() }}" max="{{ now()->toDateString() }}" required></label>
+                            <button type="submit">Apply</button>
+                        </form>
                         <a href="{{ route('reporting.export', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-export-btn" id="repExportLink">
                             <i class="bi bi-download" aria-hidden="true"></i>
                             <span>Export Excel</span>
@@ -231,6 +238,85 @@
                         </article>
                     </aside>
                 </section>
+
+                <section class="rep-sales-monitoring" aria-label="Sales monitoring details">
+                    <header class="rep-section-heading">
+                        <div>
+                            <h2>Collection summary</h2>
+                            <p>Cash basis: verified payments collected during the selected period, less processed refunds.</p>
+                        </div>
+                    </header>
+                    <div class="rep-financial-strip">
+                        <div><span>Gross collections</span><strong id="repGrossCollections">₱{{ number_format((float) ($grossCollections ?? 0), 2) }}</strong></div>
+                        <div><span>Processed refunds</span><strong id="repRefundTotal">₱{{ number_format((float) ($refundTotal ?? 0), 2) }}</strong></div>
+                        <div><span>Net collections</span><strong id="repNetCollections">₱{{ number_format((float) ($primaryAmount ?? 0), 2) }}</strong></div>
+                        <div><span>Payments</span><strong id="repPaymentCount">{{ number_format((int) ($paymentCount ?? 0)) }}</strong></div>
+                        <div><span>Average payment</span><strong id="repAveragePayment">₱{{ number_format((float) ($averagePayment ?? 0), 2) }}</strong></div>
+                    </div>
+                    <p class="rep-comparison" id="repComparison">
+                        @if (($comparisonPercent ?? null) !== null)
+                            {{ $comparisonPercent >= 0 ? '+' : '' }}{{ number_format((float) $comparisonPercent, 1) }}% versus {{ $comparisonLabel }}
+                        @else
+                            No comparable collections in {{ $comparisonLabel ?? 'the previous period' }}.
+                        @endif
+                    </p>
+
+                    <div class="rep-detail-grid">
+                        <article class="rep-data-panel">
+                            <h3>Payment method reconciliation</h3>
+                            <div class="rep-table-wrap">
+                                <table>
+                                    <thead><tr><th>Method</th><th>Payments</th><th>Gross</th><th>Refunds</th><th>Net</th></tr></thead>
+                                    <tbody id="repPaymentMethods"></tbody>
+                                </table>
+                            </div>
+                        </article>
+                        <article class="rep-data-panel">
+                            <h3>Outstanding balances</h3>
+                            <p><strong id="repOutstandingTotal">₱{{ number_format((float) ($outstandingBalanceTotal ?? 0), 2) }}</strong> across <span id="repOutstandingCount">{{ (int) ($outstandingBalanceCount ?? 0) }}</span> bookings in this appointment range.</p>
+                            <div class="rep-table-wrap">
+                                <table>
+                                    <thead><tr><th>Booking</th><th>Client</th><th>Service</th><th>Date</th><th>Balance</th></tr></thead>
+                                    <tbody id="repOutstandingRows"></tbody>
+                                </table>
+                            </div>
+                        </article>
+                    </div>
+
+                    <article class="rep-data-panel rep-ledger-panel">
+                        <div class="rep-ledger-heading">
+                            <div><h3>Payment ledger</h3><p>Every summary amount can be traced to these collected payments and refunds.</p></div>
+                            <div class="rep-ledger-filters">
+                                <input type="search" id="repLedgerSearch" placeholder="Search client, reference, or service" aria-label="Search payment ledger">
+                                <select id="repLedgerType" aria-label="Filter ledger entry type">
+                                    <option value="">All entry types</option>
+                                    <option value="initial_payment">Initial payments</option>
+                                    <option value="balance_payment">Balance payments</option>
+                                    <option value="membership_payment">Membership payments</option>
+                                    <option value="refund">Refunds</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="rep-table-wrap">
+                            <table>
+                                <thead><tr><th>Collected / refunded</th><th>Reference</th><th>Client</th><th>Service or membership</th><th>Type</th><th>Method</th><th>Net amount</th><th>Source</th></tr></thead>
+                                <tbody id="repLedgerRows"></tbody>
+                            </table>
+                        </div>
+                        <p class="rep-table-empty" id="repLedgerEmpty" hidden>No ledger entries match the selected filters.</p>
+                    </article>
+
+                    <details class="rep-calculation-notes">
+                        <summary>How this report is calculated</summary>
+                        <ul>
+                            <li>Gross collections include verified initial, balance, and membership payments collected in the selected period.</li>
+                            <li>Net collections equal gross collections minus processed refunds.</li>
+                            <li>Pending payments and outstanding balances are excluded from collected sales.</li>
+                            <li>Service hours use completed appointment dates; financial figures use payment collection time.</li>
+                            <li>Historical entries marked as estimated use the booking creation time because the original collection time was unavailable.</li>
+                        </ul>
+                    </details>
+                </section>
             </main>
         </div>
     </div>
@@ -244,8 +330,11 @@
         let pieChart = null;
         let currentPeriod = @json($period ?? 'monthly');
         let currentPeriodValue = @json($periodValue ?? null);
+        let currentDateFrom = @json($dateFrom ?? null);
+        let currentDateTo = @json($dateTo ?? null);
         let availableYears = @json($availableYears ?? []);
         let availableWeeks = @json($availableWeeks ?? []);
+        let currentLedgerRows = [];
 
         function copyPrintText(targetId, sourceId) {
             const target = document.getElementById(targetId);
@@ -387,6 +476,9 @@
         function populatePeriodSelect(period, selectedValue) {
             const select = document.getElementById('repPeriodValue');
             if (!select) return;
+            select.hidden = period === 'custom';
+            document.getElementById('repCustomRange')?.classList.toggle('is-visible', period === 'custom');
+            if (period === 'custom') return;
             const options = periodValueOptions(period);
             const fallback = defaultPeriodValue(period);
             const value = selectedValue || fallback;
@@ -397,15 +489,19 @@
             currentPeriodValue = value;
         }
 
-        function buildReportingQuery(period, periodValue) {
+        function buildReportingQuery(period, periodValue, dateFrom = currentDateFrom, dateTo = currentDateTo) {
             const params = new URLSearchParams();
             params.set('period', period || 'monthly');
             if (periodValue) params.set('period_value', periodValue);
+            if (period === 'custom' && dateFrom && dateTo) {
+                params.set('date_from', dateFrom);
+                params.set('date_to', dateTo);
+            }
             return params.toString();
         }
 
-        async function fetchReportingPayload(period, periodValue) {
-            const res = await fetch(`${reportingDataUrl}?${buildReportingQuery(period, periodValue)}`, {
+        async function fetchReportingPayload(period, periodValue, dateFrom = currentDateFrom, dateTo = currentDateTo) {
+            const res = await fetch(`${reportingDataUrl}?${buildReportingQuery(period, periodValue, dateFrom, dateTo)}`, {
                 headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 credentials: 'same-origin',
             });
@@ -420,6 +516,13 @@
                 loc.searchParams.set('period_value', periodValue);
             } else {
                 loc.searchParams.delete('period_value');
+            }
+            if (period === 'custom' && currentDateFrom && currentDateTo) {
+                loc.searchParams.set('date_from', currentDateFrom);
+                loc.searchParams.set('date_to', currentDateTo);
+            } else {
+                loc.searchParams.delete('date_from');
+                loc.searchParams.delete('date_to');
             }
             window.history.pushState({ period, periodValue }, '', loc);
         }
@@ -466,6 +569,79 @@
             }).join('');
         }
 
+        function appendTableRow(body, values, classes = []) {
+            const row = document.createElement('tr');
+            values.forEach((value, index) => {
+                const cell = document.createElement('td');
+                cell.textContent = String(value ?? '—');
+                if (classes[index]) cell.className = classes[index];
+                row.appendChild(cell);
+            });
+            body.appendChild(row);
+        }
+
+        function renderPaymentMethods(rows) {
+            const body = document.getElementById('repPaymentMethods');
+            if (!body) return;
+            body.replaceChildren();
+            if (!Array.isArray(rows) || !rows.length) {
+                appendTableRow(body, ['No payment activity', '', '', '', '']);
+                return;
+            }
+            rows.forEach((row) => appendTableRow(body, [
+                row.method,
+                fmtCount(row.paymentCount),
+                money(row.gross),
+                money(row.refunds),
+                money(row.net),
+            ]));
+        }
+
+        function renderOutstandingBalances(rows) {
+            const body = document.getElementById('repOutstandingRows');
+            if (!body) return;
+            body.replaceChildren();
+            if (!Array.isArray(rows) || !rows.length) {
+                appendTableRow(body, ['No outstanding balances', '', '', '', '']);
+                return;
+            }
+            rows.forEach((row) => appendTableRow(body, [
+                row.bookingReference,
+                row.client,
+                row.service,
+                row.appointmentDate,
+                money(row.balance),
+            ], ['', '', '', '', row.isOverdue ? 'is-overdue' : '']));
+        }
+
+        function renderLedgerRows() {
+            const body = document.getElementById('repLedgerRows');
+            const empty = document.getElementById('repLedgerEmpty');
+            if (!body) return;
+            const query = (document.getElementById('repLedgerSearch')?.value || '').trim().toLowerCase();
+            const type = document.getElementById('repLedgerType')?.value || '';
+            const rows = currentLedgerRows.filter((row) => {
+                const matchesType = !type || row.type === type;
+                const haystack = [row.bookingReference, row.client, row.service, row.reference, row.paymentMethod]
+                    .join(' ')
+                    .toLowerCase();
+                return matchesType && (!query || haystack.includes(query));
+            });
+
+            body.replaceChildren();
+            rows.forEach((row) => appendTableRow(body, [
+                row.occurredAt,
+                row.bookingReference,
+                row.client,
+                row.service,
+                row.typeLabel,
+                row.paymentMethod,
+                money(row.netAmount),
+                row.isEstimated ? 'Historical estimate' : row.recordedBy,
+            ], ['', '', '', '', '', '', Number(row.netAmount) < 0 ? 'is-refund' : '', '']));
+            if (empty) empty.hidden = rows.length > 0;
+        }
+
         function setPeriodButtonsActive(period) {
             document.querySelectorAll('#repPeriod .rep-period-btn').forEach((btn) => {
                 const on = btn.dataset.period === period;
@@ -486,6 +662,13 @@
                     url.searchParams.set('period_value', periodValue);
                 } else {
                     url.searchParams.delete('period_value');
+                }
+                if (period === 'custom' && currentDateFrom && currentDateTo) {
+                    url.searchParams.set('date_from', currentDateFrom);
+                    url.searchParams.set('date_to', currentDateTo);
+                } else {
+                    url.searchParams.delete('date_from');
+                    url.searchParams.delete('date_to');
                 }
                 link.href = url.toString();
             });
@@ -661,6 +844,8 @@
             d = d && typeof d === 'object' ? d : {};
             if (d.period) currentPeriod = d.period;
             if (d.periodValue) currentPeriodValue = d.periodValue;
+            if (d.dateFrom) currentDateFrom = d.dateFrom;
+            if (d.dateTo) currentDateTo = d.dateTo;
             if (Array.isArray(d.availableYears) && d.availableYears.length) {
                 availableYears = d.availableYears;
             }
@@ -681,6 +866,24 @@
                 pv.textContent = money(d.primaryAmount ?? 0);
             }
             setText('repPrimarySub', d.primarySub || '');
+            setText('repGrossCollections', money(d.grossCollections ?? 0));
+            setText('repRefundTotal', money(d.refundTotal ?? 0));
+            setText('repNetCollections', money(d.primaryAmount ?? 0));
+            setText('repPaymentCount', fmtCount(d.paymentCount ?? 0));
+            setText('repAveragePayment', money(d.averagePayment ?? 0));
+            setText('repOutstandingTotal', money(d.outstandingBalanceTotal ?? 0));
+            setText('repOutstandingCount', fmtCount(d.outstandingBalanceCount ?? 0));
+            const comparisonText = d.comparisonPercent === null || d.comparisonPercent === undefined
+                ? 'No comparable collections in ' + (d.comparisonLabel || 'the previous period') + '.'
+                : (Number(d.comparisonPercent) >= 0 ? '+' : '')
+                    + Number(d.comparisonPercent).toFixed(1)
+                    + '% versus '
+                    + (d.comparisonLabel || 'the previous period');
+            setText('repComparison', comparisonText);
+            renderPaymentMethods(d.paymentMethodBreakdown || []);
+            renderOutstandingBalances(d.outstandingBalances || []);
+            currentLedgerRows = Array.isArray(d.ledgerRows) ? d.ledgerRows : [];
+            renderLedgerRows();
             const pi = document.getElementById('repPrimaryIcon');
             if (pi) pi.className = `bi bi-${d.primaryIcon || 'receipt'}`;
 
@@ -749,6 +952,14 @@
             const period = btn.dataset.period;
             if (!period || period === currentPeriod) return;
 
+            if (period === 'custom') {
+                currentPeriod = 'custom';
+                setPeriodButtonsActive('custom');
+                populatePeriodSelect('custom', '');
+                document.querySelector('#repCustomRange input[name="date_from"]')?.focus();
+                return;
+            }
+
             const nextValue = defaultPeriodValue(period);
             await loadReporting(period, nextValue);
         });
@@ -759,12 +970,17 @@
             await loadReporting(currentPeriod, value);
         });
 
+        document.getElementById('repLedgerSearch')?.addEventListener('input', renderLedgerRows);
+        document.getElementById('repLedgerType')?.addEventListener('change', renderLedgerRows);
+
         window.addEventListener('popstate', () => {
             const loc = new URL(window.location.href);
             let p = loc.searchParams.get('period') || 'monthly';
-            if (!['daily', 'monthly', 'yearly'].includes(p)) {
+            if (!['daily', 'weekly', 'monthly', 'yearly', 'custom'].includes(p)) {
                 p = 'monthly';
             }
+            currentDateFrom = loc.searchParams.get('date_from');
+            currentDateTo = loc.searchParams.get('date_to');
             const pv = loc.searchParams.get('period_value') || defaultPeriodValue(p);
             if (p === currentPeriod && pv === currentPeriodValue) return;
             currentPeriod = p;

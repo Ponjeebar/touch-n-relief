@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\MembershipPlan;
+use App\Models\MembershipPurchase;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\User;
-use App\Services\BookingSlotService;
 use App\Services\BookingRefundService;
+use App\Services\BookingSlotService;
 use App\Services\PaymongoService;
 use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
@@ -131,6 +133,37 @@ class StaffAppointmentPaymentTest extends TestCase
         $this->assertSame(PaymentMethodCatalog::STATUS_PAID, $booking->payment_status);
         $this->assertSame(PaymentMethodCatalog::METHOD_CASH_COUNTER, $booking->payment_method);
         $this->assertSame(round((float) $booking->amount * .5, 2), (float) $booking->payment_amount);
+    }
+
+    public function test_staff_booking_uses_the_active_membership_price_for_a_registered_client(): void
+    {
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $plan = MembershipPlan::query()->firstOrFail();
+        MembershipPurchase::query()->create([
+            'user_id' => $client->id,
+            'membership_plan_id' => $plan->id,
+            'plan_name' => $plan->name,
+            'validity_days' => 365,
+            'amount' => 499,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'status' => MembershipPurchase::STATUS_ACTIVE,
+            'paid_at' => now(),
+            'starts_at' => now()->subMinute(),
+            'expires_at' => now()->addYear(),
+        ]);
+
+        $this->actingAs($staff)->get(route('appointments.index'))->assertOk();
+        $response = $this->post(
+            route('appointments.store'),
+            $this->bookingInput($client, 'cash_counter', 'full', 'THERA #2')
+        );
+
+        $response->assertRedirect();
+        $response->assertSessionDoesntHaveErrors();
+        $booking = SpaBooking::query()->where('user_id', $client->id)->firstOrFail();
+        $this->assertSame(549.0, (float) $booking->amount);
+        $this->assertSame(549.0, (float) $booking->payment_amount);
     }
 
     public function test_staff_cannot_submit_a_removed_payment_method(): void
@@ -433,9 +466,12 @@ class StaffAppointmentPaymentTest extends TestCase
         $this->assertNull($booking->fresh()->completed_at);
     }
 
-    private function bookingInput(User $client, string $method, string $type): array
+    private function bookingInput(User $client, string $method, string $type, ?string $serviceName = null): array
     {
-        $service = SpaService::query()->where('is_active', true)->firstOrFail();
+        $service = SpaService::query()
+            ->where('is_active', true)
+            ->when($serviceName, fn ($query) => $query->where('name', $serviceName))
+            ->firstOrFail();
         $slots = app(BookingSlotService::class)->slotMapByService();
 
         return [

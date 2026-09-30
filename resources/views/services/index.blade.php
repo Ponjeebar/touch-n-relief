@@ -208,12 +208,12 @@
 
                 <section class="services-wrap catalog-admin-section" aria-labelledby="membership-heading">
                     <h2 id="membership-heading" class="catalog-admin-title">Membership</h2>
-                    <p class="catalog-admin-copy">Current membership offer displayed on the customer landing page.</p>
+                    <p class="catalog-admin-copy">Customers can purchase this membership through verified PayMongo checkout and use eligible member rates.</p>
                     <div class="membership-admin-grid">
                         @forelse ($membershipPlans as $plan)
                             <article class="membership-admin-card {{ !$plan->is_active ? 'is-unavailable' : '' }}">
                                 <div><span class="membership-admin-label">Membership plan</span><h3>{{ $plan->name }}</h3><p>{{ $plan->description }}</p></div>
-                                <strong>PHP {{ number_format((float) $plan->price_amount, 2) }}</strong>
+                                <strong>PHP {{ number_format((float) $plan->price_amount, 2) }} · {{ (int) ($plan->validity_days ?? 365) }} days</strong>
                                 @if (!empty($plan->benefits))<ul>@foreach ($plan->benefits as $benefit)<li>{{ $benefit }}</li>@endforeach</ul>@endif
                             </article>
                         @empty

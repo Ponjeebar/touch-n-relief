@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\MembershipPlan;
+use App\Models\MembershipPurchase;
 use App\Models\PaymentLedgerEntry;
 use App\Models\Receptionist;
 use App\Models\SpaBooking;
@@ -2311,7 +2312,7 @@ class DashboardController extends Controller
     {
         $period = $this->normalizeReportingPeriod($request->query('period', 'monthly'));
         $periodValue = $request->query('period_value');
-        $payload = $this->reportingPayload($period, $periodValue);
+        $payload = $this->reportingPayload($period, $periodValue, $request->query('date_from'), $request->query('date_to'));
 
         return view('reporting.index', array_merge($payload, [
             'reportingBootstrap' => $payload,
@@ -2323,14 +2324,14 @@ class DashboardController extends Controller
         $period = $this->normalizeReportingPeriod($request->query('period', 'monthly'));
         $periodValue = $request->query('period_value');
 
-        return response()->json($this->reportingPayload($period, $periodValue));
+        return response()->json($this->reportingPayload($period, $periodValue, $request->query('date_from'), $request->query('date_to')));
     }
 
     public function reportingExport(Request $request, ReportingSpreadsheetService $spreadsheet): StreamedResponse
     {
         $period = $this->normalizeReportingPeriod($request->query('period', 'monthly'));
         $periodValue = $request->query('period_value');
-        $payload = $this->reportingPayload($period, $periodValue);
+        $payload = $this->reportingPayload($period, $periodValue, $request->query('date_from'), $request->query('date_to'));
         $safePeriod = preg_replace('/[^a-z0-9_-]+/i', '', $period) ?: 'monthly';
         $filename = 'touchnrelief-report-'.$safePeriod.'-'.now()->format('Y-m-d-His').'.xlsx';
         $workbook = $spreadsheet->build($payload);
@@ -2353,7 +2354,7 @@ class DashboardController extends Controller
     {
         $period = $this->normalizeReportingPeriod($request->query('period', 'monthly'));
         $periodValue = $request->query('period_value');
-        $payload = $this->reportingPayload($period, $periodValue);
+        $payload = $this->reportingPayload($period, $periodValue, $request->query('date_from'), $request->query('date_to'));
         $payload['salesTrendChart'] = $charts->salesTrend($payload['trendLabels'] ?? [], $payload['trendData'] ?? []);
         $serviceChartRows = collect($payload['serviceLabels'] ?? [])
             ->map(fn ($label, $index): array => [
@@ -2483,7 +2484,7 @@ class DashboardController extends Controller
 
     private function normalizeReportingPeriod(?string $period): string
     {
-        if (! in_array($period, ['daily', 'weekly', 'monthly', 'yearly'], true)) {
+        if (! in_array($period, ['daily', 'weekly', 'monthly', 'yearly', 'custom'], true)) {
             return 'monthly';
         }
 
@@ -2500,6 +2501,15 @@ class DashboardController extends Controller
 
         if (Schema::hasTable('transactions')) {
             $min = DB::table('transactions')->min('date');
+            if ($min !== null) {
+                $minYear = min($minYear, (int) Carbon::parse((string) $min)->year);
+            }
+        }
+
+        if (Schema::hasTable('membership_purchases')) {
+            $min = DB::table('membership_purchases')
+                ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
+                ->min('paid_at');
             if ($min !== null) {
                 $minYear = min($minYear, (int) Carbon::parse((string) $min)->year);
             }
@@ -2533,9 +2543,42 @@ class DashboardController extends Controller
     /**
      * @return array{value: string, selectionLabel: string, badge: string, start: string, end: string, dateLabel: string}
      */
-    private function resolveReportingContext(string $period, ?string $periodValue): array
+    private function resolveReportingContext(string $period, ?string $periodValue, ?string $dateFrom = null, ?string $dateTo = null): array
     {
         $now = now();
+
+        if ($period === 'custom') {
+            try {
+                $start = Carbon::createFromFormat('Y-m-d', trim((string) $dateFrom))->startOfDay();
+                $end = Carbon::createFromFormat('Y-m-d', trim((string) $dateTo))->startOfDay();
+            } catch (\Throwable) {
+                $start = $now->copy()->startOfMonth();
+                $end = $now->copy()->startOfDay();
+            }
+
+            if ($start->gt($end)) {
+                [$start, $end] = [$end, $start];
+            }
+            if ($end->gt($now)) {
+                $end = $now->copy()->startOfDay();
+            }
+            if ($start->gt($end)) {
+                $start = $end->copy();
+            }
+            if ($start->diffInDays($end) > 366) {
+                $start = $end->copy()->subDays(366);
+            }
+            $label = $start->format('M j, Y').' - '.$end->format('M j, Y');
+
+            return [
+                'value' => $start->toDateString().'_'.$end->toDateString(),
+                'selectionLabel' => $label,
+                'badge' => 'Custom',
+                'start' => $start->toDateString(),
+                'end' => $end->toDateString(),
+                'dateLabel' => $label,
+            ];
+        }
 
         if ($period === 'daily') {
             $weekdays = [
@@ -2663,9 +2706,13 @@ class DashboardController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function reportingPayload(string $period, ?string $periodValue = null): array
-    {
-        $context = $this->resolveReportingContext($period, $periodValue);
+    private function reportingPayload(
+        string $period,
+        ?string $periodValue = null,
+        ?string $dateFrom = null,
+        ?string $dateTo = null,
+    ): array {
+        $context = $this->resolveReportingContext($period, $periodValue, $dateFrom, $dateTo);
         $rangeStart = $context['start'];
         $rangeEnd = $context['end'];
         $periodValue = $context['value'];
@@ -2679,10 +2726,21 @@ class DashboardController extends Controller
         $grossCollections = (float) (clone $ledgerInRange)
             ->whereIn('entry_type', [PaymentLedgerEntry::TYPE_INITIAL_PAYMENT, PaymentLedgerEntry::TYPE_BALANCE_PAYMENT])
             ->sum('amount');
+        $membershipInRange = MembershipPurchase::query()
+            ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
+            ->whereDate('paid_at', '>=', $rangeStart)
+            ->whereDate('paid_at', '<=', $rangeEnd);
+        $membershipCollections = (float) (clone $membershipInRange)->sum('amount');
+        $grossCollections += $membershipCollections;
         $refundTotal = (float) (clone $ledgerInRange)
             ->where('entry_type', PaymentLedgerEntry::TYPE_REFUND)
             ->sum('amount');
         $primaryAmount = round($grossCollections - $refundTotal, 2);
+        $paymentCount = (int) (clone $ledgerInRange)
+            ->whereIn('entry_type', [PaymentLedgerEntry::TYPE_INITIAL_PAYMENT, PaymentLedgerEntry::TYPE_BALANCE_PAYMENT])
+            ->count()
+            + (int) (clone $membershipInRange)->count();
+        $averagePayment = $paymentCount > 0 ? round($grossCollections / $paymentCount, 2) : 0.0;
 
         $hoursValue = round(((float) DB::table('transactions')
             ->whereDate('date', '>=', $rangeStart)
@@ -2737,6 +2795,21 @@ class DashboardController extends Controller
             $hoursIcon = 'clock';
             $pageSubtitle = $selectionBadge.' — net collections and new customer signups';
             $serviceLabel = (string) $selectionBadge;
+        } elseif ($period === 'custom') {
+            $primaryLabel = 'Net Collections';
+            $primaryBadge = 'Custom';
+            $primarySub = 'Collections less refunds for '.$dateLabel;
+            $primaryIcon = 'calendar-range';
+            $secondaryLabel = 'New Users';
+            $secondaryBadge = 'Custom';
+            $secondarySub = 'New registered customers during this range';
+            $secondaryIcon = 'people';
+            $hoursLabel = 'Total Service Hours';
+            $hoursBadge = 'Custom';
+            $hoursSub = 'Completed service time during this range';
+            $hoursIcon = 'clock';
+            $pageSubtitle = $dateLabel.' — net collections and customer activity';
+            $serviceLabel = $dateLabel;
         } else {
             $primaryLabel = 'Monthly Net Sales';
             $primaryBadge = $selectionBadge;
@@ -2764,8 +2837,22 @@ class DashboardController extends Controller
                     'bucket' => $bucket,
                     'total' => $entries->sum(fn ($entry) => $entry->entry_type === PaymentLedgerEntry::TYPE_REFUND ? -(float) $entry->amount : (float) $entry->amount),
                 ]);
+            $membershipTrendRows = MembershipPurchase::query()
+                ->select(['paid_at', 'amount'])
+                ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
+                ->whereDate('paid_at', '=', $rangeStart)
+                ->get()
+                ->groupBy(fn (MembershipPurchase $purchase) => $purchase->paid_at?->format('H:00'))
+                ->map(fn (Collection $entries, string $bucket) => (object) [
+                    'bucket' => $bucket,
+                    'total' => $entries->sum('amount'),
+                ]);
 
             $map = $trendRows->keyBy('bucket');
+            foreach ($membershipTrendRows as $bucket => $row) {
+                $existing = $map->get($bucket);
+                $map->put($bucket, (object) ['bucket' => $bucket, 'total' => (float) ($existing?->total ?? 0) + (float) $row->total]);
+            }
             $trendLabelsPretty = collect(range(0, 23))
                 ->map(fn (int $h) => str_pad((string) $h, 2, '0', STR_PAD_LEFT).':00');
             $trendData = $trendLabelsPretty->map(fn (string $b) => (float) optional($map->get($b))->total)->values();
@@ -2782,8 +2869,23 @@ class DashboardController extends Controller
                     'bucket' => $bucket,
                     'total' => $entries->sum(fn ($entry) => $entry->entry_type === PaymentLedgerEntry::TYPE_REFUND ? -(float) $entry->amount : (float) $entry->amount),
                 ]);
+            $membershipTrendRows = MembershipPurchase::query()
+                ->select(['paid_at', 'amount'])
+                ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
+                ->whereDate('paid_at', '>=', Carbon::create($year, 1, 1)->toDateString())
+                ->whereDate('paid_at', '<=', $rangeEnd)
+                ->get()
+                ->groupBy(fn (MembershipPurchase $purchase) => $purchase->paid_at?->format('Y-m'))
+                ->map(fn (Collection $entries, string $bucket) => (object) [
+                    'bucket' => $bucket,
+                    'total' => $entries->sum('amount'),
+                ]);
 
             $map = $trendRows->keyBy('bucket');
+            foreach ($membershipTrendRows as $bucket => $row) {
+                $existing = $map->get($bucket);
+                $map->put($bucket, (object) ['bucket' => $bucket, 'total' => (float) ($existing?->total ?? 0) + (float) $row->total]);
+            }
             $trendYm = collect(range(1, 12))
                 ->map(fn (int $m) => sprintf('%04d-%02d', $year, $m))
                 ->values();
@@ -2800,8 +2902,20 @@ class DashboardController extends Controller
                 ->groupBy('bucket')
                 ->orderBy('bucket')
                 ->get();
+            $membershipTrendRows = MembershipPurchase::query()
+                ->selectRaw('DATE(paid_at) as bucket, SUM(amount) as total')
+                ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
+                ->whereDate('paid_at', '>=', $rangeStart)
+                ->whereDate('paid_at', '<=', $rangeEnd)
+                ->groupBy('bucket')
+                ->orderBy('bucket')
+                ->get();
 
             $map = $trendRows->keyBy('bucket');
+            foreach ($membershipTrendRows as $row) {
+                $existing = $map->get($row->bucket);
+                $map->put($row->bucket, (object) ['bucket' => $row->bucket, 'total' => (float) ($existing?->total ?? 0) + (float) $row->total]);
+            }
             $trendDates = collect();
             for ($cursor = $start->copy(); $cursor->lte($end); $cursor->addDay()) {
                 $trendDates->push($cursor->toDateString());
@@ -2856,16 +2970,30 @@ class DashboardController extends Controller
             ->groupBy('service')
             ->orderByDesc('total')
             ->get();
+        $membershipBreakdown = MembershipPurchase::query()
+            ->selectRaw('plan_name as service, SUM(amount) as total')
+            ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
+            ->whereDate('paid_at', '>=', $rangeStart)
+            ->whereDate('paid_at', '<=', $rangeEnd)
+            ->groupBy('plan_name')
+            ->get();
 
         $allServiceLabels = SpaService::query()
             ->orderByRaw("CASE WHEN offering_type = 'package' THEN 1 ELSE 0 END")
             ->orderBy('name')
             ->pluck('name')
             ->merge($serviceBreakdown->pluck('service'))
+            ->merge($membershipBreakdown->pluck('service'))
             ->filter()
             ->unique()
             ->values();
         $totalsByService = $serviceBreakdown->pluck('total', 'service');
+        foreach ($membershipBreakdown as $membershipRow) {
+            $totalsByService->put(
+                (string) $membershipRow->service,
+                (float) ($totalsByService->get((string) $membershipRow->service, 0)) + (float) $membershipRow->total,
+            );
+        }
         $serviceLabels = $allServiceLabels->values();
         $serviceTotals = $allServiceLabels
             ->map(fn (string $service) => (float) ($totalsByService[$service] ?? 0))
@@ -2927,18 +3055,116 @@ class DashboardController extends Controller
                 'recordedBy' => (string) ($entry->recorded_by_name ?: 'System'),
             ])
             ->values()
+            ->concat(
+                MembershipPurchase::query()
+                    ->with('user:id,name')
+                    ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
+                    ->whereDate('paid_at', '>=', $rangeStart)
+                    ->whereDate('paid_at', '<=', $rangeEnd)
+                    ->get()
+                    ->map(fn (MembershipPurchase $purchase): array => [
+                        'id' => 'membership-'.$purchase->id,
+                        'occurredAt' => $purchase->paid_at?->format('Y-m-d H:i:s') ?? '',
+                        'type' => 'membership_payment',
+                        'typeLabel' => 'Membership payment',
+                        'bookingReference' => 'MEM-'.str_pad((string) $purchase->id, 5, '0', STR_PAD_LEFT),
+                        'client' => (string) ($purchase->user?->name ?: 'Unknown client'),
+                        'service' => (string) $purchase->plan_name,
+                        'therapist' => 'Not applicable',
+                        'paymentMethod' => PaymentMethodCatalog::labelFor((string) $purchase->payment_method),
+                        'reference' => (string) ($purchase->payment_transaction_id ?: '—'),
+                        'amount' => (float) $purchase->amount,
+                        'netAmount' => (float) $purchase->amount,
+                        'isEstimated' => false,
+                        'recordedBy' => 'PayMongo',
+                    ])
+            )
+            ->sortBy('occurredAt')
+            ->values();
+
+        $paymentMethodBreakdown = $ledgerRows
+            ->groupBy('paymentMethod')
+            ->map(function (Collection $entries, string $method): array {
+                $gross = (float) $entries->where('netAmount', '>=', 0)->sum('amount');
+                $refunds = abs((float) $entries->where('netAmount', '<', 0)->sum('netAmount'));
+
+                return [
+                    'method' => $method,
+                    'paymentCount' => $entries->where('netAmount', '>=', 0)->count(),
+                    'gross' => round($gross, 2),
+                    'refunds' => round($refunds, 2),
+                    'net' => round($gross - $refunds, 2),
+                ];
+            })
+            ->sortByDesc('net')
+            ->values()
             ->all();
+
+        $outstandingBalances = SpaBooking::query()
+            ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
+            ->whereNull('cancelled_at')
+            ->whereDate('booking_date', '>=', $rangeStart)
+            ->whereDate('booking_date', '<=', $rangeEnd)
+            ->orderBy('booking_date')
+            ->orderBy('time_slot')
+            ->get()
+            ->map(function (SpaBooking $booking): array {
+                $balance = max(0, round((float) $booking->amount - $booking->totalPaidAmount(), 2));
+
+                return [
+                    'bookingReference' => 'RCP-'.str_pad((string) $booking->id, 5, '0', STR_PAD_LEFT),
+                    'client' => (string) ($booking->client_name ?: 'Unknown client'),
+                    'service' => (string) $booking->service_name,
+                    'appointmentDate' => $booking->booking_date?->format('Y-m-d') ?? '',
+                    'total' => (float) $booking->amount,
+                    'paid' => $booking->totalPaidAmount(),
+                    'balance' => $balance,
+                    'isOverdue' => $balance > 0 && $booking->booking_date?->lt(now()->startOfDay()),
+                ];
+            })
+            ->filter(fn (array $row): bool => $row['balance'] > 0)
+            ->values();
+
+        $rangeDays = Carbon::parse($rangeStart)->diffInDays(Carbon::parse($rangeEnd)) + 1;
+        $previousEnd = Carbon::parse($rangeStart)->subDay();
+        $previousStart = $previousEnd->copy()->subDays($rangeDays - 1);
+        $previousLedger = DB::table('payment_ledger_entries')
+            ->whereDate('occurred_at', '>=', $previousStart->toDateString())
+            ->whereDate('occurred_at', '<=', $previousEnd->toDateString());
+        $previousGross = (float) (clone $previousLedger)
+            ->whereIn('entry_type', [PaymentLedgerEntry::TYPE_INITIAL_PAYMENT, PaymentLedgerEntry::TYPE_BALANCE_PAYMENT])
+            ->sum('amount')
+            + (float) MembershipPurchase::query()
+                ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
+                ->whereDate('paid_at', '>=', $previousStart->toDateString())
+                ->whereDate('paid_at', '<=', $previousEnd->toDateString())
+                ->sum('amount');
+        $previousRefunds = (float) (clone $previousLedger)
+            ->where('entry_type', PaymentLedgerEntry::TYPE_REFUND)
+            ->sum('amount');
+        $previousNet = round($previousGross - $previousRefunds, 2);
+        $comparisonPercent = abs($previousNet) > 0.004
+            ? round((($primaryAmount - $previousNet) / abs($previousNet)) * 100, 1)
+            : null;
 
         return [
             'period' => $period,
             'periodValue' => $periodValue,
             'periodValueLabel' => $selectionLabel,
+            'dateFrom' => $rangeStart,
+            'dateTo' => $rangeEnd,
             'availableYears' => $this->availableReportingYears(),
             'availableWeeks' => $this->availableReportingWeeks(),
             'serviceLabel' => $serviceLabel,
             'primaryAmount' => $primaryAmount,
             'grossCollections' => $grossCollections,
             'refundTotal' => $refundTotal,
+            'membershipCollections' => $membershipCollections,
+            'paymentCount' => $paymentCount,
+            'averagePayment' => $averagePayment,
+            'previousNetCollections' => $previousNet,
+            'comparisonPercent' => $comparisonPercent,
+            'comparisonLabel' => $previousStart->format('M j, Y').' - '.$previousEnd->format('M j, Y'),
             'primaryLabel' => $primaryLabel,
             'primaryBadge' => $primaryBadge,
             'primarySub' => $primarySub,
@@ -2964,7 +3190,11 @@ class DashboardController extends Controller
             'trendSubtitle' => $trendSubtitle,
             'insightPeakLabel' => $insightPeakLabel,
             'serviceTotalSum' => $serviceTotalSum,
-            'ledgerRows' => $ledgerRows,
+            'ledgerRows' => $ledgerRows->all(),
+            'paymentMethodBreakdown' => $paymentMethodBreakdown,
+            'outstandingBalanceTotal' => round((float) $outstandingBalances->sum('balance'), 2),
+            'outstandingBalanceCount' => $outstandingBalances->count(),
+            'outstandingBalances' => $outstandingBalances->all(),
         ];
     }
 

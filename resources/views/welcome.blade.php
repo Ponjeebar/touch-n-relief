@@ -237,7 +237,30 @@
                             <div class="membership-price">
                                 <small>Membership fee</small>
                                 <strong>PHP {{ number_format((float) $plan->price_amount, 2) }}</strong>
-                                <a href="#contact" class="btn btn-light">Ask about membership</a>
+                                <span>{{ (int) ($plan->validity_days ?? 365) }} days · Manual renewal</span>
+                                @if (($activeMembership ?? null)?->membership_plan_id === $plan->id)
+                                    <span class="membership-status">Active until {{ $activeMembership->expires_at->format('M j, Y') }}</span>
+                                @elseif (($pendingMembership ?? null)?->membership_plan_id === $plan->id)
+                                    <form method="POST" action="{{ route('membership.retry', $pendingMembership) }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-light">Continue membership payment</button>
+                                    </form>
+                                @elseif (auth()->user()?->isUser() && ! auth()->user()?->isWalkIn())
+                                    <form method="POST" action="{{ route('membership.purchase', $plan) }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-light">
+                                            {{ $activeMembership ? 'Renew membership' : 'Purchase membership' }}
+                                        </button>
+                                    </form>
+                                @else
+                                    <a href="{{ route('login') }}" class="btn btn-light">Sign in to purchase</a>
+                                @endif
+                                @if ($errors->has('membership'))
+                                    <span class="membership-error" role="alert">{{ $errors->first('membership') }}</span>
+                                @endif
+                                @if (session('membership_status'))
+                                    <span class="membership-notice" role="status">{{ session('membership_status') }}</span>
+                                @endif
                             </div>
                         @endforeach
                     </div>

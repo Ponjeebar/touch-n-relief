@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\MembershipPlan;
+use App\Models\MembershipPurchase;
 use App\Models\PaymentLedgerEntry;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
@@ -186,5 +187,71 @@ class ReportingFinancialAccuracyTest extends TestCase
         $this->assertDatabaseCount('payment_ledger_entries', 1);
         $entry = PaymentLedgerEntry::query()->firstOrFail();
         $this->assertSame('2026-09-27 10:00:00', $entry->occurred_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_custom_report_includes_memberships_reconciliation_and_outstanding_balances(): void
+    {
+        Carbon::setTestNow('2026-09-30 18:00:00');
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $plan = MembershipPlan::query()->firstOrFail();
+        MembershipPurchase::query()->create([
+            'user_id' => $customer->id,
+            'membership_plan_id' => $plan->id,
+            'plan_name' => $plan->name,
+            'validity_days' => 365,
+            'amount' => 499,
+            'payment_method' => 'gcash',
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'status' => MembershipPurchase::STATUS_ACTIVE,
+            'payment_transaction_id' => 'pay_membership_report',
+            'paid_at' => '2026-09-28 10:00:00',
+            'starts_at' => '2026-09-28 10:00:00',
+            'expires_at' => '2027-09-28 10:00:00',
+        ]);
+        SpaBooking::query()->create([
+            'user_id' => $customer->id,
+            'client_name' => $customer->name,
+            'service_name' => 'THERA #2',
+            'therapist_name' => 'Erica Tamondong',
+            'booking_date' => '2026-09-29',
+            'time_slot' => '10:00 AM',
+            'amount' => 599,
+            'payment_amount' => 299.50,
+            'payment_method' => 'cash_counter',
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+        ]);
+
+        $response = $this->actingAs($admin)->getJson(route('reporting.data', [
+            'period' => 'custom',
+            'date_from' => '2026-09-27',
+            'date_to' => '2026-09-30',
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('period', 'custom')
+            ->assertJsonPath('grossCollections', 499)
+            ->assertJsonPath('membershipCollections', 499)
+            ->assertJsonPath('paymentCount', 1)
+            ->assertJsonPath('averagePayment', 499)
+            ->assertJsonPath('outstandingBalanceTotal', 299.5)
+            ->assertJsonPath('outstandingBalanceCount', 1)
+            ->assertJsonPath('ledgerRows.0.type', 'membership_payment')
+            ->assertJsonPath('paymentMethodBreakdown.0.method', 'GCash');
+    }
+
+    public function test_custom_report_clamps_a_future_only_range_to_today(): void
+    {
+        Carbon::setTestNow('2026-09-30 18:00:00');
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($admin)->getJson(route('reporting.data', [
+            'period' => 'custom',
+            'date_from' => '2026-10-01',
+            'date_to' => '2026-10-31',
+        ]))
+            ->assertOk()
+            ->assertJsonPath('dateFrom', '2026-09-30')
+            ->assertJsonPath('dateTo', '2026-09-30');
     }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MembershipPurchase;
 use App\Models\SpaBooking;
 use App\Services\BookingRefundService;
 use App\Services\BookingSlotService;
+use App\Services\MembershipPurchaseService;
 use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
 use App\Support\PaymentMethodCatalog;
@@ -22,6 +24,7 @@ class PaymongoController extends Controller
         private readonly BookingSlotService $slots,
         private readonly BookingRefundService $refunds,
         private readonly PaymentLedgerService $paymentLedger,
+        private readonly MembershipPurchaseService $memberships,
     ) {}
 
     public function success(Request $request, SpaBooking $spaBooking): RedirectResponse
@@ -351,6 +354,17 @@ class PaymongoController extends Controller
         $sessionId = (string) ($session['id'] ?? '');
         $attributes = is_array($session['attributes'] ?? null) ? $session['attributes'] : [];
         $metadata = is_array($attributes['metadata'] ?? null) ? $attributes['metadata'] : [];
+        $membershipPurchaseId = (int) ($metadata['membership_purchase_id'] ?? 0);
+
+        if ($membershipPurchaseId > 0) {
+            $purchase = MembershipPurchase::query()->find($membershipPurchaseId);
+            if ($purchase instanceof MembershipPurchase) {
+                $this->markMembershipPaid($purchase, $session);
+            }
+
+            return;
+        }
+
         $bookingId = (int) ($metadata['booking_id'] ?? $attributes['reference_number'] ?? 0);
 
         $booking = null;
@@ -386,6 +400,19 @@ class PaymongoController extends Controller
         $attributes = is_array($payment['attributes'] ?? null) ? $payment['attributes'] : [];
 
         if ($paymentId === '' || ! str_starts_with($paymentId, 'pay_') || ($attributes['status'] ?? '') !== 'paid') {
+            return;
+        }
+
+        $purchase = $this->findMembershipForPayment($payment);
+        if ($purchase instanceof MembershipPurchase) {
+            if ($this->memberships->evidenceMatches($purchase, $payment)) {
+                $this->memberships->confirm(
+                    $purchase,
+                    $paymentId,
+                    $this->paymongo->resolvePaymentChannelForPaymentId($paymentId),
+                );
+            }
+
             return;
         }
 
@@ -570,6 +597,44 @@ class PaymongoController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payment
+     */
+    private function findMembershipForPayment(array $payment): ?MembershipPurchase
+    {
+        $attributes = is_array($payment['attributes'] ?? null) ? $payment['attributes'] : [];
+        $metadata = is_array($attributes['metadata'] ?? null) ? $attributes['metadata'] : [];
+        $purchaseId = (int) ($metadata['membership_purchase_id'] ?? 0);
+
+        if ($purchaseId > 0) {
+            return MembershipPurchase::query()->find($purchaseId);
+        }
+
+        $description = (string) ($attributes['description'] ?? '');
+        if (preg_match('/membership #(\d+)/i', $description, $matches) === 1) {
+            return MembershipPurchase::query()->find((int) $matches[1]);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $session
+     */
+    private function markMembershipPaid(MembershipPurchase $purchase, array $session): void
+    {
+        if (! $this->memberships->evidenceMatches($purchase, $session)) {
+            return;
+        }
+
+        $this->memberships->confirm(
+            $purchase,
+            $this->paymongo->extractPaidPaymentIdFromSession($session),
+            $this->paymongo->extractPaymentChannelFromSession($session),
+            (string) ($session['id'] ?? $purchase->paymongo_checkout_session_id),
+        );
     }
 
     private function markBookingPaid(SpaBooking $booking, array $session): void

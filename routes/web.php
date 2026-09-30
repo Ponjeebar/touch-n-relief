@@ -7,6 +7,7 @@ use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\CustomerNotificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingSettingsController;
+use App\Http\Controllers\MembershipPurchaseController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PaymongoController;
 use App\Http\Controllers\ProfileController;
@@ -68,6 +69,10 @@ Route::middleware(['auth', 'staff.activity'])->group(function () {
         Route::get('/booking/paymongo/cancel/{spaBooking}', [PaymongoController::class, 'cancel'])->name('paymongo.cancel');
         Route::post('/bookings/{spaBooking}/cancel', [BookingController::class, 'cancel'])->name('booking.cancel');
         Route::post('/bookings/{spaBooking}/continue-payment', [PaymongoController::class, 'customerRetry'])->middleware('throttle:10,1')->name('booking.payment.retry');
+        Route::post('/memberships/{membershipPlan}/purchase', [MembershipPurchaseController::class, 'store'])->middleware('throttle:10,1')->name('membership.purchase');
+        Route::post('/membership-purchases/{membershipPurchase}/continue-payment', [MembershipPurchaseController::class, 'retry'])->middleware('throttle:10,1')->name('membership.retry');
+        Route::get('/membership-purchases/{membershipPurchase}/success', [MembershipPurchaseController::class, 'success'])->name('membership.success');
+        Route::get('/membership-purchases/{membershipPurchase}/cancel', [MembershipPurchaseController::class, 'cancel'])->name('membership.cancel');
         Route::patch('/bookings/{spaBooking}/reschedule', [BookingController::class, 'reschedule'])->name('booking.reschedule');
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::post('/onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');

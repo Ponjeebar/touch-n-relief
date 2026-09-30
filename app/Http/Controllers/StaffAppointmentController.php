@@ -13,8 +13,8 @@ use App\Services\BookingCancellationService;
 use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
-use App\Services\PaymongoService;
 use App\Services\PaymentLedgerService;
+use App\Services\PaymongoService;
 use App\Services\SpaServiceCatalog;
 use App\Services\TherapistAvailabilityService;
 use App\Services\TherapistCatalog;
@@ -312,7 +312,11 @@ class StaffAppointmentController extends Controller
                     withTherapistLock: true,
                 );
 
-                $serviceAmount = $serviceRow?->price_amount !== null ? (float) $serviceRow->price_amount : 0.0;
+                $hasActiveMembership = Schema::hasTable('membership_purchases')
+                    && $client->activeMembership() !== null;
+                $serviceAmount = $hasActiveMembership && $serviceRow?->member_price_amount !== null
+                    ? (float) $serviceRow->member_price_amount
+                    : ($serviceRow?->price_amount !== null ? (float) $serviceRow->price_amount : 0.0);
                 $paymentAmount = $hasPaymentFields
                     ? PaymentMethodCatalog::calculateAmount($serviceAmount, (string) ($validated['payment_type'] ?? PaymentMethodCatalog::TYPE_DOWNPAYMENT))
                     : 0.0;
@@ -324,7 +328,7 @@ class StaffAppointmentController extends Controller
                     'booking_date' => $validated['booking_date'],
                     'time_slot' => $validated['time_slot'],
                     'duration_minutes' => $durationMinutes,
-                    'amount' => $serviceRow?->price_amount !== null ? (float) $serviceRow->price_amount : null,
+                    'amount' => $serviceAmount > 0 ? $serviceAmount : null,
                     'notes' => $validated['notes'] ?? null,
                     'session_status' => SpaBooking::STATUS_CONFIRMED,
                 ];

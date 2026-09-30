@@ -1149,6 +1149,12 @@ html[data-theme="dark"] .landing-theme-icon-light {
 .membership-price { display: grid; gap: 0.5rem; min-width: 220px; text-align: right; }
 .membership-price small { color: #cfe4dc; }
 .membership-price strong { font-size: 2rem; }
+.membership-price form { margin: 0; }
+.membership-price .btn { width: 100%; }
+.membership-price > span { font-size: 0.82rem; color: #dcebe5; }
+.membership-status { font-weight: 700; color: #fff !important; }
+.membership-error { color: #ffd4d4 !important; }
+.membership-notice { color: #d7f5e8 !important; }
 
 @media (max-width: 820px) {
     .package-grid { grid-template-columns: 1fr; }

@@ -65,10 +65,22 @@ class BookingController extends Controller
         $hidePrenatalRefs = $user instanceof User && $user->isMale();
         $therapists = app(TherapistCatalog::class)->forLanding($hidePrenatalRefs);
         $footer = app(SiteSettingsService::class)->footer();
+        $activeMembership = $user instanceof User && Schema::hasTable('membership_purchases')
+            ? $user->activeMembership()
+            : null;
+        $pendingMembership = $user instanceof User && Schema::hasTable('membership_purchases')
+            ? $user->membershipPurchases()
+                ->where('payment_status', PaymentMethodCatalog::STATUS_PENDING)
+                ->latest('id')
+                ->first()
+            : null;
 
         return view('welcome', [
             'services' => $services,
-            'packages' => app(SpaServiceCatalog::class)->packages(),
+            'packages' => collect($this->servicesFor($user instanceof User ? $user : null))
+                ->where('offering_type', 'package')
+                ->values()
+                ->all(),
             'membershipPlans' => Schema::hasTable('membership_plans')
                 ? MembershipPlan::query()->where('is_active', true)->orderBy('sort_order')->get()
                 : collect(),
@@ -81,6 +93,8 @@ class BookingController extends Controller
             'today' => now()->toDateString(),
             'isPregnantCustomer' => $user instanceof User && $user->isPregnant(),
             'isMaleCustomer' => $user instanceof User && $user->isMale(),
+            'activeMembership' => $activeMembership,
+            'pendingMembership' => $pendingMembership,
         ]);
     }
 
@@ -629,10 +643,33 @@ class BookingController extends Controller
      */
     private function servicesFor(?User $user): array
     {
-        return array_values(array_filter(
+        $services = array_values(array_filter(
             $this->allServices(),
             fn (array $service): bool => $this->serviceIsAvailableTo($user, $service),
         ));
+
+        $hasMembership = $user instanceof User
+            && Schema::hasTable('membership_purchases')
+            && $user->activeMembership() !== null;
+
+        if (! $hasMembership) {
+            return $services;
+        }
+
+        return array_map(function (array $service): array {
+            $memberPrice = $service['member_price_amount'] ?? null;
+            if ($memberPrice === null || $memberPrice === '') {
+                return $service;
+            }
+
+            $service['regular_price_amount'] = (float) ($service['price_amount'] ?? 0);
+            $service['regular_price'] = (string) ($service['price'] ?? '');
+            $service['price_amount'] = (float) $memberPrice;
+            $service['price'] = 'PHP '.number_format((float) $memberPrice, 2);
+            $service['is_member_price'] = true;
+
+            return $service;
+        }, $services);
     }
 
     /**
