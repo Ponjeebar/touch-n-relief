@@ -85,8 +85,8 @@
             <div class="chart-image"><img src="{{ $salesTrendChart }}" alt="Sales trend graph"></div>
         </td>
         <td>
-            <div class="chart-title">Service Revenue</div>
-            <div class="chart-image"><img src="{{ $serviceRevenueChart }}" alt="Service revenue graph"></div>
+            <div class="chart-title">Service Sales</div>
+            <div class="chart-image"><img src="{{ $serviceRevenueChart }}" alt="Service sales graph"></div>
         </td>
     </tr></table>
 
@@ -96,12 +96,12 @@
                 <h2>Highlights</h2>
                 <table class="data">
                     <tr><th>{{ $insightPeakLabel ?? 'Best period' }}</th><td>{{ $bestTrend > 0 && $bestTrendIndex !== false ? ($trendLabels[$bestTrendIndex] ?? '—') : 'No sales recorded' }}</td></tr>
-                    <tr><th>Top revenue source</th><td>{{ $bestService > 0 && $bestServiceIndex !== false ? ($serviceLabels[$bestServiceIndex] ?? '—') : 'No sales recorded' }}</td></tr>
+                    <tr><th>Top sales source</th><td>{{ $bestService > 0 && $bestServiceIndex !== false ? ($serviceLabels[$bestServiceIndex] ?? '—') : 'No sales recorded' }}</td></tr>
                     <tr><th>Active sales periods</th><td>{{ $activeTrendRows->count() }}</td></tr>
-                    <tr><th>Offerings with revenue</th><td>{{ $activeServiceRows->count() }}</td></tr>
+                    <tr><th>Offerings with sales</th><td>{{ $activeServiceRows->count() }}</td></tr>
                     <tr><th>Gross collections</th><td>PHP {{ number_format((float) ($grossCollections ?? 0), 2) }}</td></tr>
                     <tr><th>Processed refunds</th><td>PHP {{ number_format((float) ($refundTotal ?? 0), 2) }}</td></tr>
-                    <tr><th>No-show fee revenue</th><td>PHP {{ number_format((float) ($noShowFeeRevenue ?? 0), 2) }}</td></tr>
+                    <tr><th>No-show fee sales</th><td>PHP {{ number_format((float) ($noShowFeeRevenue ?? 0), 2) }}</td></tr>
                     <tr><th>Payment count</th><td>{{ number_format((int) ($paymentCount ?? 0)) }}</td></tr>
                     <tr><th>Outstanding balances</th><td>PHP {{ number_format((float) ($outstandingBalanceTotal ?? 0), 2) }}</td></tr>
                 </table>
@@ -125,19 +125,19 @@
         </td>
         <td>
             <div class="section">
-                <h2>Offering and No-show Fee Revenue</h2>
+                <h2>Offering and No-show Fee Sales</h2>
                 <table class="data">
-                    <thead><tr><th>Offering or fee classification</th><th>Revenue</th></tr></thead>
+                    <thead><tr><th>Offering or fee classification</th><th>Sales</th></tr></thead>
                     <tbody>
                     @forelse ($activeServiceRows as $row)
                         <tr><td>{{ $row['label'] }}</td><td>PHP {{ number_format($row['value'], 2) }}</td></tr>
                     @empty
-                        <tr><td colspan="2" class="empty">No service revenue for this period</td></tr>
+                        <tr><td colspan="2" class="empty">No service sales for this period</td></tr>
                     @endforelse
                     </tbody>
                 </table>
                 @if ($omittedServiceRows > 0)
-                    <div class="section-note">{{ $omittedServiceRows }} {{ Str::plural('service', $omittedServiceRows) }} with no revenue omitted.</div>
+                    <div class="section-note">{{ $omittedServiceRows }} {{ Str::plural('service', $omittedServiceRows) }} with no sales omitted.</div>
                 @endif
             </div>
             <div class="section">

@@ -152,7 +152,7 @@ class ReportingFinancialAccuracyTest extends TestCase
             $this->assertStringContainsString('Payment Ledger', $workbookXml);
             $this->assertStringContainsString('state="frozen"', $summaryXml);
             $this->assertStringContainsString('width="28"', $summaryXml);
-            $this->assertStringContainsString('No-show fee revenue', $summaryXml);
+            $this->assertStringContainsString('No-show fee sales', $summaryXml);
             $this->assertStringContainsString('COT-LEDGER-1', $ledgerXml);
             $this->assertStringContainsString('Ledger Client', $ledgerXml);
             $this->assertStringContainsString('THERA #1', $ledgerXml);
@@ -230,7 +230,7 @@ class ReportingFinancialAccuracyTest extends TestCase
             ->assertJsonPath('outstandingBalanceCount', 0);
 
         $payload = $response->json();
-        $feeIndex = array_search('No-show fee revenue', $payload['serviceLabels'], true);
+        $feeIndex = array_search('No-show fee sales', $payload['serviceLabels'], true);
         $this->assertNotFalse($feeIndex);
         $this->assertSame(130, (int) $payload['serviceTotals'][$feeIndex]);
         $this->assertCount(2, collect($payload['ledgerRows'])->where('type', 'no_show_fee'));

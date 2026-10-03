@@ -102,14 +102,14 @@
                             <h2>Highlights</h2>
                             <dl>
                                 <div><dt id="repPrintPeakLabel">Best period</dt><dd id="repPrintBestDay">—</dd></div>
-                                <div><dt>Top revenue source</dt><dd id="repPrintBestService">—</dd></div>
+                                <div><dt>Top sales source</dt><dd id="repPrintBestService">—</dd></div>
                             </dl>
                         </article>
                         <article>
-                            <h2>Revenue breakdown</h2>
+                            <h2>Sales breakdown</h2>
                             <table>
-                                <thead><tr><th>Revenue source</th><th>Amount</th></tr></thead>
-                                <tbody id="repPrintServiceRows"><tr><td colspan="2">No revenue recorded</td></tr></tbody>
+                                <thead><tr><th>Sales source</th><th>Amount</th></tr></thead>
+                                <tbody id="repPrintServiceRows"><tr><td colspan="2">No sales recorded</td></tr></tbody>
                             </table>
                         </article>
                         <article>
@@ -200,13 +200,13 @@
                         <article class="rep-card rep-pie">
                             <div class="rep-card-head">
                                 <div>
-                                    <h3>Revenue Mix</h3>
+                                    <h3>Sales Mix</h3>
                                     <div class="muted" id="repMixMuted">Offerings and no-show fees ({{ $serviceLabel ?? 'This month' }})</div>
                                 </div>
                                 <div class="rep-pill" id="repMixPill">{{ $serviceLabel ?? 'This month' }}</div>
                             </div>
                             <div class="rep-pie-wrap">
-                                <canvas id="servicePieChart" aria-label="Revenue mix pie chart"></canvas>
+                                <canvas id="servicePieChart" aria-label="Sales mix pie chart"></canvas>
                                 @php($stops = collect($serviceSegments ?? [])->map(fn($s) => "{$s['color']} {$s['start']}% {$s['end']}%")->implode(', '))
                                 <div class="rep-donut" id="pieFallback" style="--donut: conic-gradient({{ $stops ?: '#e7eef2 0% 100%' }});"></div>
                                 @php($serviceSum = (float) ($serviceTotalSum ?? collect($serviceTotals ?? [])->sum()))
@@ -231,7 +231,7 @@
                                     <span class="v" id="bestDay">—</span>
                                 </div>
                                 <div class="rep-insight">
-                                    <span class="k">Top revenue source</span>
+                                    <span class="k">Top sales source</span>
                                     <span class="v" id="bestService">—</span>
                                 </div>
                             </div>
@@ -250,7 +250,7 @@
                         <div><span>Gross collections</span><strong id="repGrossCollections">₱{{ number_format((float) ($grossCollections ?? 0), 2) }}</strong></div>
                         <div><span>Processed refunds</span><strong id="repRefundTotal">₱{{ number_format((float) ($refundTotal ?? 0), 2) }}</strong></div>
                         <div><span>Net collections</span><strong id="repNetCollections">₱{{ number_format((float) ($primaryAmount ?? 0), 2) }}</strong></div>
-                        <div><span>No-show fee revenue</span><strong id="repNoShowFeeRevenue">₱{{ number_format((float) ($noShowFeeRevenue ?? 0), 2) }}</strong></div>
+                        <div><span>No-show fee sales</span><strong id="repNoShowFeeRevenue">₱{{ number_format((float) ($noShowFeeRevenue ?? 0), 2) }}</strong></div>
                         <div><span>Payments</span><strong id="repPaymentCount">{{ number_format((int) ($paymentCount ?? 0)) }}</strong></div>
                         <div><span>Average payment</span><strong id="repAveragePayment">₱{{ number_format((float) ($averagePayment ?? 0), 2) }}</strong></div>
                     </div>
@@ -314,7 +314,7 @@
                             <li>Gross collections include verified initial, balance, and membership payments collected in the selected period.</li>
                             <li>Net collections equal gross collections minus processed refunds.</li>
                             <li>Pending payments and outstanding balances are excluded from collected sales.</li>
-                            <li>Payments retained for no-show appointments are classified as no-show fee revenue. Their unpaid balances are not treated as collectible.</li>
+                            <li>Payments retained for no-show appointments are classified as no-show fee sales. Their unpaid balances are not treated as collectible.</li>
                             <li>PayMongo processing fees and payout timing are not deducted because fee data is not imported into this report.</li>
                             <li>Service hours use completed appointment dates; financial figures use payment collection time.</li>
                             <li>Historical entries marked as estimated use the booking creation time because the original collection time was unavailable.</li>
@@ -384,7 +384,7 @@
                 const price = row.querySelector('.price')?.textContent.trim() || '—';
                 return [(name?.textContent || '').replace(price, '').trim() || 'Service', price];
             });
-            fillPrintRows('repPrintServiceRows', serviceRows, 'No revenue recorded');
+            fillPrintRows('repPrintServiceRows', serviceRows, 'No sales recorded');
 
             const therapistRows = Array.from(document.querySelectorAll('#repHoursList .rep-hours-row')).map((row) => [
                 row.querySelector('span')?.textContent.trim() || 'Therapist',

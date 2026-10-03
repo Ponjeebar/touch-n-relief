@@ -75,7 +75,7 @@ class ReportingPdfChartService
         }
 
         if (count($labels) === 0) {
-            $svg .= '<text x="360" y="58" text-anchor="middle" font-size="13" fill="#788991">No service revenue for this period</text>';
+            $svg .= '<text x="360" y="58" text-anchor="middle" font-size="13" fill="#788991">No service sales for this period</text>';
         }
 
         return $this->dataUri($svg.'</svg>');

@@ -2972,7 +2972,7 @@ class DashboardController extends Controller
             ->join('spa_bookings as bookings', 'bookings.id', '=', 'ledger.spa_booking_id')
             ->selectRaw(
                 "CASE WHEN bookings.session_status = ? THEN ? ELSE bookings.service_name END as service, SUM(CASE WHEN ledger.entry_type = 'refund' THEN -ledger.amount ELSE ledger.amount END) as total",
-                [SpaBooking::STATUS_NO_SHOW, 'No-show fee revenue'],
+                [SpaBooking::STATUS_NO_SHOW, 'No-show fee sales'],
             )
             ->whereDate('ledger.occurred_at', '>=', $rangeStart)
             ->whereDate('ledger.occurred_at', '<=', $rangeEnd)
