@@ -102,14 +102,14 @@
                             <h2>Highlights</h2>
                             <dl>
                                 <div><dt id="repPrintPeakLabel">Best period</dt><dd id="repPrintBestDay">—</dd></div>
-                                <div><dt>Best service</dt><dd id="repPrintBestService">—</dd></div>
+                                <div><dt>Top revenue source</dt><dd id="repPrintBestService">—</dd></div>
                             </dl>
                         </article>
                         <article>
-                            <h2>Service revenue</h2>
+                            <h2>Revenue breakdown</h2>
                             <table>
-                                <thead><tr><th>Service</th><th>Amount</th></tr></thead>
-                                <tbody id="repPrintServiceRows"><tr><td colspan="2">No service revenue</td></tr></tbody>
+                                <thead><tr><th>Revenue source</th><th>Amount</th></tr></thead>
+                                <tbody id="repPrintServiceRows"><tr><td colspan="2">No revenue recorded</td></tr></tbody>
                             </table>
                         </article>
                         <article>
@@ -206,7 +206,7 @@
                                 <div class="rep-pill" id="repMixPill">{{ $serviceLabel ?? 'This month' }}</div>
                             </div>
                             <div class="rep-pie-wrap">
-                                <canvas id="servicePieChart" aria-label="Service sales pie chart"></canvas>
+                                <canvas id="servicePieChart" aria-label="Revenue mix pie chart"></canvas>
                                 @php($stops = collect($serviceSegments ?? [])->map(fn($s) => "{$s['color']} {$s['start']}% {$s['end']}%")->implode(', '))
                                 <div class="rep-donut" id="pieFallback" style="--donut: conic-gradient({{ $stops ?: '#e7eef2 0% 100%' }});"></div>
                                 @php($serviceSum = (float) ($serviceTotalSum ?? collect($serviceTotals ?? [])->sum()))
@@ -231,7 +231,7 @@
                                     <span class="v" id="bestDay">—</span>
                                 </div>
                                 <div class="rep-insight">
-                                    <span class="k">Best service</span>
+                                    <span class="k">Top revenue source</span>
                                     <span class="v" id="bestService">—</span>
                                 </div>
                             </div>
@@ -384,7 +384,7 @@
                 const price = row.querySelector('.price')?.textContent.trim() || '—';
                 return [(name?.textContent || '').replace(price, '').trim() || 'Service', price];
             });
-            fillPrintRows('repPrintServiceRows', serviceRows, 'No service revenue');
+            fillPrintRows('repPrintServiceRows', serviceRows, 'No revenue recorded');
 
             const therapistRows = Array.from(document.querySelectorAll('#repHoursList .rep-hours-row')).map((row) => [
                 row.querySelector('span')?.textContent.trim() || 'Therapist',

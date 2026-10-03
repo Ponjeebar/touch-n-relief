@@ -240,6 +240,62 @@ class ReportingFinancialAccuracyTest extends TestCase
         ));
     }
 
+    public function test_automatic_no_show_and_admin_correction_keep_availability_and_sales_connected(): void
+    {
+        Carbon::setTestNow('2026-10-04 10:15:00');
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::query()->create([
+            'user_id' => $customer->id,
+            'client_name' => $customer->name,
+            'booking_source' => SpaBooking::SOURCE_ONLINE,
+            'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
+            'booking_date' => '2026-10-04',
+            'time_slot' => '10:00 AM',
+            'duration_minutes' => 60,
+            'amount' => 100,
+            'payment_amount' => 50,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_status' => SpaBooking::STATUS_CONFIRMED,
+        ]);
+        PaymentLedgerEntry::query()->create([
+            'spa_booking_id' => $booking->id,
+            'entry_type' => PaymentLedgerEntry::TYPE_INITIAL_PAYMENT,
+            'amount' => 50,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'reference' => 'pay-auto-no-show',
+            'occurred_at' => '2026-10-04 09:00:00',
+        ]);
+
+        $this->assertTrue(SpaBooking::query()->blocksAvailability()->whereKey($booking)->exists());
+        $this->artisan('appointments:process-no-shows')->assertSuccessful();
+        $this->assertSame(SpaBooking::STATUS_NO_SHOW, $booking->fresh()->session_status);
+        $this->assertFalse(SpaBooking::query()->blocksAvailability()->whereKey($booking)->exists());
+
+        $reportRoute = route('reporting.data', ['period' => 'daily', 'period_value' => '2026-10-04']);
+        $this->actingAs($admin)->getJson($reportRoute)
+            ->assertOk()
+            ->assertJsonPath('noShowFeeRevenue', 50)
+            ->assertJsonPath('outstandingBalanceTotal', 0)
+            ->assertJsonPath('ledgerRows.0.type', 'no_show_fee');
+
+        $this->actingAs($admin)
+            ->patch(route('appointments.no-show.reverse', $booking))
+            ->assertRedirect();
+        $this->assertSame(SpaBooking::STATUS_CONFIRMED, $booking->fresh()->session_status);
+        $this->assertTrue(SpaBooking::query()->blocksAvailability()->whereKey($booking)->exists());
+
+        $correctedReport = $this->actingAs($admin)->getJson($reportRoute)->assertOk();
+        $correctedReport->assertJsonPath('noShowFeeRevenue', 0)
+            ->assertJsonPath('outstandingBalanceTotal', 50)
+            ->assertJsonPath('ledgerRows.0.type', PaymentLedgerEntry::TYPE_INITIAL_PAYMENT);
+        $serviceIndex = array_search('Swedish Massage', $correctedReport->json('serviceLabels'), true);
+        $this->assertNotFalse($serviceIndex);
+        $this->assertSame(50, (int) $correctedReport->json("serviceTotals.{$serviceIndex}"));
+    }
+
     public function test_payment_ledger_recording_is_idempotent_and_preserves_collection_time(): void
     {
         Carbon::setTestNow('2026-09-27 10:00:00');
