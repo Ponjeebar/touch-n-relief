@@ -70,6 +70,15 @@
                             {{ $appointment['status'] }}
                         </span>
                     @endif
+                    @if ($isLate)
+                        <span class="appt-late-review">
+                            Auto no-show in
+                            <strong
+                                data-no-show-countdown="true"
+                                data-deadline="{{ $appointment['automatic_no_show_at_iso'] ?? '' }}"
+                            >calculating...</strong>
+                        </span>
+                    @endif
                 </div>
             </div>
 
@@ -153,6 +162,8 @@
                             data-service="{{ $appointment['service'] }}"
                             data-date="{{ $appointment['date'] }}"
                             data-time="{{ $appointment['time'] }}"
+                            data-automatic-no-show-at="{{ $appointment['automatic_no_show_at_iso'] ?? '' }}"
+                            data-automatic-no-show-at-label="{{ $appointment['automatic_no_show_at'] ?? '' }}"
                             data-current-no-show-count="{{ $appointment['no_show_count'] ?? 0 }}"
                             data-next-no-show-count="{{ $appointment['next_no_show_count'] ?? 1 }}"
                             data-will-ban="{{ ! empty($appointment['will_ban_on_no_show']) ? '1' : '0' }}"

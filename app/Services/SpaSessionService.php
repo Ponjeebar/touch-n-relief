@@ -567,6 +567,7 @@ class SpaSessionService
         $window = $this->window($booking);
         $start = $window['start'] ?? Carbon::parse($booking->booking_date->format('Y-m-d').' 09:00 AM');
         $end = $window['end'] ?? $start->copy()->addMinutes(max((int) ($booking->duration_minutes ?? 60), 1));
+        $automaticNoShowAt = $start->copy()->addMinutes(NoShowService::AUTOMATIC_NO_SHOW_MINUTES);
         $canMarkNoShow = in_array($booking->session_status, [null, SpaBooking::STATUS_CONFIRMED], true)
             && $booking->cancelled_at === null
             && $booking->completed_at === null
@@ -589,6 +590,8 @@ class SpaSessionService
             'starts_at' => $start,
             'start_at_iso' => $start->toIso8601String(),
             'start_cutoff_at_iso' => $start->copy()->addMinutes(self::START_GRACE_MINUTES)->toIso8601String(),
+            'automatic_no_show_at_iso' => $automaticNoShowAt->toIso8601String(),
+            'automatic_no_show_at' => $automaticNoShowAt->format('h:i A'),
             'status' => $status,
             'notes' => trim((string) ($booking->notes ?? '')) !== '' ? trim((string) $booking->notes) : 'No notes provided.',
             'can_start' => $this->canStart($booking, $now),

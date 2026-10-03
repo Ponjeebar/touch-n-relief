@@ -149,6 +149,8 @@ class BookingPolicyTest extends TestCase
             ->assertSee('data-open-no-show="true"', false)
             ->assertSee('data-current-no-show-count="1"', false)
             ->assertSee('data-next-no-show-count="2"', false)
+            ->assertSee('data-no-show-countdown="true"', false)
+            ->assertSee('Automatic no-show deadline')
             ->assertSee('Mark appointment as no-show?');
 
         $this->assertSame(SpaBooking::STATUS_CONFIRMED, $lateBooking->fresh()->session_status);

@@ -14,6 +14,7 @@ use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
 use App\Services\CustomerNotificationService;
+use App\Services\NoShowService;
 use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
 use App\Services\SpaServiceCatalog;
@@ -47,6 +48,7 @@ class StaffAppointmentController extends Controller
         private readonly PaymongoService $paymongo,
         private readonly PaymentLedgerService $paymentLedger,
         private readonly CustomerNotificationService $customerNotifications,
+        private readonly NoShowService $noShows,
     ) {}
 
     public function availability(Request $request): JsonResponse
@@ -673,49 +675,14 @@ class StaffAppointmentController extends Controller
     public function markNoShow(Request $request, SpaBooking $spaBooking): RedirectResponse
     {
         $staff = $this->ensureStaff($request);
-        $spaBooking->loadMissing('user');
-        $appointmentAt = $this->cancellations->appointmentAt($spaBooking);
-
-        if ($spaBooking->cancelled_at !== null
-            || $spaBooking->completed_at !== null
-            || $spaBooking->session_started_at !== null
-            || ! in_array($spaBooking->session_status, [null, SpaBooking::STATUS_CONFIRMED], true)
-            || $appointmentAt === null
-            || now()->lt($appointmentAt->copy()->addMinutes(10))) {
+        if (! $this->noShows->canRecord($spaBooking)) {
             return back()->with('error', 'This appointment cannot be marked as a no-show yet.');
         }
 
-        $result = DB::transaction(function () use ($spaBooking): array {
-            $customer = User::query()->lockForUpdate()->findOrFail($spaBooking->user_id);
-            $booking = SpaBooking::query()->with('user')->lockForUpdate()->findOrFail($spaBooking->id);
-            $appointmentAt = $this->cancellations->appointmentAt($booking);
-            if ($booking->cancelled_at !== null
-                || $booking->completed_at !== null
-                || $booking->session_started_at !== null
-                || ! in_array($booking->session_status, [null, SpaBooking::STATUS_CONFIRMED], true)
-                || $appointmentAt === null
-                || now()->lt($appointmentAt->copy()->addMinutes(10))) {
-                throw ValidationException::withMessages([
-                    'appointment' => 'This appointment cannot be marked as a no-show.',
-                ]);
-            }
-            $booking->forceFill(['session_status' => SpaBooking::STATUS_NO_SHOW])->save();
-
-            $noShowCount = SpaBooking::query()
-                ->where('user_id', $booking->user_id)
-                ->where('session_status', SpaBooking::STATUS_NO_SHOW)
-                ->count();
-
-            $banned = false;
-            if ($noShowCount >= 3 && $customer->isUser() && ! $customer->isWalkIn()) {
-                $customer->forceFill(['banned_at' => $customer->banned_at ?? now()])->save();
-                $banned = true;
-            }
-
-            return ['count' => $noShowCount, 'banned' => $banned, 'booking' => $booking->fresh(['user'])];
-        });
-
-        $this->customerNotifications->notifyNoShow($result['booking'], $result['count'], $result['banned']);
+        $result = $this->noShows->record($spaBooking);
+        if ($result === null) {
+            return back()->with('error', 'This appointment was already updated and cannot be marked as a no-show.');
+        }
 
         ActivityLogger::log(
             'appointment.no_show',

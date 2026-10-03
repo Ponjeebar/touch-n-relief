@@ -26,7 +26,7 @@
             <p class="txn-modal-sub">Your appointments, payment status, and completed spa sessions — most recent activity shown first.</p>
             <p class="txn-modal-note">
                 <i class="bi bi-info-circle" aria-hidden="true"></i>
-                <span class="txn-modal-note-text"><strong>Late note:</strong> if you arrive more than <strong>10 minutes late</strong>, staff may mark the appointment as a no-show.</span>
+                <span class="txn-modal-note-text"><strong>Late note:</strong> after the 10-minute grace period, staff have 5 minutes to review attendance. If they do not update the appointment, it is automatically recorded as a no-show at 15 minutes late.</span>
             </p>
             @include('partials.profile-transactions-list')
         </div>

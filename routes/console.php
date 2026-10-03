@@ -70,6 +70,7 @@ Artisan::command('clients:archive-inactive', function () {
 })->purpose('Soft archive clients inactive beyond the configured retention period');
 
 Schedule::command('appointments:send-reminders')->everyFiveMinutes();
+Schedule::command('appointments:process-no-shows')->everyMinute()->withoutOverlapping();
 Schedule::command('clients:archive-inactive')->dailyAt('02:15')->withoutOverlapping();
 Schedule::command('backup:google-drive')->dailyAt('02:30')->withoutOverlapping(30);
 Schedule::call(fn () => AuthVerificationCode::query()->where('expires_at', '<', now())->delete())

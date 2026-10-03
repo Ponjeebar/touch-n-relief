@@ -593,6 +593,10 @@
                 <div><dt>Customer</dt><dd id="no-show-client">—</dd></div>
                 <div><dt>Service</dt><dd id="no-show-service">—</dd></div>
                 <div class="no-show-summary-wide"><dt>Schedule</dt><dd id="no-show-schedule">—</dd></div>
+                <div class="no-show-summary-wide">
+                    <dt>Automatic no-show deadline</dt>
+                    <dd><span id="no-show-deadline">—</span> · <span id="no-show-modal-countdown">—</span></dd>
+                </div>
             </dl>
 
             <div class="no-show-impact" id="no-show-impact" role="status"></div>
@@ -1749,10 +1753,31 @@
         const noShowClient = document.getElementById('no-show-client');
         const noShowService = document.getElementById('no-show-service');
         const noShowSchedule = document.getElementById('no-show-schedule');
+        const noShowDeadline = document.getElementById('no-show-deadline');
+        const noShowModalCountdown = document.getElementById('no-show-modal-countdown');
         const noShowImpact = document.getElementById('no-show-impact');
         const noShowBanWarning = document.getElementById('no-show-ban-warning');
         const noShowBanWarningText = document.getElementById('no-show-ban-warning-text');
         let noShowReturnFocus = null;
+
+        function noShowCountdownText(deadlineValue) {
+            const deadline = Date.parse(deadlineValue ?? '');
+            if (!Number.isFinite(deadline)) return 'soon';
+
+            const remainingSeconds = Math.max(Math.ceil((deadline - Date.now()) / 1000), 0);
+            if (remainingSeconds === 0) return 'processing due';
+
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            return `${minutes}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateNoShowCountdowns() {
+            document.querySelectorAll('[data-no-show-countdown="true"]').forEach((element) => {
+                const deadline = element.getAttribute('data-deadline') ?? '';
+                element.textContent = noShowCountdownText(deadline);
+            });
+        }
 
         function openNoShowModal(button) {
             if (!(noShowModal instanceof HTMLElement) || !(noShowForm instanceof HTMLFormElement)) return;
@@ -1763,6 +1788,16 @@
             if (noShowService) noShowService.textContent = button.getAttribute('data-service') ?? '—';
             if (noShowSchedule) {
                 noShowSchedule.textContent = `${button.getAttribute('data-date') ?? ''} · ${button.getAttribute('data-time') ?? ''}`;
+            }
+            if (noShowDeadline) {
+                const deadlineLabel = button.getAttribute('data-automatic-no-show-at-label') ?? '';
+                const deadlineValue = button.getAttribute('data-automatic-no-show-at') ?? '';
+                noShowDeadline.textContent = deadlineLabel || 'Scheduled deadline';
+                if (noShowModalCountdown) {
+                    noShowModalCountdown.setAttribute('data-no-show-countdown', 'true');
+                    noShowModalCountdown.setAttribute('data-deadline', deadlineValue);
+                    noShowModalCountdown.textContent = noShowCountdownText(deadlineValue);
+                }
             }
 
             const currentCount = Number.parseInt(button.getAttribute('data-current-no-show-count') ?? '0', 10) || 0;
@@ -2331,6 +2366,7 @@
             const res = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             const html = await res.text();
             appointmentsListContainer.innerHTML = html;
+            updateNoShowCountdowns();
 
             syncAppointmentsUrl({
                 dateIso: resolvedDateIso,
@@ -2403,6 +2439,9 @@
         }
 
         if (appointmentsListContainer) {
+            updateNoShowCountdowns();
+            window.setInterval(updateNoShowCountdowns, 1000);
+
             appointmentsListContainer.addEventListener('click', (event) => {
                 const target = event.target;
                 if (!(target instanceof HTMLElement)) return;
