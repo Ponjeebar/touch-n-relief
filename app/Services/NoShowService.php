@@ -27,6 +27,7 @@ class NoShowService
         return $booking->cancelled_at === null
             && $booking->completed_at === null
             && $booking->session_started_at === null
+            && $booking->no_show_reversed_at === null
             && in_array($booking->session_status, [null, SpaBooking::STATUS_CONFIRMED], true)
             && $appointmentAt !== null
             && $now->gte($appointmentAt->copy()->addMinutes($minutesLate));
@@ -84,6 +85,7 @@ class NoShowService
             ->whereNull('cancelled_at')
             ->whereNull('completed_at')
             ->whereNull('session_started_at')
+            ->whereNull('no_show_reversed_at')
             ->where(function ($query): void {
                 $query->whereNull('session_status')
                     ->orWhere('session_status', SpaBooking::STATUS_CONFIRMED);

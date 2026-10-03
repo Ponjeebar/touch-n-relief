@@ -2,13 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
+use App\Models\CustomerNotification;
 use App\Models\MembershipPlan;
 use App\Models\MembershipPurchase;
 use App\Models\PaymentLedgerEntry;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\User;
+use App\Services\NoShowService;
 use App\Services\PaymentLedgerService;
+use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -294,6 +298,30 @@ class ReportingFinancialAccuracyTest extends TestCase
         $serviceIndex = array_search('Swedish Massage', $correctedReport->json('serviceLabels'), true);
         $this->assertNotFalse($serviceIndex);
         $this->assertSame(50, (int) $correctedReport->json("serviceTotals.{$serviceIndex}"));
+
+        $notificationCount = CustomerNotification::query()->count();
+        $activityCount = ActivityLog::query()->count();
+        Carbon::setTestNow('2026-10-04 10:16:00');
+        $this->assertNull(app(NoShowService::class)->record($booking->fresh()));
+        $this->assertFalse(app(SpaSessionService::class)->toAppointmentRow($booking->fresh())['can_mark_no_show']);
+        $this->artisan('appointments:process-no-shows')
+            ->expectsOutput('Processed 0 automatic no-show appointment(s).')
+            ->assertSuccessful();
+
+        $booking->refresh();
+        $this->assertSame(SpaBooking::STATUS_CONFIRMED, $booking->session_status);
+        $this->assertNotNull($booking->no_show_reversed_at);
+        $this->assertSame($notificationCount, CustomerNotification::query()->count());
+        $this->assertSame($activityCount, ActivityLog::query()->count());
+        $this->assertSame(0, SpaBooking::query()
+            ->where('user_id', $customer->id)
+            ->where('session_status', SpaBooking::STATUS_NO_SHOW)
+            ->count());
+
+        $stableReport = $this->actingAs($admin)->getJson($reportRoute)->assertOk();
+        $stableReport->assertJsonPath('noShowFeeRevenue', 0)
+            ->assertJsonPath('outstandingBalanceTotal', 50)
+            ->assertJsonPath('ledgerRows.0.type', PaymentLedgerEntry::TYPE_INITIAL_PAYMENT);
     }
 
     public function test_payment_ledger_recording_is_idempotent_and_preserves_collection_time(): void

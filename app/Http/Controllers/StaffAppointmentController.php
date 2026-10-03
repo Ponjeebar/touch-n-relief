@@ -722,7 +722,10 @@ class StaffAppointmentController extends Controller
                 ]);
             }
 
-            $booking->forceFill(['session_status' => SpaBooking::STATUS_CONFIRMED])->save();
+            $booking->forceFill([
+                'session_status' => SpaBooking::STATUS_CONFIRMED,
+                'no_show_reversed_at' => now(),
+            ])->save();
 
             $noShowCount = SpaBooking::query()
                 ->where('user_id', $booking->user_id)

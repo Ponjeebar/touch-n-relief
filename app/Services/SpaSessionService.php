@@ -575,6 +575,7 @@ class SpaSessionService
             && $booking->cancelled_at === null
             && $booking->completed_at === null
             && $booking->session_started_at === null
+            && $booking->no_show_reversed_at === null
             && $now->gte($start->copy()->addMinutes(self::START_GRACE_MINUTES));
         $status = $canMarkNoShow ? 'Late' : $this->appointmentStatus($booking, $now);
 

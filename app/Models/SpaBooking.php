@@ -81,6 +81,7 @@ class SpaBooking extends Model
         'completed_at',
         'session_started_at',
         'session_status',
+        'no_show_reversed_at',
     ];
 
     protected function casts(): array
@@ -99,6 +100,7 @@ class SpaBooking extends Model
             'rescheduled_from_date' => 'date',
             'completed_at' => 'datetime',
             'session_started_at' => 'datetime',
+            'no_show_reversed_at' => 'datetime',
         ];
     }
 

@@ -132,6 +132,7 @@ class BookingRescheduleService
             'rescheduled_at' => now(),
             'booking_date' => $bookingDate,
             'time_slot' => $timeSlot,
+            'no_show_reversed_at' => null,
         ];
     }
 

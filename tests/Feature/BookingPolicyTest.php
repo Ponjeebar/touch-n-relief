@@ -8,6 +8,7 @@ use App\Models\SpaBooking;
 use App\Models\Therapist;
 use App\Models\User;
 use App\Services\BookingCancellationService;
+use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
 use App\Services\SiteSettingsService;
 use App\Services\SpaSessionService;
@@ -86,6 +87,7 @@ class BookingPolicyTest extends TestCase
             ->assertRedirect(route('appointments.index', ['date' => '2026-09-20']));
 
         $this->assertSame(SpaBooking::STATUS_CONFIRMED, $bookings->last()->fresh()->session_status);
+        $this->assertNotNull($bookings->last()->fresh()->no_show_reversed_at);
         $this->assertSame(2, SpaBooking::query()
             ->where('user_id', $customer->id)
             ->where('session_status', SpaBooking::STATUS_NO_SHOW)
@@ -114,6 +116,7 @@ class BookingPolicyTest extends TestCase
             ->assertRedirect(route('receptionist.dashboard'));
 
         $this->assertSame(SpaBooking::STATUS_NO_SHOW, $booking->fresh()->session_status);
+        $this->assertNull($booking->fresh()->no_show_reversed_at);
     }
 
     public function test_customer_cannot_record_or_correct_a_no_show(): void
@@ -130,6 +133,33 @@ class BookingPolicyTest extends TestCase
             ->assertForbidden();
 
         $this->assertSame(SpaBooking::STATUS_CONFIRMED, $booking->fresh()->session_status);
+        $this->assertNull($booking->fresh()->no_show_reversed_at);
+    }
+
+    public function test_rescheduling_a_corrected_no_show_starts_a_new_attendance_cycle(): void
+    {
+        Carbon::setTestNow('2026-09-21 12:00:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        Therapist::query()->create([
+            'therapist_code' => 'RESCHEDULE-1',
+            'name' => 'Liza Reyes',
+            'status' => 'available',
+            'work_on_off_day' => true,
+            'is_active' => true,
+        ]);
+        app(BookingSlotService::class)->seedDefaults();
+        $booking = $this->booking($customer, '2026-09-20', '09:00 AM');
+        $booking->forceFill([
+            'session_status' => SpaBooking::STATUS_CONFIRMED,
+            'no_show_reversed_at' => now(),
+        ])->save();
+
+        app(BookingRescheduleService::class)->staffReschedule($booking, '2026-09-22', '10:00 AM');
+
+        $booking->refresh();
+        $this->assertNull($booking->no_show_reversed_at);
+        $this->assertSame('2026-09-22', $booking->booking_date->format('Y-m-d'));
+        $this->assertSame('10:00 AM', $booking->time_slot);
     }
 
     public function test_customer_must_accept_no_show_payment_policy_before_checkout(): void
