@@ -1,0 +1,41 @@
+name: PostgreSQL backup to Google Drive
+
+on:
+  schedule:
+    # 04:15 Asia/Manila. Heroku creates the source PGBackup at 03:00.
+    - cron: '15 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-postgresql-backup
+  cancel-in-progress: false
+
+jobs:
+  upload-backup:
+    if: vars.POSTGRES_DRIVE_BACKUP_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HEROKU_APP_NAME: buenostouche
+      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      GOOGLE_DRIVE_BACKUP_CLIENT_ID: ${{ secrets.GOOGLE_DRIVE_BACKUP_CLIENT_ID }}
+      GOOGLE_DRIVE_BACKUP_CLIENT_SECRET: ${{ secrets.GOOGLE_DRIVE_BACKUP_CLIENT_SECRET }}
+      GOOGLE_DRIVE_BACKUP_REFRESH_TOKEN: ${{ secrets.GOOGLE_DRIVE_BACKUP_REFRESH_TOKEN }}
+      GOOGLE_DRIVE_BACKUP_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_BACKUP_FOLDER_ID }}
+      GOOGLE_DRIVE_BACKUP_RETENTION_DAYS: '14'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Heroku CLI
+        run: npm install --global heroku@11.10.1
+
+      - name: Download latest completed PGBackup and upload it to Drive
+        run: bash scripts/upload-postgres-backup-to-drive.sh
