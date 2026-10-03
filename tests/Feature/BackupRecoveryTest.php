@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\BackupRecoveryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
@@ -9,6 +10,24 @@ use Tests\TestCase;
 class BackupRecoveryTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_generated_backup_uses_the_verified_recovery_format(): void
+    {
+        $json = $this->app->make(BackupRecoveryService::class)->createJson();
+        $path = tempnam(sys_get_temp_dir(), 'tnr-generated-backup-');
+        file_put_contents($path, $json);
+
+        try {
+            $backup = $this->app->make(BackupRecoveryService::class)->validateFile($path);
+
+            $this->assertTrue($backup['integrity_verified']);
+            $this->assertSame(2, $backup['format_version']);
+            $this->assertArrayHasKey('users', $backup['tables']);
+            $this->assertArrayHasKey('payment_ledger_entries', $backup['tables']);
+        } finally {
+            @unlink($path);
+        }
+    }
 
     public function test_valid_backup_can_be_rehearsed_without_changing_application_data(): void
     {

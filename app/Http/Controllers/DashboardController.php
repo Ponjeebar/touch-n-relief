@@ -2398,34 +2398,17 @@ class DashboardController extends Controller
             ->download($filename);
     }
 
-    public function reportingBackup(): StreamedResponse|RedirectResponse
+    public function reportingBackup(BackupRecoveryService $recovery): StreamedResponse|RedirectResponse
     {
-        $tables = BackupRecoveryService::TABLES;
-
         try {
-            $data = [];
-            foreach ($tables as $table) {
-                if (Schema::hasTable($table)) {
-                    $data[$table] = DB::table($table)->get()->map(fn ($row) => (array) $row)->all();
-                }
-            }
-            $encodedTables = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-            $payload = json_encode([
-                'application' => 'TOUCHnRELIEF',
-                'generated_at' => now()->toIso8601String(),
-                'format_version' => 2,
-                'contains_sensitive_data' => true,
-                'record_counts' => collect($data)->map(fn (array $rows): int => count($rows))->all(),
-                'tables_sha256' => hash('sha256', $encodedTables),
-                'tables' => $data,
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            $payload = $recovery->createJson();
         } catch (\Throwable $exception) {
             report($exception);
 
             return redirect()->route('reporting.index')->with('error', 'The backup could not be created. Please try again or contact the administrator.');
         }
 
-        $downloadName = 'touchnrelief-data-backup-'.now()->format('Y-m-d-His').'.json';
+        $downloadName = $recovery->filename();
 
         ActivityLogger::log(
             'report.backup',

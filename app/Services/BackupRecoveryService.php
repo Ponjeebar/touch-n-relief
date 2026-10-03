@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -34,6 +35,47 @@ class BackupRecoveryService
         'activity_logs',
         'site_settings',
     ];
+
+    /**
+     * Build the same integrity-protected recovery package used by manual and
+     * scheduled backups.
+     *
+     * @return array<string, mixed>
+     */
+    public function createPayload(): array
+    {
+        $tables = [];
+        foreach (self::TABLES as $table) {
+            if (Schema::hasTable($table)) {
+                $tables[$table] = DB::table($table)->get()->map(fn ($row): array => (array) $row)->all();
+            }
+        }
+
+        $encodedTables = json_encode($tables, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        return [
+            'application' => 'TOUCHnRELIEF',
+            'generated_at' => now()->toIso8601String(),
+            'format_version' => 2,
+            'contains_sensitive_data' => true,
+            'record_counts' => collect($tables)->map(fn (array $rows): int => count($rows))->all(),
+            'tables_sha256' => hash('sha256', $encodedTables),
+            'tables' => $tables,
+        ];
+    }
+
+    public function createJson(): string
+    {
+        return json_encode(
+            $this->createPayload(),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+        );
+    }
+
+    public function filename(): string
+    {
+        return 'touchnrelief-data-backup-'.now()->format('Y-m-d-His').'.json';
+    }
 
     /**
      * @return array{format_version: int, generated_at: string, tables_sha256: string, integrity_verified: bool, tables: array<string, list<array<string, mixed>>>, record_counts: array<string, int>}

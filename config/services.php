@@ -52,4 +52,13 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
     ],
 
+    'google_drive_backup' => [
+        'enabled' => filter_var(env('GOOGLE_DRIVE_BACKUP_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'client_id' => env('GOOGLE_DRIVE_BACKUP_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_DRIVE_BACKUP_CLIENT_SECRET'),
+        'refresh_token' => env('GOOGLE_DRIVE_BACKUP_REFRESH_TOKEN'),
+        'folder_id' => env('GOOGLE_DRIVE_BACKUP_FOLDER_ID'),
+        'retention_days' => (int) env('GOOGLE_DRIVE_BACKUP_RETENTION_DAYS', 14),
+    ],
+
 ];

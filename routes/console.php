@@ -1,10 +1,11 @@
 <?php
 
-use App\Models\AuthVerificationCode;
 use App\Models\ActivityLog;
+use App\Models\AuthVerificationCode;
 use App\Models\Customer;
 use App\Models\SpaBooking;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -34,7 +35,7 @@ Artisan::command('clients:archive-inactive', function () {
                     $query->whereNotNull('completed_at')->orWhere('session_status', SpaBooking::STATUS_COMPLETED);
                 })
                 ->max('booking_date');
-            $referenceDate = $lastCompleted ? \Carbon\Carbon::parse((string) $lastCompleted)->startOfDay() : $customer->created_at?->copy()->startOfDay();
+            $referenceDate = $lastCompleted ? Carbon::parse((string) $lastCompleted)->startOfDay() : $customer->created_at?->copy()->startOfDay();
             if ($referenceDate === null || $referenceDate->gt($cutoff)) {
                 continue;
             }
@@ -70,6 +71,7 @@ Artisan::command('clients:archive-inactive', function () {
 
 Schedule::command('appointments:send-reminders')->everyFiveMinutes();
 Schedule::command('clients:archive-inactive')->dailyAt('02:15')->withoutOverlapping();
+Schedule::command('backup:google-drive')->dailyAt('02:30')->withoutOverlapping(30);
 Schedule::call(fn () => AuthVerificationCode::query()->where('expires_at', '<', now())->delete())
     ->hourly()
     ->name('prune-expired-auth-verification-codes')
