@@ -414,13 +414,27 @@
                         </div>
                     </div>
                 </div>
+                <label class="bk-no-show-policy" for="bkNoShowPolicyAccepted">
+                    <input
+                        id="bkNoShowPolicyAccepted"
+                        name="no_show_policy_accepted"
+                        type="checkbox"
+                        value="1"
+                        form="booking-form"
+                        {{ old('no_show_policy_accepted') ? 'checked' : '' }}
+                    >
+                    <span>
+                        <strong>I understand the no-show payment policy.</strong>
+                        Payments already collected are nonrefundable when an appointment is recorded as a no-show because the therapist and schedule were reserved. An unpaid balance will not be collected. Management may approve an exception after review; contact the spa for assistance.
+                    </span>
+                </label>
             </div>
 
             <div class="bk-foot bk-foot-payment">
                 <p class="bk-foot-note"><i class="bi bi-lock-fill" aria-hidden="true"></i> You will be redirected to PayMongo to complete payment securely.</p>
                 <div class="bk-foot-actions">
                     <button type="button" class="bk-btn bk-cancel" data-bk-close="true">Cancel</button>
-                    <button type="button" class="bk-btn bk-confirm" id="bkConfirmSubmit" @if (empty($paymongoEnabled)) disabled @endif>
+                    <button type="button" class="bk-btn bk-confirm" id="bkConfirmSubmit" disabled>
                         <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
                         Continue to PayMongo
                     </button>
@@ -522,6 +536,7 @@
             var fullPaymentRequiredSlots = [];
             var fullPaymentNotice = document.getElementById('bkFullPaymentNotice');
             var confirmBtn = document.getElementById('bkConfirmSubmit');
+            var noShowPolicyAccepted = document.getElementById('bkNoShowPolicyAccepted');
             var allowSubmit = false;
             var bookingToast = document.getElementById('booking-toast');
             var bookingToastMsg = document.getElementById('booking-toast-msg');
@@ -816,7 +831,15 @@
             function resetPaymentModal() {
                 selectedPaymentType = paymentTypeInput?.value || 'downpayment';
                 paintPaymentTypeButtons();
+                syncConfirmButton();
             }
+
+            function syncConfirmButton() {
+                if (!confirmBtn) return;
+                confirmBtn.disabled = !paymongoEnabled || !noShowPolicyAccepted?.checked;
+            }
+
+            noShowPolicyAccepted?.addEventListener('change', syncConfirmButton);
 
             paymentTypeButtons.forEach(function (btn) {
                 btn.addEventListener('click', function () {
@@ -931,7 +954,7 @@
                         showBookingToast('We could not verify live availability. Please check your connection and try again.');
                     })
                     .finally(function () {
-                        if (confirmBtn) confirmBtn.disabled = false;
+                        syncConfirmButton();
                     });
             }
 
@@ -1409,6 +1432,11 @@
                 if (!form) return;
                 if (!paymongoEnabled) {
                     showBookingToast('Online payment is not available right now.');
+                    return;
+                }
+                if (!noShowPolicyAccepted?.checked) {
+                    showBookingToast('Please acknowledge the no-show payment policy before continuing.');
+                    noShowPolicyAccepted?.focus();
                     return;
                 }
                 if (paymentTypeInput) paymentTypeInput.value = selectedPaymentType;

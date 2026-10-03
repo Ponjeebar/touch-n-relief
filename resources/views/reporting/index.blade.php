@@ -200,8 +200,8 @@
                         <article class="rep-card rep-pie">
                             <div class="rep-card-head">
                                 <div>
-                                    <h3>Service Sales</h3>
-                                    <div class="muted" id="repMixMuted">All services ({{ $serviceLabel ?? 'This month' }})</div>
+                                    <h3>Revenue Mix</h3>
+                                    <div class="muted" id="repMixMuted">Offerings and no-show fees ({{ $serviceLabel ?? 'This month' }})</div>
                                 </div>
                                 <div class="rep-pill" id="repMixPill">{{ $serviceLabel ?? 'This month' }}</div>
                             </div>
@@ -250,6 +250,7 @@
                         <div><span>Gross collections</span><strong id="repGrossCollections">₱{{ number_format((float) ($grossCollections ?? 0), 2) }}</strong></div>
                         <div><span>Processed refunds</span><strong id="repRefundTotal">₱{{ number_format((float) ($refundTotal ?? 0), 2) }}</strong></div>
                         <div><span>Net collections</span><strong id="repNetCollections">₱{{ number_format((float) ($primaryAmount ?? 0), 2) }}</strong></div>
+                        <div><span>No-show fee revenue</span><strong id="repNoShowFeeRevenue">₱{{ number_format((float) ($noShowFeeRevenue ?? 0), 2) }}</strong></div>
                         <div><span>Payments</span><strong id="repPaymentCount">{{ number_format((int) ($paymentCount ?? 0)) }}</strong></div>
                         <div><span>Average payment</span><strong id="repAveragePayment">₱{{ number_format((float) ($averagePayment ?? 0), 2) }}</strong></div>
                     </div>
@@ -290,6 +291,7 @@
                                 <input type="search" id="repLedgerSearch" placeholder="Search client, reference, or service" aria-label="Search payment ledger">
                                 <select id="repLedgerType" aria-label="Filter ledger entry type">
                                     <option value="">All entry types</option>
+                                    <option value="no_show_fee">No-show fees</option>
                                     <option value="initial_payment">Initial payments</option>
                                     <option value="balance_payment">Balance payments</option>
                                     <option value="membership_payment">Membership payments</option>
@@ -312,6 +314,8 @@
                             <li>Gross collections include verified initial, balance, and membership payments collected in the selected period.</li>
                             <li>Net collections equal gross collections minus processed refunds.</li>
                             <li>Pending payments and outstanding balances are excluded from collected sales.</li>
+                            <li>Payments retained for no-show appointments are classified as no-show fee revenue. Their unpaid balances are not treated as collectible.</li>
+                            <li>PayMongo processing fees and payout timing are not deducted because fee data is not imported into this report.</li>
                             <li>Service hours use completed appointment dates; financial figures use payment collection time.</li>
                             <li>Historical entries marked as estimated use the booking creation time because the original collection time was unavailable.</li>
                         </ul>
@@ -855,7 +859,7 @@
             populatePeriodSelect(currentPeriod, currentPeriodValue);
             setText('repPageSubtitle', d.pageSubtitle || '');
             setText('repTrendSubtitle', d.trendSubtitle || '');
-            setText('repMixMuted', `All services (${d.serviceLabel || ''})`);
+            setText('repMixMuted', `Offerings and no-show fees (${d.serviceLabel || ''})`);
             setText('repMixPill', d.serviceLabel || '');
 
             setText('repPrimaryBadge', d.primaryBadge || '');
@@ -869,6 +873,7 @@
             setText('repGrossCollections', money(d.grossCollections ?? 0));
             setText('repRefundTotal', money(d.refundTotal ?? 0));
             setText('repNetCollections', money(d.primaryAmount ?? 0));
+            setText('repNoShowFeeRevenue', money(d.noShowFeeRevenue ?? 0));
             setText('repPaymentCount', fmtCount(d.paymentCount ?? 0));
             setText('repAveragePayment', money(d.averagePayment ?? 0));
             setText('repOutstandingTotal', money(d.outstandingBalanceTotal ?? 0));

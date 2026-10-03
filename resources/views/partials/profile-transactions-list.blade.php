@@ -225,6 +225,12 @@
                         {{ $txn['cancellation_reason'] }}
                     </p>
                 @endif
+                @if (! empty($txn['no_show_payment_notice']))
+                    <p class="txn-no-show-payment-note">
+                        <strong>Payment retained as no-show fee.</strong>
+                        {{ $txn['no_show_payment_notice'] }}
+                    </p>
+                @endif
                 @if (! empty($txn['can_resume_payment']))
                     <div class="txn-payment-hold" data-payment-hold>
                         <p class="txn-payment-hold-title">

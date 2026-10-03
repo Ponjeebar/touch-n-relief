@@ -114,6 +114,7 @@ class ReportingFinancialAccuracyTest extends TestCase
             'user_id' => $client->id,
             'client_name' => 'Ledger Client', 'service_name' => 'THERA #1', 'therapist_name' => 'Erica Tamondong',
             'booking_date' => '2026-10-10', 'time_slot' => '10:00 AM', 'amount' => 399,
+            'session_status' => SpaBooking::STATUS_NO_SHOW,
         ]);
         PaymentLedgerEntry::query()->create([
             'spa_booking_id' => $booking->id,
@@ -151,14 +152,92 @@ class ReportingFinancialAccuracyTest extends TestCase
             $this->assertStringContainsString('Payment Ledger', $workbookXml);
             $this->assertStringContainsString('state="frozen"', $summaryXml);
             $this->assertStringContainsString('width="28"', $summaryXml);
+            $this->assertStringContainsString('No-show fee revenue', $summaryXml);
             $this->assertStringContainsString('COT-LEDGER-1', $ledgerXml);
             $this->assertStringContainsString('Ledger Client', $ledgerXml);
             $this->assertStringContainsString('THERA #1', $ledgerXml);
+            $this->assertStringContainsString('No-show fee (initial payment)', $ledgerXml);
             $this->assertStringContainsString('formatCode="&quot;PHP &quot;#,##0.00', $stylesXml);
         } finally {
             unset($archive);
             @unlink($archivePath);
         }
+    }
+
+    public function test_no_show_payments_are_reported_as_fees_and_unpaid_balances_are_not_collectible(): void
+    {
+        Carbon::setTestNow('2026-10-04 18:00:00');
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+
+        $downpaymentBooking = SpaBooking::query()->create([
+            'user_id' => $customer->id,
+            'client_name' => $customer->name,
+            'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
+            'booking_date' => '2026-10-04',
+            'time_slot' => '10:00 AM',
+            'amount' => 100,
+            'payment_amount' => 50,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_status' => SpaBooking::STATUS_NO_SHOW,
+        ]);
+        $fullPaymentBooking = SpaBooking::query()->create([
+            'user_id' => $customer->id,
+            'client_name' => $customer->name,
+            'service_name' => 'Aromatherapy',
+            'therapist_name' => 'Juan dela Cruz',
+            'booking_date' => '2026-10-04',
+            'time_slot' => '01:00 PM',
+            'amount' => 100,
+            'payment_amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_status' => SpaBooking::STATUS_NO_SHOW,
+        ]);
+
+        foreach ([[$downpaymentBooking, 50, 'pay-no-show-half'], [$fullPaymentBooking, 100, 'pay-no-show-full']] as [$booking, $amount, $reference]) {
+            PaymentLedgerEntry::query()->create([
+                'spa_booking_id' => $booking->id,
+                'entry_type' => PaymentLedgerEntry::TYPE_INITIAL_PAYMENT,
+                'amount' => $amount,
+                'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+                'reference' => $reference,
+                'occurred_at' => now(),
+            ]);
+        }
+        PaymentLedgerEntry::query()->create([
+            'spa_booking_id' => $fullPaymentBooking->id,
+            'entry_type' => PaymentLedgerEntry::TYPE_REFUND,
+            'amount' => 20,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'reference' => 'refund-no-show-exception',
+            'occurred_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->getJson(route('reporting.data', [
+            'period' => 'daily',
+            'period_value' => '2026-10-04',
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('grossCollections', 150)
+            ->assertJsonPath('refundTotal', 20)
+            ->assertJsonPath('primaryAmount', 130)
+            ->assertJsonPath('noShowFeeRevenue', 130)
+            ->assertJsonPath('outstandingBalanceTotal', 0)
+            ->assertJsonPath('outstandingBalanceCount', 0);
+
+        $payload = $response->json();
+        $feeIndex = array_search('No-show fee revenue', $payload['serviceLabels'], true);
+        $this->assertNotFalse($feeIndex);
+        $this->assertSame(130, (int) $payload['serviceTotals'][$feeIndex]);
+        $this->assertCount(2, collect($payload['ledgerRows'])->where('type', 'no_show_fee'));
+        $this->assertCount(1, collect($payload['ledgerRows'])->where('type', PaymentLedgerEntry::TYPE_REFUND));
+        $this->assertTrue(collect($payload['ledgerRows'])->where('type', 'no_show_fee')->every(
+            fn (array $entry): bool => str_starts_with($entry['typeLabel'], 'No-show fee'),
+        ));
     }
 
     public function test_payment_ledger_recording_is_idempotent_and_preserves_collection_time(): void

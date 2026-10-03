@@ -2734,6 +2734,13 @@ class DashboardController extends Controller
         $refundTotal = (float) (clone $ledgerInRange)
             ->where('entry_type', PaymentLedgerEntry::TYPE_REFUND)
             ->sum('amount');
+        $noShowFeeRevenue = (float) DB::table('payment_ledger_entries as ledger')
+            ->join('spa_bookings as bookings', 'bookings.id', '=', 'ledger.spa_booking_id')
+            ->where('bookings.session_status', SpaBooking::STATUS_NO_SHOW)
+            ->whereDate('ledger.occurred_at', '>=', $rangeStart)
+            ->whereDate('ledger.occurred_at', '<=', $rangeEnd)
+            ->selectRaw("COALESCE(SUM(CASE WHEN ledger.entry_type = 'refund' THEN -ledger.amount ELSE ledger.amount END), 0) as total")
+            ->value('total');
         $primaryAmount = round($grossCollections - $refundTotal, 2);
         $paymentCount = (int) (clone $ledgerInRange)
             ->whereIn('entry_type', [PaymentLedgerEntry::TYPE_INITIAL_PAYMENT, PaymentLedgerEntry::TYPE_BALANCE_PAYMENT])
@@ -2963,7 +2970,10 @@ class DashboardController extends Controller
 
         $serviceBreakdown = DB::table('payment_ledger_entries as ledger')
             ->join('spa_bookings as bookings', 'bookings.id', '=', 'ledger.spa_booking_id')
-            ->selectRaw("bookings.service_name as service, SUM(CASE WHEN ledger.entry_type = 'refund' THEN -ledger.amount ELSE ledger.amount END) as total")
+            ->selectRaw(
+                "CASE WHEN bookings.session_status = ? THEN ? ELSE bookings.service_name END as service, SUM(CASE WHEN ledger.entry_type = 'refund' THEN -ledger.amount ELSE ledger.amount END) as total",
+                [SpaBooking::STATUS_NO_SHOW, 'No-show fee revenue'],
+            )
             ->whereDate('ledger.occurred_at', '>=', $rangeStart)
             ->whereDate('ledger.occurred_at', '<=', $rangeEnd)
             ->groupBy('service')
@@ -3030,29 +3040,35 @@ class DashboardController extends Controller
                 'ledger.id', 'ledger.entry_type', 'ledger.amount', 'ledger.payment_method',
                 'ledger.reference', 'ledger.occurred_at', 'ledger.is_estimated',
                 'bookings.id as booking_id', 'bookings.client_name', 'bookings.service_name',
-                'bookings.therapist_name', 'recorders.name as recorded_by_name',
+                'bookings.therapist_name', 'bookings.session_status', 'recorders.name as recorded_by_name',
             ])
-            ->map(fn ($entry): array => [
-                'id' => (int) $entry->id,
-                'occurredAt' => Carbon::parse((string) $entry->occurred_at)->format('Y-m-d H:i:s'),
-                'type' => (string) $entry->entry_type,
-                'typeLabel' => match ((string) $entry->entry_type) {
+            ->map(function ($entry): array {
+                $isNoShowFee = $entry->session_status === SpaBooking::STATUS_NO_SHOW
+                    && $entry->entry_type !== PaymentLedgerEntry::TYPE_REFUND;
+                $originalTypeLabel = match ((string) $entry->entry_type) {
                     PaymentLedgerEntry::TYPE_INITIAL_PAYMENT => 'Initial payment',
                     PaymentLedgerEntry::TYPE_BALANCE_PAYMENT => 'Balance payment',
                     PaymentLedgerEntry::TYPE_REFUND => 'Refund',
                     default => (string) $entry->entry_type,
-                },
-                'bookingReference' => 'RCP-'.str_pad((string) $entry->booking_id, 5, '0', STR_PAD_LEFT),
-                'client' => (string) ($entry->client_name ?: 'Unknown client'),
-                'service' => (string) ($entry->service_name ?: 'Unknown service'),
-                'therapist' => (string) ($entry->therapist_name ?: 'Unassigned'),
-                'paymentMethod' => PaymentMethodCatalog::labelFor((string) $entry->payment_method),
-                'reference' => (string) ($entry->reference ?: '—'),
-                'amount' => (float) $entry->amount,
-                'netAmount' => $entry->entry_type === PaymentLedgerEntry::TYPE_REFUND ? -(float) $entry->amount : (float) $entry->amount,
-                'isEstimated' => (bool) $entry->is_estimated,
-                'recordedBy' => (string) ($entry->recorded_by_name ?: 'System'),
-            ])
+                };
+
+                return [
+                    'id' => (int) $entry->id,
+                    'occurredAt' => Carbon::parse((string) $entry->occurred_at)->format('Y-m-d H:i:s'),
+                    'type' => $isNoShowFee ? 'no_show_fee' : (string) $entry->entry_type,
+                    'typeLabel' => $isNoShowFee ? 'No-show fee ('.strtolower($originalTypeLabel).')' : $originalTypeLabel,
+                    'bookingReference' => 'RCP-'.str_pad((string) $entry->booking_id, 5, '0', STR_PAD_LEFT),
+                    'client' => (string) ($entry->client_name ?: 'Unknown client'),
+                    'service' => (string) ($entry->service_name ?: 'Unknown service'),
+                    'therapist' => (string) ($entry->therapist_name ?: 'Unassigned'),
+                    'paymentMethod' => PaymentMethodCatalog::labelFor((string) $entry->payment_method),
+                    'reference' => (string) ($entry->reference ?: '—'),
+                    'amount' => (float) $entry->amount,
+                    'netAmount' => $entry->entry_type === PaymentLedgerEntry::TYPE_REFUND ? -(float) $entry->amount : (float) $entry->amount,
+                    'isEstimated' => (bool) $entry->is_estimated,
+                    'recordedBy' => (string) ($entry->recorded_by_name ?: 'System'),
+                ];
+            })
             ->values()
             ->concat(
                 MembershipPurchase::query()
@@ -3102,6 +3118,10 @@ class DashboardController extends Controller
         $outstandingBalances = SpaBooking::query()
             ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
             ->whereNull('cancelled_at')
+            ->where(function ($query): void {
+                $query->whereNull('session_status')
+                    ->orWhere('session_status', '!=', SpaBooking::STATUS_NO_SHOW);
+            })
             ->whereDate('booking_date', '>=', $rangeStart)
             ->whereDate('booking_date', '<=', $rangeEnd)
             ->orderBy('booking_date')
@@ -3159,6 +3179,7 @@ class DashboardController extends Controller
             'grossCollections' => $grossCollections,
             'refundTotal' => $refundTotal,
             'membershipCollections' => $membershipCollections,
+            'noShowFeeRevenue' => round($noShowFeeRevenue, 2),
             'paymentCount' => $paymentCount,
             'averagePayment' => $averagePayment,
             'previousNetCollections' => $previousNet,

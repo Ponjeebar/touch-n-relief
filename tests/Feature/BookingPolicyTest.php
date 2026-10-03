@@ -132,6 +132,50 @@ class BookingPolicyTest extends TestCase
         $this->assertSame(SpaBooking::STATUS_CONFIRMED, $booking->fresh()->session_status);
     }
 
+    public function test_customer_must_accept_no_show_payment_policy_before_checkout(): void
+    {
+        Carbon::setTestNow('2026-10-04 09:00:00');
+        config(['services.paymongo.secret_key' => 'sk_test_policy_validation']);
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+
+        $this->actingAs($customer)
+            ->get(route('booking.index'))
+            ->assertOk()
+            ->assertSee('I understand the no-show payment policy.')
+            ->assertSee('name="no_show_policy_accepted"', false);
+
+        $this->actingAs($customer)
+            ->from(route('booking.index'))
+            ->post(route('booking.store'), [
+                'service' => 'Swedish Massage',
+                'therapist' => 'Liza Reyes',
+                'booking_date' => '2026-10-05',
+                'time_slot' => '10:00 AM',
+                'payment_type' => PaymentMethodCatalog::TYPE_FULL,
+            ])
+            ->assertRedirect(route('booking.index'))
+            ->assertSessionHasErrors('no_show_policy_accepted', errorBag: 'booking');
+
+        $this->assertDatabaseCount('spa_bookings', 0);
+    }
+
+    public function test_paid_no_show_history_explains_retained_payment_and_unpaid_balance(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->booking($customer, '2026-10-03', '10:00 AM');
+        $booking->update([
+            'amount' => 100,
+            'payment_amount' => 50,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_status' => SpaBooking::STATUS_NO_SHOW,
+        ]);
+
+        $transaction = app(SpaSessionService::class)->toUserTransactionRow($booking->fresh());
+
+        $this->assertStringContainsString('retained as a no-show fee', $transaction['no_show_payment_notice']);
+        $this->assertStringContainsString('No unpaid balance will be collected', $transaction['no_show_payment_notice']);
+    }
+
     public function test_late_appointment_requires_staff_confirmation_and_shows_the_next_count(): void
     {
         Carbon::setTestNow('2026-09-21 10:11:00');

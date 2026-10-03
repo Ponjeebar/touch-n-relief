@@ -154,6 +154,9 @@ class SpaSessionService
                 : 0,
             'is_booking' => true,
             'cancellation_reason' => $booking->cancellation_reason,
+            'no_show_payment_notice' => $status === SpaBooking::STATUS_NO_SHOW && $booking->totalPaidAmount() > 0
+                ? 'The amount already paid was retained as a no-show fee because the therapist and schedule were reserved. No unpaid balance will be collected. Contact the spa if you need management to review an exceptional circumstance.'
+                : null,
         ];
     }
 

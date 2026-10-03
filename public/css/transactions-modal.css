@@ -800,6 +800,22 @@
     font-variant-numeric: tabular-nums;
 }
 
+.txn-no-show-payment-note {
+    margin: 0.75rem 0 0;
+    padding: 0.65rem 0.75rem;
+    border-left: 3px solid #b77817;
+    background: #fff8e8;
+    color: #654d1d;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.txn-no-show-payment-note strong {
+    display: block;
+    margin-bottom: 0.15rem;
+    color: #5b4314;
+}
+
 .txn-visually-hidden {
     position: absolute !important;
     width: 1px !important;
@@ -1735,6 +1751,16 @@ html[data-theme="dark"] .txn-payment-hold {
 }
 
 html[data-theme="dark"] .txn-payment-hold-title {
+    color: #ffe3a6;
+}
+
+html[data-theme="dark"] .txn-no-show-payment-note {
+    background: #382f1d;
+    border-left-color: #e0ad4d;
+    color: #ead8ae;
+}
+
+html[data-theme="dark"] .txn-no-show-payment-note strong {
     color: #ffe3a6;
 }
 

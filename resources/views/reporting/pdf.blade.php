@@ -101,6 +101,7 @@
                     <tr><th>Offerings with revenue</th><td>{{ $activeServiceRows->count() }}</td></tr>
                     <tr><th>Gross collections</th><td>PHP {{ number_format((float) ($grossCollections ?? 0), 2) }}</td></tr>
                     <tr><th>Processed refunds</th><td>PHP {{ number_format((float) ($refundTotal ?? 0), 2) }}</td></tr>
+                    <tr><th>No-show fee revenue</th><td>PHP {{ number_format((float) ($noShowFeeRevenue ?? 0), 2) }}</td></tr>
                     <tr><th>Payment count</th><td>{{ number_format((int) ($paymentCount ?? 0)) }}</td></tr>
                     <tr><th>Outstanding balances</th><td>PHP {{ number_format((float) ($outstandingBalanceTotal ?? 0), 2) }}</td></tr>
                 </table>
@@ -124,9 +125,9 @@
         </td>
         <td>
             <div class="section">
-                <h2>Offering Revenue</h2>
+                <h2>Offering and No-show Fee Revenue</h2>
                 <table class="data">
-                    <thead><tr><th>Service, package, or membership</th><th>Revenue</th></tr></thead>
+                    <thead><tr><th>Offering or fee classification</th><th>Revenue</th></tr></thead>
                     <tbody>
                     @forelse ($activeServiceRows as $row)
                         <tr><td>{{ $row['label'] }}</td><td>PHP {{ number_format($row['value'], 2) }}</td></tr>

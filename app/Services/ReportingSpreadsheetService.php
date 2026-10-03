@@ -60,6 +60,7 @@ class ReportingSpreadsheetService
         $this->row([['Gross collections', 'String', 'Label'], [(float) ($report['grossCollections'] ?? 0), 'Number', 'Currency'], ['Verified initial, balance, and membership payments', 'String', 'Text']]);
         $this->row([['Processed refunds', 'String', 'Label'], [-abs((float) ($report['refundTotal'] ?? 0)), 'Number', 'Refund'], ['Refunds completed during this report period', 'String', 'Text']]);
         $this->row([['Membership collections', 'String', 'Label'], [(float) ($report['membershipCollections'] ?? 0), 'Number', 'Currency'], ['Verified membership purchases', 'String', 'Text']]);
+        $this->row([['No-show fee revenue', 'String', 'Label'], [(float) ($report['noShowFeeRevenue'] ?? 0), 'Number', 'Currency'], ['Payments retained for no-show appointments, less processed refunds', 'String', 'Text']]);
         $this->row([['Payment count', 'String', 'Label'], [(int) ($report['paymentCount'] ?? 0), 'Number', 'Number'], ['Collected payment entries; refunds excluded', 'String', 'Text']]);
         $this->row([['Average payment', 'String', 'Label'], [(float) ($report['averagePayment'] ?? 0), 'Number', 'Currency'], ['Gross collections divided by payment count', 'String', 'Text']]);
         $this->row([['Outstanding balances', 'String', 'Label'], [(float) ($report['outstandingBalanceTotal'] ?? 0), 'Number', 'Currency'], ['Not included in collected sales', 'String', 'Text']]);
@@ -80,7 +81,7 @@ class ReportingSpreadsheetService
         }
         $this->blankRow();
 
-        $this->section('Service, Package, and Membership Revenue', 2);
+        $this->section('Offering and No-show Fee Revenue', 2);
         $this->row([['Offering', 'String', 'Header'], ['Net revenue', 'String', 'Header']]);
         $serviceRows = $this->pairedNonZeroRows($report['serviceLabels'] ?? [], $report['serviceTotals'] ?? []);
         if ($serviceRows === []) {

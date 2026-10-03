@@ -185,6 +185,7 @@ class BookingController extends Controller
             'time_slot' => ['required', 'string', 'max:30', 'in:'.implode(',', $allSlots)],
             'notes' => ['nullable', 'string', 'max:500'],
             'payment_type' => ['required', 'string', 'in:'.implode(',', PaymentMethodCatalog::typeKeys())],
+            'no_show_policy_accepted' => ['accepted'],
         ]);
 
         $validated['payment_method'] = PaymentMethodCatalog::METHOD_PAYMONGO;
