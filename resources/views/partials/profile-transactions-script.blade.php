@@ -751,10 +751,11 @@
         );
     }
 
-    function paintRescheduleSlots(offered, booked, userConflicts) {
+    function paintRescheduleSlots(offered, booked, userConflicts, unavailableByTime) {
         if (!rescheduleSlots || !rescheduleTimeInput) return;
         rescheduleSlots.innerHTML = '';
         var selected = rescheduleTimeInput.value;
+        unavailableByTime = Array.isArray(unavailableByTime) ? unavailableByTime : [];
 
         if (!offered.length) {
             if (rescheduleSlotsHint) {
@@ -771,7 +772,8 @@
             var userConflict = userConflicts && userConflicts[slot];
             var therapistBooked = booked.indexOf(slot) !== -1;
             var isCurrentSlot = isCurrentAppointmentSlot(slot);
-            var unavailable = userConflict || therapistBooked || isCurrentSlot;
+            var isUnavailableByTime = unavailableByTime.indexOf(slot) !== -1;
+            var unavailable = userConflict || therapistBooked || isCurrentSlot || isUnavailableByTime;
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'txn-reschedule-slot' + (unavailable ? ' is-unavailable' : '') + (selected === slot ? ' is-active' : '');
@@ -779,6 +781,8 @@
             btn.disabled = unavailable;
             if (isCurrentSlot) {
                 btn.title = 'This is your current appointment time. Choose a different slot.';
+            } else if (isUnavailableByTime) {
+                btn.title = 'This time is no longer available for online booking.';
             } else if (userConflict) {
                 btn.title = 'Overlaps with another appointment you have';
             } else if (therapistBooked) {
@@ -787,7 +791,7 @@
             if (!unavailable) {
                 btn.addEventListener('click', function () {
                     rescheduleTimeInput.value = rescheduleTimeInput.value === slot ? '' : slot;
-                    paintRescheduleSlots(offered, booked, userConflicts);
+                    paintRescheduleSlots(offered, booked, userConflicts, unavailableByTime);
                     updateRescheduleSubmitState();
                 });
             }
@@ -849,8 +853,9 @@
                 }
                 var offered = Array.isArray(data.offered_slots) ? data.offered_slots : [];
                 var booked = Array.isArray(data.booked_slots) ? data.booked_slots : [];
+                var unavailableByTime = Array.isArray(data.past_slots) ? data.past_slots : [];
                 var userConflicts = data.user_conflicts && typeof data.user_conflicts === 'object' ? data.user_conflicts : {};
-                paintRescheduleSlots(offered, booked, userConflicts);
+                paintRescheduleSlots(offered, booked, userConflicts, unavailableByTime);
             })
             .catch(function () {
                 showRescheduleError('Could not load time slots. Please try again.');

@@ -10,6 +10,7 @@ use App\Services\BookingCancellationService;
 use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
 use App\Services\BookingSlotService;
+use App\Services\CustomerBookingPolicy;
 use App\Services\PaymongoService;
 use App\Services\SiteSettingsService;
 use App\Services\SpaServiceCatalog;
@@ -36,6 +37,7 @@ class BookingController extends Controller
         private readonly BookingCancellationService $cancellations,
         private readonly BookingRescheduleService $reschedules,
         private readonly BookingSlotService $slots,
+        private readonly CustomerBookingPolicy $customerBookingPolicy,
         private readonly TherapistAvailabilityService $therapistAvailability,
         private readonly PaymongoService $paymongo,
     ) {}
@@ -153,6 +155,7 @@ class BookingController extends Controller
             'paymongoChannels' => PaymentMethodCatalog::paymongoChannelOptions($this->paymongo->paymentMethodTypes()),
             'downpaymentRate' => PaymentMethodCatalog::DOWNPAYMENT_RATE,
             'downpaymentPercentage' => PaymentMethodCatalog::downpaymentPercentage(),
+            'customerBookingLeadMinutes' => $this->customerBookingPolicy->minimumLeadMinutes(),
         ]);
     }
 
@@ -172,6 +175,14 @@ class BookingController extends Controller
             return back()->withErrors([
                 'booking' => 'Your account is banned after three no-show appointments. Please contact the spa.',
             ], 'booking')->withInput(SensitiveInput::safeForFlash($request));
+        }
+
+        try {
+            $this->customerBookingPolicy->assertMayCreatePaymentHold($user);
+        } catch (ValidationException $e) {
+            return back()
+                ->withErrors($e->errors(), 'booking')
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
 
         $catalog = $this->servicesFor($user instanceof User ? $user : null);
@@ -226,15 +237,19 @@ class BookingController extends Controller
                 $durationMinutes,
                 null,
                 $therapistNames,
+                minimumLeadMinutes: $this->customerBookingPolicy->minimumLeadMinutes(),
             );
         } catch (ValidationException $e) {
-            return $this->bookingValidationResponse($e, $user, $validated, $durationMinutes);
+            return $this->bookingValidationResponse($request, $e, $user, $validated, $durationMinutes);
         }
 
         $booking = null;
 
         try {
             DB::transaction(function () use ($validated, $serviceRow, $user, $durationMinutes, $therapistNames, $paymentAmount, &$booking): void {
+                User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+                $this->customerBookingPolicy->assertMayCreatePaymentHold($user);
+
                 $this->slots->assertBookingAvailable(
                     $user->id,
                     $validated['service'],
@@ -245,6 +260,7 @@ class BookingController extends Controller
                     null,
                     $therapistNames,
                     withTherapistLock: true,
+                    minimumLeadMinutes: $this->customerBookingPolicy->minimumLeadMinutes(),
                 );
 
                 $bookingAttributes = [
@@ -272,7 +288,7 @@ class BookingController extends Controller
                 $booking = SpaBooking::query()->create($bookingAttributes);
             });
         } catch (ValidationException $e) {
-            return $this->bookingValidationResponse($e, $user, $validated, $durationMinutes);
+            return $this->bookingValidationResponse($request, $e, $user, $validated, $durationMinutes);
         } catch (QueryException) {
             return back()
                 ->withErrors(['time_slot' => 'Unable to save this booking. Please try again.'], 'booking')
@@ -361,6 +377,7 @@ class BookingController extends Controller
                 $user instanceof User ? $user->id : null,
                 $bookableTherapistNames,
                 app(SpaServiceCatalog::class)->durationMinutesFor($validated['service']),
+                minimumLeadMinutes: $this->customerBookingPolicy->minimumLeadMinutes(),
             ),
         );
     }
@@ -418,6 +435,7 @@ class BookingController extends Controller
             $bookableTherapistNames,
             app(SpaServiceCatalog::class)->durationMinutesFor($validated['service']),
             $excludeBookingId,
+            minimumLeadMinutes: $this->customerBookingPolicy->minimumLeadMinutes(),
         );
 
         $therapistStatus = $this->therapistAvailability->bookingAvailabilityMapForDate($bookingDate);
@@ -687,7 +705,7 @@ class BookingController extends Controller
     /**
      * @param  array<string, mixed>  $validated
      */
-    private function bookingValidationResponse(ValidationException $e, User $user, array $validated, int $durationMinutes): RedirectResponse
+    private function bookingValidationResponse(Request $request, ValidationException $e, User $user, array $validated, int $durationMinutes): RedirectResponse
     {
         $userConflict = $this->slots->userConflictAt(
             $user->id,

@@ -100,6 +100,7 @@ class BookingSlotService
         ?int $excludeBookingId = null,
         array $therapistNames = [],
         bool $withTherapistLock = false,
+        int $minimumLeadMinutes = 0,
     ): void {
         $this->syncExpiredSessions();
 
@@ -113,6 +114,12 @@ class BookingSlotService
         if ($this->isPastSlot($bookingDate, $normalizedSlot)) {
             throw ValidationException::withMessages([
                 'time_slot' => 'That time has already passed. Please choose a later time or another date.',
+            ]);
+        }
+
+        if ($minimumLeadMinutes > 0 && $this->isBeforeMinimumLeadTime($bookingDate, $normalizedSlot, $minimumLeadMinutes)) {
+            throw ValidationException::withMessages([
+                'time_slot' => 'Online appointments must be booked at least '.$minimumLeadMinutes.' minutes before the start time.',
             ]);
         }
 
@@ -632,6 +639,16 @@ class BookingSlotService
         return $window !== null && $window['start']->lte($now ?? now());
     }
 
+    public function isBeforeMinimumLeadTime(string $dateYmd, string $timeSlot, int $minimumLeadMinutes, ?Carbon $now = null): bool
+    {
+        $window = $this->slotWindow($dateYmd, $timeSlot, 1);
+        $now ??= now();
+
+        return $window !== null
+            && $window['start']->gt($now)
+            && $window['start']->lt($now->copy()->addMinutes(max($minimumLeadMinutes, 0)));
+    }
+
     /**
      * One hour of rest is reserved after every three back-to-back appointments.
      *
@@ -702,11 +719,12 @@ class BookingSlotService
      * @param  array<int, string>  $slots
      * @return array<int, string>
      */
-    public function pastSlotLabelsForDate(string $dateYmd, array $slots, ?Carbon $now = null): array
+    public function pastSlotLabelsForDate(string $dateYmd, array $slots, ?Carbon $now = null, int $minimumLeadMinutes = 0): array
     {
         return array_values(array_filter(
             $slots,
-            fn (string $slot): bool => $this->isPastSlot($dateYmd, $slot, $now),
+            fn (string $slot): bool => $this->isPastSlot($dateYmd, $slot, $now)
+                || ($minimumLeadMinutes > 0 && $this->isBeforeMinimumLeadTime($dateYmd, $slot, $minimumLeadMinutes, $now)),
         ));
     }
 
@@ -785,11 +803,12 @@ class BookingSlotService
         array $therapistNames = [],
         int $proposedDurationMinutes = 60,
         ?int $excludeBookingId = null,
+        int $minimumLeadMinutes = 0,
     ): array {
         $this->syncExpiredSessions();
 
         $offered = $this->offeredSlotLabelsForServiceOnDate($serviceName, $bookingDate);
-        $pastSlots = $this->pastSlotLabelsForDate($bookingDate, $offered);
+        $pastSlots = $this->pastSlotLabelsForDate($bookingDate, $offered, minimumLeadMinutes: $minimumLeadMinutes);
         $userConflicts = $userId !== null
             ? $this->userConflictsForDate($userId, $bookingDate, $offered, $proposedDurationMinutes, $excludeBookingId)
             : [];
@@ -829,11 +848,12 @@ class BookingSlotService
         array $therapistNames = [],
         int $proposedDurationMinutes = 60,
         ?int $excludeBookingId = null,
+        int $minimumLeadMinutes = 0,
     ): array {
         $this->syncExpiredSessions();
 
         $offered = $this->offeredSlotLabelsForServiceOnDate($serviceName, $bookingDate);
-        $pastSlots = $this->pastSlotLabelsForDate($bookingDate, $offered);
+        $pastSlots = $this->pastSlotLabelsForDate($bookingDate, $offered, minimumLeadMinutes: $minimumLeadMinutes);
         $therapistName = trim($therapistName);
         $booked = $this->therapistBusySlotsForDate(
             $therapistName,

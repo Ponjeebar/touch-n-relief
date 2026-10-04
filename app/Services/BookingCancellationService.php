@@ -28,12 +28,6 @@ class BookingCancellationService
 
     public function canCancel(SpaBooking $booking): bool
     {
-        if ($booking->booking_source === SpaBooking::SOURCE_ONLINE
-            && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
-            && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING) {
-            return false;
-        }
-
         if ($booking->cancelled_at !== null || in_array($booking->session_status, [SpaBooking::STATUS_CANCELLED, SpaBooking::STATUS_NO_SHOW], true)) {
             return false;
         }
@@ -44,6 +38,12 @@ class BookingCancellationService
 
         if ($booking->session_started_at !== null || $booking->session_status === SpaBooking::STATUS_IN_SESSION) {
             return false;
+        }
+
+        if ($booking->booking_source === SpaBooking::SOURCE_ONLINE
+            && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
+            && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING) {
+            return $booking->hasActivePaymentHold();
         }
 
         $appointment = $this->appointmentAt($booking);
@@ -121,6 +121,14 @@ class BookingCancellationService
             $locked->cancellation_reason = $reason;
             $locked->session_status = SpaBooking::STATUS_CANCELLED;
             $locked->save();
+
+            if ($locked->booking_source === SpaBooking::SOURCE_ONLINE
+                && $locked->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
+                && $locked->payment_status === PaymentMethodCatalog::STATUS_PENDING) {
+                $locked->forceFill(['refund_status' => BookingRefundService::STATUS_NOT_APPLICABLE])->save();
+
+                return $locked->fresh();
+            }
 
             return $this->refunds->processRefund($locked->fresh());
         });

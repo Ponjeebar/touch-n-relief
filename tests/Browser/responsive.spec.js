@@ -241,6 +241,7 @@ test('returning to the date step resets choices and allows the same date again',
         await page.setViewportSize(setup.viewport);
         await page.evaluate((theme) => localStorage.setItem('tnr-theme', theme), setup.theme);
         await page.goto('/booking', { waitUntil: 'domcontentloaded' });
+        await expect(page.locator('.booking-policy-note')).toContainText('at least 30 minutes');
 
         const dateInput = page.locator('#booking_date');
         const firstDate = await dateInput.evaluate((input) => {

@@ -18,6 +18,10 @@ class BookingRescheduleService
 
     public function canReschedule(SpaBooking $booking): bool
     {
+        if ($booking->isAwaitingOnlinePayment()) {
+            return false;
+        }
+
         return $this->cancellations->canCancel($booking);
     }
 
@@ -212,6 +216,7 @@ class BookingRescheduleService
                 $durationMinutes,
                 $excludeId,
                 $this->slots->bookableTherapistNames(),
+                minimumLeadMinutes: $forStaff ? 0 : app(CustomerBookingPolicy::class)->minimumLeadMinutes(),
             );
         } catch (ValidationException $e) {
             $messages = $e->errors();

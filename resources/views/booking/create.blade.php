@@ -134,6 +134,7 @@
 
                         <div class="booking-field booking-field-time">
                             <label>Available Time Slots</label>
+                            <p class="booking-policy-note">Online appointments must be booked at least {{ $customerBookingLeadMinutes }} minutes before the start time.</p>
                             <p class="time-slots-hint" id="time-slots-hint">Select a date, service, and therapist to view available time slots.</p>
                             <div class="time-slots" id="time-slots"></div>
                             <div class="slot-legend">
@@ -1135,7 +1136,7 @@
                         btn.classList.add('unavailable', 'past-slot');
                         btn.disabled = true;
                         btn.setAttribute('aria-disabled', 'true');
-                        btn.title = 'This time has already passed';
+                        btn.title = 'This time is no longer available for online booking';
                     } else if (userConflict) {
                         btn.classList.add('user-conflict');
                         btn.title = 'This time overlaps with one of your existing appointments';

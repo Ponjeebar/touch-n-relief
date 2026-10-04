@@ -41,11 +41,11 @@ class CustomerPaymentRecoveryTest extends TestCase
             ->assertSee('data-payment-hold-countdown', false)
             ->assertSee('Continue payment')
             ->assertSee(route('booking.payment.retry', $booking), false)
-            ->assertDontSee(route('booking.cancel', $booking), false)
+            ->assertSee(route('booking.cancel', $booking), false)
             ->assertDontSee(route('booking.reschedule', $booking), false)
             ->assertDontSee('Confirmed booking');
 
-        $this->assertFalse(app(BookingCancellationService::class)->canCancel($booking));
+        $this->assertTrue(app(BookingCancellationService::class)->canCancel($booking));
         $this->assertFalse(app(BookingRescheduleService::class)->canReschedule($booking));
 
         $row = app(SpaSessionService::class)->toUserTransactionRow($booking);

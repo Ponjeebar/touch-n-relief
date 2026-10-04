@@ -617,7 +617,7 @@
 
                     if (isPast) {
                         chip.className = 'time-chip time-chip-past';
-                        chip.title = 'This time has already passed';
+                        chip.title = 'This time is no longer available for online booking';
                     } else if (userConflict) {
                         chip.className = 'time-chip time-chip-user-conflict';
                         chip.title = 'This time overlaps with one of your existing appointments';

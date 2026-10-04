@@ -5,6 +5,12 @@ return [
     'client_new_days' => (int) env('CLIENT_NEW_DAYS', 30),
     'client_active_months' => (int) env('CLIENT_ACTIVE_MONTHS', 12),
     'client_auto_archive_months' => (int) env('CLIENT_AUTO_ARCHIVE_MONTHS', 24),
+    'booking' => [
+        'customer_minimum_lead_minutes' => (int) env('CUSTOMER_BOOKING_MINIMUM_LEAD_MINUTES', 30),
+        'expired_hold_limit' => (int) env('CUSTOMER_EXPIRED_HOLD_LIMIT', 3),
+        'expired_hold_lookback_hours' => (int) env('CUSTOMER_EXPIRED_HOLD_LOOKBACK_HOURS', 24),
+        'expired_hold_cooldown_minutes' => (int) env('CUSTOMER_EXPIRED_HOLD_COOLDOWN_MINUTES', 60),
+    ],
     'schedules' => [
         'appointment_reminders' => env('APPOINTMENT_REMINDER_SCHEDULE', '*/5 * * * *'),
         'automatic_no_shows' => env('AUTOMATIC_NO_SHOW_SCHEDULE', '* * * * *'),
