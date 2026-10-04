@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\PaymentLedgerEntry;
 use App\Models\SpaBooking;
 use App\Models\User;
 use App\Services\BookingCancellationService;
 use App\Services\BookingRefundService;
 use App\Services\BookingRescheduleService;
+use App\Services\NoShowService;
 use App\Services\PaymongoService;
 use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
@@ -312,6 +314,7 @@ class CustomerPaymentRecoveryTest extends TestCase
 
     public function test_late_payment_is_confirmed_when_released_slot_is_still_available(): void
     {
+        $this->seed([SpaServiceSeeder::class, TherapistSeeder::class]);
         Carbon::setTestNow('2026-09-24 09:30:00');
         $customer = User::factory()->create(['role' => User::ROLE_USER]);
         $booking = $this->pendingBooking($customer);
@@ -340,6 +343,65 @@ class CustomerPaymentRecoveryTest extends TestCase
         $this->assertNull($booking->cancelled_at);
         $this->assertSame(PaymentMethodCatalog::STATUS_PAID, $booking->payment_status);
         $this->assertSame('pay_late_available', $booking->payment_transaction_id);
+    }
+
+    public function test_verified_payment_after_appointment_start_is_cancelled_refunded_and_idempotent(): void
+    {
+        Carbon::setTestNow('2026-09-24 09:30:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->pendingBooking($customer);
+        $booking->forceFill([
+            'booking_date' => now()->toDateString(),
+            'time_slot' => '09:00 AM',
+            'created_at' => now()->subMinutes(16),
+            'updated_at' => now()->subMinutes(16),
+        ])->saveQuietly();
+
+        $this->mock(PaymongoService::class, function ($mock): void {
+            $mock->shouldReceive('verifyWebhookSignature')->twice()->andReturnTrue();
+            $mock->shouldReceive('resolvePaymentChannelForPaymentId')->once()->with('pay_late_past')->andReturn('gcash');
+        });
+        $this->mock(BookingRefundService::class, function ($mock): void {
+            $mock->shouldReceive('processRefund')->once()->andReturnUsing(function (SpaBooking $booking): SpaBooking {
+                $booking->forceFill([
+                    'payment_status' => PaymentMethodCatalog::STATUS_REFUNDED,
+                    'refund_status' => BookingRefundService::STATUS_PROCESSED,
+                    'refund_amount' => $booking->payment_amount,
+                    'refunded_at' => now(),
+                ])->saveQuietly();
+
+                return $booking->fresh();
+            });
+        });
+
+        $payload = [
+            'data' => ['attributes' => [
+                'type' => 'payment.paid',
+                'data' => [
+                    'id' => 'pay_late_past',
+                    'type' => 'payment',
+                    'attributes' => [
+                        'status' => 'paid',
+                        'amount' => 5500,
+                        'currency' => 'PHP',
+                        'metadata' => ['booking_id' => (string) $booking->id],
+                    ],
+                ],
+            ]],
+        ];
+
+        $this->postJson(route('paymongo.webhook'), $payload, ['Paymongo-Signature' => 'valid'])->assertOk();
+        $this->postJson(route('paymongo.webhook'), $payload, ['Paymongo-Signature' => 'valid'])->assertOk();
+
+        $booking->refresh();
+        $this->assertNotNull($booking->cancelled_at);
+        $this->assertSame(SpaBooking::STATUS_CANCELLED, $booking->session_status);
+        $this->assertSame(PaymentMethodCatalog::STATUS_REFUNDED, $booking->payment_status);
+        $this->assertSame(1, PaymentLedgerEntry::query()
+            ->where('spa_booking_id', $booking->id)
+            ->where('entry_type', PaymentLedgerEntry::TYPE_INITIAL_PAYMENT)
+            ->count());
+        $this->assertSame(0, app(NoShowService::class)->processOverdue());
     }
 
     private function pendingBooking(User $customer): SpaBooking

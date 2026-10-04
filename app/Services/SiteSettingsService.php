@@ -80,7 +80,15 @@ class SiteSettingsService
     /** @param array<string, int> $rules */
     public function updateSystemRules(array $rules): void
     {
-        $keys = [
+        foreach ($this->systemRuleStorageKeys() as $input => $key) {
+            SiteSetting::put($key, (string) $rules[$input]);
+        }
+    }
+
+    /** @return array<string, string> */
+    public function systemRuleStorageKeys(): array
+    {
+        return [
             'cancellation_cutoff_hours' => self::KEY_CANCELLATION_CUTOFF_HOURS,
             'payment_hold_minutes' => self::KEY_PAYMENT_HOLD_MINUTES,
             'customer_minimum_lead_minutes' => self::KEY_CUSTOMER_MINIMUM_LEAD_MINUTES,
@@ -92,10 +100,6 @@ class SiteSettingsService
             'expired_hold_cooldown_minutes' => self::KEY_EXPIRED_HOLD_COOLDOWN_MINUTES,
             'backup_retention_days' => self::KEY_BACKUP_RETENTION_DAYS,
         ];
-
-        foreach ($keys as $input => $key) {
-            SiteSetting::put($key, (string) $rules[$input]);
-        }
     }
 
     public function paymentHoldMinutes(): int

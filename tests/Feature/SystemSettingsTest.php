@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
 use App\Models\SiteSetting;
 use App\Models\SpaBooking;
 use App\Models\User;
@@ -126,6 +127,39 @@ class SystemSettingsTest extends TestCase
         $this->assertSame(1, app(NoShowService::class)->processOverdue());
         $this->assertSame(SpaBooking::STATUS_NO_SHOW, $late->fresh()->session_status);
         $this->assertNotNull($customer->fresh()->banned_at);
+    }
+
+    public function test_threshold_changes_immediately_reconcile_existing_customer_restrictions(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $this->booking($customer, '2026-10-01', '10:00 AM', ['session_status' => SpaBooking::STATUS_NO_SHOW]);
+        $this->booking($customer, '2026-10-02', '10:00 AM', ['session_status' => SpaBooking::STATUS_NO_SHOW]);
+
+        $this->actingAs($admin)
+            ->put(route('system-settings.update'), $this->rules(['no_show_restriction_threshold' => 2]))
+            ->assertSessionHasNoErrors();
+        $this->assertNotNull($customer->fresh()->banned_at);
+
+        $this->put(route('system-settings.update'), $this->rules(['no_show_restriction_threshold' => 3]))
+            ->assertSessionHasNoErrors();
+        $this->assertNull($customer->fresh()->banned_at);
+
+        $log = ActivityLog::query()->where('action', 'system.settings_updated')->latest('id')->firstOrFail();
+        $this->assertContains($customer->id, $log->properties['no_show_restrictions']['restored']);
+    }
+
+    public function test_unchanged_threshold_does_not_rewrite_existing_restriction_timestamp(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER, 'banned_at' => now()->subDay()]);
+        $original = $customer->banned_at->toDateTimeString();
+
+        $this->actingAs($admin)
+            ->put(route('system-settings.update'), $this->rules())
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($original, $customer->fresh()->banned_at->toDateTimeString());
     }
 
     /** @param array<string, int> $overrides */

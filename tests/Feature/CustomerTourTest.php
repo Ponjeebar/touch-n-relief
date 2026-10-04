@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\SiteSetting;
 use App\Models\User;
+use App\Services\SiteSettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -192,5 +194,24 @@ class CustomerTourTest extends TestCase
             ->assertOk()
             ->assertSee('data-customer-tour-auto-start="0"', false)
             ->assertSee('data-start-customer-tour', false);
+    }
+
+    public function test_customer_tour_receives_current_payment_and_arrival_timing(): void
+    {
+        SiteSetting::put(SiteSettingsService::KEY_PAYMENT_HOLD_MINUTES, '9');
+        SiteSetting::put(SiteSettingsService::KEY_LATE_GRACE_MINUTES, '7');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+
+        $this->actingAs($customer)
+            ->get(route('landing'))
+            ->assertOk()
+            ->assertSee('data-payment-hold-minutes="9"', false)
+            ->assertSee('data-late-grace-minutes="7"', false);
+
+        $tourScript = file_get_contents(public_path('js/customer-tour.js'));
+        $this->assertStringContainsString("'+paymentHoldMinutes+'-minute", $tourScript);
+        $this->assertStringContainsString("'+lateGraceMinutes+'-minute", $tourScript);
+        $this->assertStringNotContainsString('the 15-minute payment window', $tourScript);
+        $this->assertStringNotContainsString('more than 10 minutes late', $tourScript);
     }
 }

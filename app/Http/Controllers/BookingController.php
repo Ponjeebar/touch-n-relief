@@ -172,8 +172,10 @@ class BookingController extends Controller
 
         $user = $request->user();
         if ($user instanceof User && $user->isBanned()) {
+            $noShowThreshold = app(SiteSettingsService::class)->noShowRestrictionThreshold();
+
             return back()->withErrors([
-                'booking' => 'Your account is banned after three no-show appointments. Please contact the spa.',
+                'booking' => 'Your account is restricted after '.$noShowThreshold.' no-show '.($noShowThreshold === 1 ? 'appointment' : 'appointments').'. Please contact the spa.',
             ], 'booking')->withInput(SensitiveInput::safeForFlash($request));
         }
 

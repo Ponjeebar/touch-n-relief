@@ -117,6 +117,12 @@ class BookingCancellationService
         return DB::transaction(function () use ($booking, $reason): SpaBooking {
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
 
+            if (! $this->canCancel($locked)) {
+                throw ValidationException::withMessages([
+                    'booking' => 'This booking was updated and can no longer be cancelled.',
+                ]);
+            }
+
             $locked->cancelled_at = now();
             $locked->cancellation_reason = $reason;
             $locked->session_status = SpaBooking::STATUS_CANCELLED;

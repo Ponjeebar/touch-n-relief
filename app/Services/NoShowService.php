@@ -137,4 +137,53 @@ class NoShowService
 
         return $processed;
     }
+
+    /**
+     * Apply the configured threshold to existing customer No Show records.
+     * The banned_at field is owned exclusively by this workflow.
+     *
+     * @return array{restricted: list<int>, restored: list<int>}
+     */
+    public function reconcileCustomerRestrictions(int $threshold): array
+    {
+        $threshold = max(1, $threshold);
+
+        return DB::transaction(function () use ($threshold): array {
+            $customerIdsWithNoShows = SpaBooking::query()
+                ->select('user_id')
+                ->where('session_status', SpaBooking::STATUS_NO_SHOW)
+                ->whereNotNull('user_id');
+
+            $customers = User::query()
+                ->where('role', User::ROLE_USER)
+                ->where(function ($query) use ($customerIdsWithNoShows): void {
+                    $query->whereNotNull('banned_at')
+                        ->orWhereIn('id', $customerIdsWithNoShows);
+                })
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            $restricted = [];
+            $restored = [];
+
+            foreach ($customers as $customer) {
+                $noShowCount = SpaBooking::query()
+                    ->where('user_id', $customer->id)
+                    ->where('session_status', SpaBooking::STATUS_NO_SHOW)
+                    ->count();
+                $shouldBeRestricted = $noShowCount >= $threshold;
+
+                if ($shouldBeRestricted && $customer->banned_at === null) {
+                    $customer->forceFill(['banned_at' => now()])->save();
+                    $restricted[] = (int) $customer->id;
+                } elseif (! $shouldBeRestricted && $customer->banned_at !== null) {
+                    $customer->forceFill(['banned_at' => null])->save();
+                    $restored[] = (int) $customer->id;
+                }
+            }
+
+            return ['restricted' => $restricted, 'restored' => $restored];
+        });
+    }
 }

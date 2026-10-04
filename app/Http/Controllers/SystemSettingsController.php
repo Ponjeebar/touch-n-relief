@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SiteSetting;
 use App\Services\ActivityLogger;
+use App\Services\NoShowService;
 use App\Services\SiteSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +20,7 @@ class SystemSettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request, SiteSettingsService $settings): RedirectResponse
+    public function update(Request $request, SiteSettingsService $settings, NoShowService $noShows): RedirectResponse
     {
         $validated = $request->validate([
             'cancellation_cutoff_hours' => ['required', 'integer', 'min:0', 'max:8760'],
@@ -33,9 +35,15 @@ class SystemSettingsController extends Controller
             'backup_retention_days' => ['required', 'integer', 'min:1', 'max:365'],
         ]);
 
-        $before = $settings->systemRules();
         $values = array_map(static fn (mixed $value): int => (int) $value, $validated);
-        DB::transaction(function () use ($settings, $values, $before, $request): void {
+        DB::transaction(function () use ($settings, $noShows, $values, $request): void {
+            SiteSetting::query()
+                ->whereIn('key', array_values($settings->systemRuleStorageKeys()))
+                ->orderBy('key')
+                ->lockForUpdate()
+                ->get(['id']);
+
+            $before = $settings->systemRules();
             $settings->updateSystemRules($values);
             $after = $settings->systemRules();
             $changes = collect($after)->filter(
@@ -44,10 +52,14 @@ class SystemSettingsController extends Controller
                 static fn (int $value, string $key): array => [$key => ['from' => $before[$key], 'to' => $value]],
             )->all();
 
+            $restrictionChanges = $before['no_show_restriction_threshold'] !== $after['no_show_restriction_threshold']
+                ? $noShows->reconcileCustomerRestrictions($after['no_show_restriction_threshold'])
+                : ['restricted' => [], 'restored' => []];
+
             ActivityLogger::log(
                 'system.settings_updated',
                 'Updated booking, attendance, account protection, and backup settings',
-                ['changes' => $changes],
+                ['changes' => $changes, 'no_show_restrictions' => $restrictionChanges],
                 request: $request,
             );
         });

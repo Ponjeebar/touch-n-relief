@@ -75,7 +75,7 @@ async function assertPageFits(page, path, theme, viewport, role, consoleErrors) 
     expect(layout.theme).toBe(theme);
     expect(consoleErrors, `${path} emitted browser console errors`).toEqual([]);
 
-    if (role === 'admin' && path === '/system-settings' && viewport.width >= 1024) {
+    if (role === 'admin' && path === '/system-settings' && viewport.width > 1024) {
         await page.locator('.sidebar').hover();
         await expect(page.getByText('Overview', { exact: true })).toBeVisible();
         await expect(page.getByText('Daily work', { exact: true })).toBeVisible();

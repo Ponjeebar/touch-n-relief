@@ -8,6 +8,8 @@
     var page = config.dataset.customerTourPage || 'page';
     var userId = config.dataset.customerTourUser || role;
     var shouldAutoStart = config.dataset.customerTourAutoStart === '1';
+    var paymentHoldMinutes = Number.parseInt(config.dataset.paymentHoldMinutes || '15', 10);
+    var lateGraceMinutes = Number.parseInt(config.dataset.lateGraceMinutes || '10', 10);
     var tourVersion = 'v3';
     var storageKey = 'tnr-system-tour:' + userId + ':' + role + ':' + page + ':' + tourVersion;
     var activeTour = null;
@@ -179,10 +181,10 @@
             step(['#tnr-transactions-modal .txn-modal-header'], 'Appointment center', 'This panel contains only the signed-in customer’s booking and payment records.'),
             step(['.txn-group-tabs'], 'Upcoming and History', withExample('Switch between active commitments and past records.', 'A confirmed appointment is Upcoming. A completed session, cancellation, no-show, or expired payment hold is History.')),
             step(['.txn-toolbar'], 'Search, filter, and sort', withExample('Narrow a long history by date, service, therapist, payment amount, or order.', 'Search “Hot Stone,” filter records with an amount, then sort by most recent.')),
-            step(['.txn-card'], 'Read an appointment card', withExample('Each card shows the reference, service, therapist, schedule, duration, amount, and current status.', '“Payment hold expired” means the 15-minute payment window ended and that reservation is no longer active.')),
+            step(['.txn-card'], 'Read an appointment card', withExample('Each card shows the reference, service, therapist, schedule, duration, amount, and current status.', '“Payment hold expired” means the '+paymentHoldMinutes+'-minute payment window ended and that reservation is no longer active.')),
             step(['[data-txn-payment-toggle]', '.txn-payment-block'], 'Payment details', withExample('Expand this section to review method, type, initial payment, total paid, balance, and reference.', 'A 50% downpayment can show a remaining balance that must be collected before the session starts.')),
             step(['.txn-card-actions'], 'Available actions', withExample('Buttons appear only when the booking rules permit an action.', 'An eligible upcoming booking may be rescheduled or cancelled; an active payment hold may show Continue payment.')),
-            step(['.txn-modal-note'], 'Arrival policy', 'Arrive before the appointment time. Staff can review and confirm a no-show when the customer is more than 10 minutes late.'),
+            step(['.txn-modal-note'], 'Arrival policy', 'Arrive before the appointment time. Staff can review and confirm a no-show after the '+lateGraceMinutes+'-minute grace period.'),
         ];
     }
 

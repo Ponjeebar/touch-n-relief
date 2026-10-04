@@ -149,6 +149,33 @@ class CustomerBookingGuardTest extends TestCase
         $this->assertSame(PaymentMethodCatalog::STATUS_PENDING, $booking->payment_status);
     }
 
+    public function test_stale_customer_cancellation_cannot_overwrite_a_started_session(): void
+    {
+        Carbon::setTestNow('2026-10-05 10:00:00 AM');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->pendingBooking($customer, now()->subMinutes(5));
+        $staleBooking = $booking->fresh();
+
+        $booking->forceFill([
+            'session_status' => SpaBooking::STATUS_IN_SESSION,
+            'session_started_at' => now(),
+        ])->save();
+
+        try {
+            app(BookingCancellationService::class)->cancel($staleBooking, 'schedule_conflict');
+            $this->fail('A stale customer cancellation overwrote a started session.');
+        } catch (ValidationException $exception) {
+            $this->assertStringContainsString('updated', $exception->errors()['booking'][0]);
+        }
+
+        $booking->refresh();
+        $this->assertSame(SpaBooking::STATUS_IN_SESSION, $booking->session_status);
+        $this->assertNotNull($booking->session_started_at);
+        $this->assertNull($booking->cancelled_at);
+        $this->assertDatabaseCount('booking_refunds', 0);
+        $this->assertDatabaseCount('payment_ledger_entries', 0);
+    }
+
     private function pendingBooking(User $customer, Carbon $createdAt): SpaBooking
     {
         $booking = SpaBooking::query()->create([

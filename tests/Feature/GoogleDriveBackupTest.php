@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\SiteSetting;
+use App\Services\SiteSettingsService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -30,6 +32,7 @@ class GoogleDriveBackupTest extends TestCase
             'services.google_drive_backup.folder_id' => 'drive-folder-123',
             'services.google_drive_backup.retention_days' => 14,
         ]);
+        SiteSetting::put(SiteSettingsService::KEY_BACKUP_RETENTION_DAYS, '2');
 
         Http::fake(function (Request $request) {
             if ($request->url() === 'https://oauth2.googleapis.com/token') {
@@ -53,7 +56,7 @@ class GoogleDriveBackupTest extends TestCase
 
             if ($request->method() === 'GET' && str_starts_with($request->url(), 'https://www.googleapis.com/drive/v3/files?')) {
                 return Http::response(['files' => [
-                    ['id' => 'expired-backup-id', 'createdTime' => '2026-09-01T00:00:00Z'],
+                    ['id' => 'expired-backup-id', 'createdTime' => '2026-09-30T00:00:00Z'],
                     ['id' => 'recent-backup-id', 'createdTime' => '2026-10-02T00:00:00Z'],
                 ]]);
             }

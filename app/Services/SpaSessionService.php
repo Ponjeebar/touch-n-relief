@@ -9,6 +9,7 @@ use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class SpaSessionService
@@ -255,26 +256,24 @@ class SpaSessionService
 
     public function autoCompleteIfExpired(SpaBooking $booking, ?Carbon $now = null): bool
     {
-        if (! $this->hasExpired($booking, $now)) {
-            return false;
-        }
+        return DB::transaction(function () use ($booking, $now): bool {
+            $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
 
-        if (! $booking->isFullyPaid()) {
-            return false;
-        }
+            if (! $this->hasExpired($locked, $now)
+                || ! $locked->isFullyPaid()
+                || $locked->completed_at !== null) {
+                return false;
+            }
 
-        if ($booking->completed_at !== null) {
-            return false;
-        }
+            $completedAt = $this->sessionEndAt($locked) ?? ($now ?? now());
+            $locked->forceFill([
+                'completed_at' => $completedAt,
+                'session_status' => SpaBooking::STATUS_COMPLETED,
+            ])->save();
+            $this->syncTransaction($locked->fresh());
 
-        $completedAt = $this->sessionEndAt($booking) ?? ($now ?? now());
-        $booking->forceFill([
-            'completed_at' => $completedAt,
-            'session_status' => SpaBooking::STATUS_COMPLETED,
-        ])->save();
-        $this->syncTransaction($booking->fresh());
-
-        return true;
+            return true;
+        });
     }
 
     /**
@@ -494,24 +493,28 @@ class SpaSessionService
 
     public function complete(SpaBooking $booking): void
     {
-        if ($booking->isCancelled()) {
-            throw new \InvalidArgumentException('Cancelled bookings cannot be completed.');
-        }
+        DB::transaction(function () use ($booking): void {
+            $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
 
-        if ($booking->completed_at !== null) {
-            return;
-        }
+            if ($locked->isCancelled()) {
+                throw new \InvalidArgumentException('Cancelled bookings cannot be completed.');
+            }
 
-        if (! $booking->isFullyPaid()) {
-            throw new \InvalidArgumentException('The remaining balance must be collected before completing this session.');
-        }
+            if ($locked->completed_at !== null) {
+                return;
+            }
 
-        $booking->forceFill([
-            'completed_at' => now(),
-            'session_status' => SpaBooking::STATUS_COMPLETED,
-        ])->save();
+            if (! $locked->isFullyPaid()) {
+                throw new \InvalidArgumentException('The remaining balance must be collected before completing this session.');
+            }
 
-        $this->syncTransaction($booking->fresh());
+            $locked->forceFill([
+                'completed_at' => now(),
+                'session_status' => SpaBooking::STATUS_COMPLETED,
+            ])->save();
+
+            $this->syncTransaction($locked->fresh());
+        });
     }
 
     public function syncTransaction(SpaBooking $booking): Transaction

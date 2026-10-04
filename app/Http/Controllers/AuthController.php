@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Rules\NotRecentlyUsedPassword;
 use App\Services\ActivityLogger;
 use App\Services\AuthVerificationCodeService;
+use App\Services\SiteSettingsService;
 use App\Services\WalkInClientService;
 use App\Support\CustomerEligibility;
 use App\Support\MailDeliveryConfiguration;
@@ -167,8 +168,10 @@ class AuthController extends Controller
         }
 
         if ($user instanceof User && $user->isBanned()) {
+            $noShowThreshold = app(SiteSettingsService::class)->noShowRestrictionThreshold();
+
             return redirect()->route('login')->withErrors([
-                'login' => 'This account has been banned after three no-show appointments. Please contact the spa administrator.',
+                'login' => 'This account is restricted after '.$noShowThreshold.' no-show '.($noShowThreshold === 1 ? 'appointment' : 'appointments').'. Please contact the spa administrator.',
             ])->onlyInput('login', 'remember');
         }
 

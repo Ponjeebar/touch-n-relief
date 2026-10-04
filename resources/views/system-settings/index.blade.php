@@ -91,7 +91,7 @@
                                 <div class="ls-fields system-settings-fields">
                                     @include('system-settings.partials.number-field', ['name' => 'late_grace_minutes', 'label' => 'Late grace period', 'unit' => 'minutes', 'min' => 1, 'max' => 60, 'help' => 'Staff may start the scheduled session during this period.'])
                                     @include('system-settings.partials.number-field', ['name' => 'no_show_review_minutes', 'label' => 'Staff review window', 'unit' => 'minutes', 'min' => 1, 'max' => 60, 'help' => 'After the grace period, staff receive this additional time before automatic No Show.'])
-                                    @include('system-settings.partials.number-field', ['name' => 'no_show_restriction_threshold', 'label' => 'No Show restriction threshold', 'unit' => 'recorded No Shows', 'min' => 1, 'max' => 10, 'help' => 'The customer account is restricted when it reaches this number.'])
+                                    @include('system-settings.partials.number-field', ['name' => 'no_show_restriction_threshold', 'label' => 'No Show restriction threshold', 'unit' => 'recorded No Shows', 'min' => 1, 'max' => 10, 'help' => 'Applies immediately to existing customer No Show counts. Accounts are restricted or restored when this value changes.'])
                                 </div>
                             </article>
 
@@ -115,11 +115,11 @@
                                     <span class="ls-section-icon contact" aria-hidden="true"><i class="bi bi-database-check"></i></span>
                                     <div>
                                         <h2 class="ls-section-title">Backup retention</h2>
-                                        <p class="ls-section-desc">Controls automatic cleanup of older Google Drive backups.</p>
+                                        <p class="ls-section-desc">Controls automatic cleanup of application JSON backups stored in Google Drive.</p>
                                     </div>
                                 </header>
                                 <div class="ls-fields system-settings-fields">
-                                    @include('system-settings.partials.number-field', ['name' => 'backup_retention_days', 'label' => 'Keep backups for', 'unit' => 'days', 'min' => 1, 'max' => 365, 'help' => 'Backups older than this are removed after a successful Google Drive backup.'])
+                                    @include('system-settings.partials.number-field', ['name' => 'backup_retention_days', 'label' => 'Keep application JSON backups for', 'unit' => 'days', 'min' => 1, 'max' => 365, 'help' => 'Application JSON backups older than this are removed only after a successful Google Drive upload. PostgreSQL dump retention is controlled in GitHub Actions by POSTGRES_DRIVE_BACKUP_RETENTION_DAYS.'])
                                 </div>
                             </article>
                         </div>

@@ -12,6 +12,7 @@
         && (bool) session('receptionist_tour_enabled', false);
     $tourPage = $tourPage ?? Route::currentRouteName() ?? 'page';
     $autoStartTour = $autoStartCustomerTour || $autoStartReceptionistTour;
+    $tourSettings = app(\App\Services\SiteSettingsService::class);
 @endphp
 @once
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.8.0/dist/driver.css">
@@ -23,6 +24,8 @@
     data-customer-tour-role="{{ $tourRole }}"
     data-customer-tour-page="{{ $tourPage }}"
     data-customer-tour-auto-start="{{ $autoStartTour ? '1' : '0' }}"
+    data-payment-hold-minutes="{{ $tourSettings->paymentHoldMinutes() }}"
+    data-late-grace-minutes="{{ $tourSettings->lateGraceMinutes() }}"
     defer
 ></script>
 <script src="{{ asset('js/customer-tour.js') }}?v={{ filemtime(public_path('js/customer-tour.js')) }}" defer></script>

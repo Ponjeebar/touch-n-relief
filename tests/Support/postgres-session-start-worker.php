@@ -7,6 +7,7 @@ use App\Services\PaymentLedgerService;
 use App\Services\SpaSessionService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 
@@ -25,6 +26,7 @@ if (! file_exists($barrier)) {
 }
 
 $staff = User::query()->findOrFail((int) $staffId);
+Auth::setUser($staff);
 $booking = SpaBooking::query()->findOrFail((int) $bookingId);
 $request = Request::create('/appointments/'.$booking->id.'/start', 'PATCH', [
     'arrival_confirmed' => '1',

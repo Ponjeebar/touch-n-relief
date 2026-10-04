@@ -5,6 +5,7 @@ const baseUrl = 'http://127.0.0.1:8011';
 const requestsPerRoute = 50;
 const concurrency = 10;
 const routes = ['/up', '/', '/login'];
+const p95LimitMs = Number.parseInt(process.env.TNR_SMOKE_P95_LIMIT_MS || '0', 10);
 const server = spawn('php', [
     'artisan',
     'serve',
@@ -70,10 +71,15 @@ async function exerciseRoute(path) {
 
 try {
     await waitForServer();
+    console.log('Local availability smoke test using PHP\'s development server; results are not production capacity measurements.');
     const results = [];
     for (const route of routes) results.push(await exerciseRoute(route));
     console.table(results);
     if (results.some((result) => result.failures > 0)) process.exitCode = 1;
+    if (p95LimitMs > 0 && results.some((result) => result.p95_ms > p95LimitMs)) {
+        console.error(`Availability smoke p95 exceeded the configured ${p95LimitMs} ms limit.`);
+        process.exitCode = 1;
+    }
 } finally {
     if (process.platform === 'win32') {
         spawnSync('taskkill', ['/pid', String(server.pid), '/t', '/f'], { stdio: 'ignore' });

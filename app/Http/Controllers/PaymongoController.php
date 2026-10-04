@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MembershipPurchase;
 use App\Models\SpaBooking;
+use App\Models\Therapist;
 use App\Services\BookingRefundService;
 use App\Services\BookingSlotService;
 use App\Services\MembershipPurchaseService;
@@ -79,7 +80,7 @@ class PaymongoController extends Controller
         $statusMessage = $isPaid
             ? 'Your booking is confirmed with '.$spaBooking->therapist_name.' for '.$spaBooking->service_name.' on '.$dateFormatted.' at '.$spaBooking->time_slot.'. Payment: PayMongo · '.$typeLabel.' · ₱'.number_format($paymentAmount, 2).'.'
             : ($spaBooking->cancelled_at !== null
-                ? 'Your payment arrived after the '.SpaBooking::paymentHoldMinutes().'-minute hold expired and the time was already taken. The appointment was cancelled and the refund is being processed.'
+                ? 'Your payment arrived after the '.SpaBooking::paymentHoldMinutes().'-minute hold expired and the appointment could no longer be served. The appointment was cancelled and the refund is being processed.'
                 : 'Your booking is reserved. Complete payment on PayMongo to confirm your appointment.');
 
         if ($isPaid) {
@@ -658,7 +659,16 @@ class PaymongoController extends Controller
                 $booking->forceFill($updates)->save();
             }
 
-            $this->paymentLedger->recordInitialPayment($booking->fresh());
+            $paidBooking = $booking->fresh();
+            $this->paymentLedger->recordInitialPayment($paidBooking);
+
+            if ($paidBooking->cancelled_at !== null
+                && ! in_array($paidBooking->refund_status, [
+                    BookingRefundService::STATUS_PENDING,
+                    BookingRefundService::STATUS_PROCESSED,
+                ], true)) {
+                $this->refunds->processRefund($paidBooking);
+            }
 
             return;
         }
@@ -670,15 +680,8 @@ class PaymongoController extends Controller
             'paymongo_checkout_session_id' => $sessionId ?? $booking->paymongo_checkout_session_id,
         ];
 
-        if (! $booking->isPaymentHoldExpired()) {
-            $booking->forceFill($paidValues)->save();
-            $this->paymentLedger->recordInitialPayment($booking->fresh());
-
-            return;
-        }
-
-        $hasConflict = DB::transaction(function () use ($booking, $paidValues): bool {
-            // Keep the same therapist-first lock order used while creating bookings.
+        $mustRefund = DB::transaction(function () use ($booking, $paidValues): bool {
+            // Use the same therapist-first lock order as booking creation before the final decision.
             $this->slots->lockTherapistBookingsForUpdate(
                 (string) $booking->therapist_name,
                 $booking->booking_date->format('Y-m-d'),
@@ -690,28 +693,57 @@ class PaymongoController extends Controller
                 return false;
             }
 
-            $hasConflict = $this->slots->bookingHasConflict($locked);
-            if ($hasConflict) {
+            $holdExpired = $locked->isPaymentHoldExpired();
+            $terminal = $this->bookingIsTerminal($locked);
+            $unserviceable = $terminal
+                || ($holdExpired && ! $this->latePaymentCanBeAccepted($locked));
+            if ($unserviceable && ! $terminal) {
                 $paidValues['cancelled_at'] = now();
                 $paidValues['session_status'] = SpaBooking::STATUS_CANCELLED;
-                $paidValues['cancellation_reason'] = 'Automatically cancelled because payment arrived after the '.SpaBooking::paymentHoldMinutes().'-minute hold expired and the selected time was no longer available.';
+                $paidValues['cancellation_reason'] = 'Automatically cancelled because the verified payment arrived after the appointment could no longer be served.';
             }
 
             $locked->forceFill($paidValues)->save();
 
-            return $hasConflict;
+            return $unserviceable;
         });
 
         $this->paymentLedger->recordInitialPayment($booking->fresh());
 
-        if ($hasConflict) {
+        if ($mustRefund) {
             $refunded = $this->refunds->processRefund($booking->fresh());
 
-            Log::warning('Late PayMongo payment conflicted with a booking made after the hold expired.', [
+            Log::warning('Late PayMongo payment could not be applied to a serviceable appointment.', [
                 'booking_id' => $booking->id,
                 'refund_status' => $refunded->refund_status,
             ]);
         }
+    }
+
+    private function latePaymentCanBeAccepted(SpaBooking $booking): bool
+    {
+        if ($this->bookingIsTerminal($booking)) {
+            return false;
+        }
+
+        $bookingDate = $booking->booking_date->format('Y-m-d');
+        if ($this->slots->isPastSlot($bookingDate, (string) $booking->time_slot)
+            || $this->slots->bookingHasConflict($booking)) {
+            return false;
+        }
+
+        return Therapist::query()
+            ->where('name', $booking->therapist_name)
+            ->where('is_active', true)
+            ->exists();
+    }
+
+    private function bookingIsTerminal(SpaBooking $booking): bool
+    {
+        return $booking->cancelled_at !== null
+            || $booking->completed_at !== null
+            || $booking->session_started_at !== null
+            || ! in_array($booking->session_status, [null, SpaBooking::STATUS_CONFIRMED], true);
     }
 
     /**
