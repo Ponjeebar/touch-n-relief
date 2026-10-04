@@ -54,6 +54,7 @@ class DashboardController extends Controller
             ->get();
         $notifications = app(NotificationFeedService::class)->recentBookingNotifications(6);
         $live = $sessions->dashboardSnapshot();
+        $salesTrend = $this->adminSalesTrend();
 
         return view('dashboard', [
             'receptionists' => $receptionists,
@@ -70,7 +71,70 @@ class DashboardController extends Controller
             'therapistCount' => $live['therapist_count'],
             'serverNowIso' => $live['server_now_iso'],
             'appTimezone' => $live['timezone'],
+            'salesTrend' => $salesTrend,
         ]);
+    }
+
+    /**
+     * Build the compact dashboard trend from the same collected-payment sources
+     * used by sales monitoring. Refund entries reduce the total for their date.
+     *
+     * @return array{days: array<int, array{date: string, label: string, amount: float}>, maxAbsolute: float, hasActivity: bool, rangeLabel: string}
+     */
+    private function adminSalesTrend(): array
+    {
+        $end = now()->startOfDay();
+        $start = $end->copy()->subDays(6);
+        $totals = collect();
+
+        PaymentLedgerEntry::query()
+            ->select(['entry_type', 'amount', 'occurred_at'])
+            ->whereBetween('occurred_at', [$start, $end->copy()->endOfDay()])
+            ->get()
+            ->each(function (PaymentLedgerEntry $entry) use ($totals): void {
+                $date = $entry->occurred_at?->toDateString();
+                if ($date === null) {
+                    return;
+                }
+
+                $amount = (float) $entry->amount;
+                if ($entry->entry_type === PaymentLedgerEntry::TYPE_REFUND) {
+                    $amount *= -1;
+                }
+
+                $totals->put($date, (float) $totals->get($date, 0) + $amount);
+            });
+
+        MembershipPurchase::query()
+            ->select(['amount', 'paid_at'])
+            ->where('payment_status', PaymentMethodCatalog::STATUS_PAID)
+            ->whereBetween('paid_at', [$start, $end->copy()->endOfDay()])
+            ->get()
+            ->each(function (MembershipPurchase $purchase) use ($totals): void {
+                $date = $purchase->paid_at?->toDateString();
+                if ($date !== null) {
+                    $totals->put($date, (float) $totals->get($date, 0) + (float) $purchase->amount);
+                }
+            });
+
+        $days = collect(range(0, 6))
+            ->map(function (int $offset) use ($start, $totals): array {
+                $date = $start->copy()->addDays($offset);
+
+                return [
+                    'date' => $date->toDateString(),
+                    'label' => $date->format('D'),
+                    'amount' => round((float) $totals->get($date->toDateString(), 0), 2),
+                ];
+            })
+            ->all();
+
+        return [
+            'days' => $days,
+            'maxAbsolute' => max(1, ...array_map(fn (array $day): float => abs($day['amount']), $days)),
+            'hasActivity' => collect($days)->contains(fn (array $day): bool => $day['amount'] !== 0.0),
+            'rangeLabel' => $start->format('M j').'–'.$end->format('M j, Y'),
+        ];
     }
 
     public function users(): View

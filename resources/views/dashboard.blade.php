@@ -10,8 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
     @include('partials.staff-mobile-style')
@@ -119,93 +117,91 @@
                     </div>
                 @endif
 
-                <nav class="mobile-dashboard-actions" aria-label="Dashboard quick actions">
-                    <a href="{{ route('appointments.index') }}"><i class="bi bi-calendar-plus" aria-hidden="true"></i>Appointments</a>
-                    <a href="{{ route('client-records.index') }}"><i class="bi bi-folder2-open" aria-hidden="true"></i>Client records</a>
-                    <a href="{{ route('reporting.index') }}"><i class="bi bi-bar-chart-line" aria-hidden="true"></i>Reports</a>
-                </nav>
+                <section class="analytics staff-overview staff-overview--admin">
+                    <header class="staff-overview-heading">
+                        <div>
+                            <p class="staff-overview-kicker">Business overview</p>
+                            <h2>Today at TouchNRelief</h2>
+                            <p>Review collections and current operations before opening the detailed reports.</p>
+                        </div>
+                        <div class="staff-overview-actions">
+                            <a class="staff-action-link staff-action-link--primary" href="{{ route('reporting.index') }}">Open sales report</a>
+                            <a class="staff-action-link" href="{{ route('appointments.index') }}">Manage appointments</a>
+                        </div>
+                    </header>
 
-                <section class="analytics">
-                    <div class="metric-grid dashboard-block">
-                        <article class="metric-card">
-                            <div class="metric-label">Total Users</div>
-                            <div class="metric-value">{{ $totalUsers ?? 128 }}</div>
-                            <div class="metric-sub">Registered accounts</div>
-                            <div class="metric-graph">
-                                <canvas id="usersMiniChart" aria-label="Total users mini trend chart"></canvas>
-                            </div>
-                        </article>
-                        <article class="metric-card">
-                            <div class="metric-label">Ongoing Sessions</div>
-                            <div class="metric-value" data-ongoing-sessions-count>{{ $ongoingSessions ?? 0 }}</div>
-                            <div class="metric-sub">Active right now</div>
-                        </article>
-                        <article class="metric-card">
-                            <div class="metric-label">Today's Sales</div>
-                            <div class="metric-value">₱{{ $todaySales ?? 0 }}</div>
-                            <div class="metric-sub">{{ $todayTransactions ?? 0 }} transactions</div>
-                        </article>
-                        <article class="metric-card">
-                            <div class="metric-label">Active Therapists</div>
-                            <div class="metric-value">{{ $activeTherapists ?? 0 }}</div>
-                            <div class="metric-sub">of {{ $therapistCount ?? 0 }} total</div>
-                        </article>
-                        <article class="metric-card">
-                            <div class="metric-label">Upcoming Appointments</div>
-                            <div class="metric-value" data-upcoming-appointments-count>{{ $upcomingAppointments ?? 0 }}</div>
-                            <div class="metric-sub">Scheduled bookings</div>
-                        </article>
+                    <div class="staff-summary" aria-label="Administrator summary">
+                        <dl class="staff-summary-item staff-summary-item--primary">
+                            <dt>Today's sales</dt>
+                            <dd>&#8369;{{ $todaySales ?? 0 }}</dd>
+                            <span>{{ $todayTransactions ?? 0 }} completed transactions</span>
+                        </dl>
+                        <dl class="staff-summary-item">
+                            <dt>Today's appointments</dt>
+                            <dd>{{ $appointmentsToday ?? 0 }}</dd>
+                            <span>Still active today</span>
+                        </dl>
+                        <dl class="staff-summary-item">
+                            <dt>Ongoing sessions</dt>
+                            <dd data-ongoing-sessions-count>{{ $ongoingSessions ?? 0 }}</dd>
+                            <span>Active right now</span>
+                        </dl>
+                        <dl class="staff-summary-item">
+                            <dt>Active therapists</dt>
+                            <dd>{{ $activeTherapists ?? 0 }}<small>/{{ $therapistCount ?? 0 }}</small></dd>
+                            <span>Available staff</span>
+                        </dl>
+                        <dl class="staff-summary-item">
+                            <dt>Receptionist accounts</dt>
+                            <dd>{{ $totalUsers ?? 0 }}</dd>
+                            <span>Active accounts</span>
+                        </dl>
                     </div>
 
-                    <div class="chart-grid dashboard-block">
-                        <article class="data-card">
-                            <div class="card-head">
-                                <h3>Sessions Trend</h3>
+                    <figure class="staff-sales-trend" aria-labelledby="dashboard-sales-trend-title">
+                        <figcaption class="staff-sales-trend-head">
+                            <div>
+                                <h3 id="dashboard-sales-trend-title">7-day net sales</h3>
+                                <p>Collected payments and memberships, less refunds &middot; {{ $salesTrend['rangeLabel'] }}</p>
                             </div>
-                            <canvas id="sessionsChart" aria-label="Sessions trend chart"></canvas>
-                        </article>
-                        <article class="data-card">
-                            <div class="card-head">
-                                <h3>Sales by Service</h3>
-                            </div>
-                            <canvas id="salesChart" aria-label="Sales by service chart"></canvas>
-                        </article>
-                    </div>
+                            <a href="{{ route('reporting.index', ['period' => 'weekly']) }}">View detailed report</a>
+                        </figcaption>
 
-                    <div class="table-grid dashboard-block">
-                        <article class="data-card">
-                            <div class="card-head">
-                                <h3>Current Sessions</h3>
-                            </div>
-                            <div class="session-list">
-                                @forelse ($currentSessions ?? [] as $session)
-                                    <div class="session-item">
-                                        <div class="session-main">
-                                            <strong>{{ $session['client'] }}</strong>
-                                            <span>{{ $session['service'] }} · {{ $session['therapist'] ?? '' }}</span>
+                        @if ($salesTrend['hasActivity'])
+                            <div class="staff-sales-bars" role="img" aria-label="Net sales for the last seven days">
+                                @foreach ($salesTrend['days'] as $day)
+                                    @php($barSize = abs($day['amount']) / $salesTrend['maxAbsolute'] * 46)
+                                    @php($barClass = $day['amount'] < 0 ? ' is-negative' : ($day['amount'] == 0 ? ' is-zero' : ''))
+                                    <div class="staff-sales-day" data-sales-date="{{ $day['date'] }}" data-sales-amount="{{ number_format($day['amount'], 2, '.', '') }}">
+                                        <div class="staff-sales-plot" aria-hidden="true">
+                                            <span class="staff-sales-bar{{ $barClass }}" style="--bar-size: {{ number_format($barSize, 2, '.', '') }}%;"></span>
                                         </div>
-                                        <div class="session-meta">
-                                            <span class="meta-chip progress">{{ $session['progress'] }}</span>
-                                            <span class="meta-chip {{ $session['phase_class'] }}">{{ $session['phase'] }}</span>
-                                        </div>
+                                        <strong>{{ $day['label'] }}</strong>
+                                        <span>{{ $day['amount'] < 0 ? '-' : '' }}&#8369;{{ number_format(abs($day['amount']), 0) }}</span>
                                     </div>
-                                @empty
-                                    <p class="session-list-empty">No ongoing sessions right now.</p>
-                                @endforelse
+                                @endforeach
                             </div>
-                        </article>
+                        @else
+                            <p class="staff-sales-empty">No collected payments or refunds were recorded during this seven-day period.</p>
+                        @endif
+                    </figure>
 
-                        <article class="data-card">
-                            <div class="card-head">
-                                <h3>Today's Appointments</h3>
+                    <div class="staff-workspace-grid">
+                        <section class="staff-workspace staff-workspace--primary" aria-labelledby="admin-today-title">
+                            <div class="staff-workspace-head">
+                                <div>
+                                    <h3 id="admin-today-title">Today's appointments</h3>
+                                    <p>Client, service, therapist, payment, and current status.</p>
+                                </div>
+                                <a href="{{ route('appointments.index') }}">View full schedule</a>
                             </div>
-                            <div class="session-list" data-dashboard-today-appointments>
+                            <div class="session-list staff-operation-list" data-dashboard-today-appointments>
                                 @forelse ($todayAppointments ?? [] as $appointment)
                                     <div class="session-item">
                                         <div class="session-main">
                                             <strong>{{ $appointment['client'] }}</strong>
-                                            <span>{{ $appointment['service'] }} · {{ $appointment['therapist'] ?? '' }}</span>
-                                            @if (!empty($appointment['payment_summary']) && $appointment['payment_summary'] !== '—')
+                                            <span>{{ $appointment['service'] }} &middot; {{ $appointment['therapist'] ?? '' }}</span>
+                                            @if (!empty($appointment['payment_summary']))
                                                 <span class="session-payment">{{ $appointment['payment_summary'] }}</span>
                                             @endif
                                         </div>
@@ -215,12 +211,45 @@
                                         </div>
                                     </div>
                                 @empty
-                                    <p class="session-list-empty">No appointments scheduled for today.</p>
+                                    <p class="staff-empty-state">No appointments scheduled for today.</p>
                                 @endforelse
                             </div>
-                        </article>
-                    </div>
+                        </section>
 
+                        <div class="staff-workspace-side">
+                            <section class="staff-workspace" aria-labelledby="admin-sessions-title">
+                                <div class="staff-workspace-head">
+                                    <div>
+                                        <h3 id="admin-sessions-title">Current sessions</h3>
+                                        <p>Sessions presently in progress.</p>
+                                    </div>
+                                    <a href="{{ route('ongoing-sessions.index') }}">Monitor</a>
+                                </div>
+                                <div class="session-list staff-operation-list">
+                                    @forelse ($currentSessions ?? [] as $session)
+                                        <div class="session-item">
+                                            <div class="session-main">
+                                                <strong>{{ $session['client'] }}</strong>
+                                                <span>{{ $session['service'] }} &middot; {{ $session['therapist'] ?? '' }}</span>
+                                            </div>
+                                            <div class="session-meta">
+                                                <span class="meta-chip progress">{{ $session['progress'] }}</span>
+                                                <span class="meta-chip {{ $session['phase_class'] }}">{{ $session['phase'] }}</span>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <p class="staff-empty-state">No ongoing sessions right now.</p>
+                                    @endforelse
+                                </div>
+                            </section>
+
+                            <nav class="staff-management-links" aria-label="Administrator management links">
+                                <a href="{{ route('reporting.index') }}"><span>Sales monitoring</span><small>Ledger, reconciliation, balances</small><i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                                <a href="{{ route('users.index') }}"><span>User accounts</span><small>Receptionists and customers</small><i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                                <a href="{{ route('therapist-tracking.index', ['manage' => 1]) }}"><span>Therapist management</span><small>Availability and service hours</small><i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                            </nav>
+                        </div>
+                    </div>
                     <article class="data-card users-panel hidden-section" id="users-view">
                         <div class="card-head users-head">
                             <h3>Receptionist Users</h3>
@@ -448,379 +477,6 @@
         </div>
     </div>
     <script>
-        if (window.Chart) {
-            const sessionsCtx = document.getElementById('sessionsChart');
-            if (sessionsCtx) {
-                new Chart(sessionsCtx, {
-                    type: 'line',
-                    data: {
-                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                        datasets: [{
-                            label: 'Sessions',
-                            data: [8, 11, 10, 14, 12, 9, 13],
-                            borderColor: '#4f6d8c',
-                            backgroundColor: 'rgba(79, 109, 140, 0.18)',
-                            tension: 0.35,
-                            fill: true,
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { grid: { display: false } },
-                            y: { beginAtZero: true, ticks: { stepSize: 5 } }
-                        }
-                    }
-                });
-            }
-
-            const salesCtx = document.getElementById('salesChart');
-            if (salesCtx) {
-                new Chart(salesCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: [
-                            'Deep Tissue',
-                            'Swedish Massage',
-                            'Aromatherapy',
-                            'Sports Massage',
-                            'Hot Stone',
-                            'Foot Reflexology',
-                            'Prenatal Massage'
-                        ],
-                        datasets: [{
-                            data: [35, 24, 21, 20, 15, 12, 9],
-                            backgroundColor: ['#4f6d8c', '#2f8f83', '#2f9d62', '#c95a7b', '#f0a74d', '#7f8c8d', '#8e44ad'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    boxWidth: 14,
-                                    boxHeight: 14,
-                                    font: {
-                                        size: 12
-                                    }
-                                }
-                            },
-                            datalabels: {
-                                color: '#ffffff',
-                                formatter: (value) => value,
-                                font: {
-                                    weight: '700',
-                                    size: 14
-                                }
-                            }
-                        },
-                        cutout: '64%'
-                    },
-                    plugins: [ChartDataLabels]
-                });
-            }
-
-            const usersMiniCtx = document.getElementById('usersMiniChart');
-            if (usersMiniCtx) {
-                new Chart(usersMiniCtx, {
-                    type: 'line',
-                    data: {
-                        labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'],
-                        datasets: [{
-                            data: [88, 96, 104, 112, 121, 128],
-                            borderColor: '#2f8f83',
-                            backgroundColor: 'rgba(47, 143, 131, 0.14)',
-                            tension: 0.4,
-                            fill: true,
-                            borderWidth: 2,
-                            pointRadius: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                        scales: {
-                            x: { display: false },
-                            y: { display: false }
-                        },
-                        elements: {
-                            line: { capBezierPoints: true }
-                        }
-                    }
-                });
-            }
-        }
-
-        const dashboardNavLink = document.getElementById('dashboard-nav-link');
-        const usersNavLink = document.getElementById('users-nav-link');
-        const dashboardBlocks = document.querySelectorAll('.dashboard-block');
-        const usersView = document.getElementById('users-view');
-        const pageTitle = document.querySelector('.welcome h1');
-        const toggleAddReceptionist = document.getElementById('toggle-add-receptionist');
-        const profileModal = document.getElementById('profile-modal');
-        const closeProfileModal = document.getElementById('close-profile-modal');
-        const profileModalCancel = document.getElementById('profile-modal-cancel');
-        const addReceptionistModal = document.getElementById('add-receptionist-modal');
-        const closeAddReceptionistModal = document.getElementById('close-add-receptionist-modal');
-        const addModalCancel = document.getElementById('add-modal-cancel');
-        const editReceptionistModal = document.getElementById('edit-receptionist-modal');
-        const closeEditReceptionistModal = document.getElementById('close-edit-receptionist-modal');
-        const editModalCancel = document.getElementById('edit-modal-cancel');
-        const editReceptionistForm = document.getElementById('edit-receptionist-form');
-        const editModalReceptionistId = document.getElementById('edit-modal-receptionist-id');
-        const editModalFullName = document.getElementById('edit-modal-full-name');
-        const editModalUsername = document.getElementById('edit-modal-username');
-        const editModalEmail = document.getElementById('edit-modal-email');
-        const editModalShift = document.getElementById('edit-modal-shift');
-        const modalProfileImage = document.getElementById('modal-profile-image');
-        const modalProfileFallback = document.getElementById('modal-profile-fallback');
-        const modalFullName = document.getElementById('modal-full-name');
-        const modalUsername = document.getElementById('modal-username');
-        const modalReceptionistId = document.getElementById('modal-receptionist-id');
-        const modalEmail = document.getElementById('modal-email');
-        const modalShift = document.getElementById('modal-shift');
-        const openDashboardNotificationsBtn = document.querySelector('[data-open-dashboard-notifications="true"]');
-        const dashboardNotificationsPanel = document.getElementById('dashboard-notifications');
-        const markDashboardReadBtn = document.querySelector('[data-mark-dashboard-read="true"]');
-        const dashboardNoteItems = dashboardNotificationsPanel?.querySelectorAll('.dashboard-note');
-        const pageBadge = document.querySelector('[data-page-notif-badge="true"], [data-page-notif-badge]');
-
-        function updatePageBadge() {
-            if (!pageBadge) return;
-            const unreadCount = document.querySelectorAll('.dashboard-note.note-unread').length;
-            pageBadge.textContent = String(unreadCount);
-
-            if (markDashboardReadBtn) {
-                markDashboardReadBtn.disabled = unreadCount === 0;
-            }
-        }
-
-        updatePageBadge();
-
-        dashboardNotificationsPanel?.addEventListener('click', (event) => {
-            const target = event.target;
-            if (!(target instanceof HTMLElement)) return;
-            const note = target.closest('[data-notif-key]');
-            if (!(note instanceof HTMLElement)) return;
-            note.classList.remove('note-unread');
-            note.classList.add('note-read');
-            updatePageBadge();
-        });
-
-        function showDashboardView() {
-            dashboardBlocks.forEach((block) => block.classList.remove('hidden-section'));
-            usersView?.classList.add('hidden-section');
-            dashboardNavLink?.classList.add('active');
-            usersNavLink?.classList.remove('active');
-            if (pageTitle) pageTitle.textContent = 'Dashboard';
-        }
-
-        function showUsersView() {
-            dashboardBlocks.forEach((block) => block.classList.add('hidden-section'));
-            usersView?.classList.remove('hidden-section');
-            usersView?.classList.add('users-only-view');
-            dashboardNavLink?.classList.remove('active');
-            usersNavLink?.classList.add('active');
-            if (pageTitle) pageTitle.textContent = 'Users';
-        }
-
-        dashboardNavLink?.addEventListener('click', (event) => {
-            event.preventDefault();
-            showDashboardView();
-        });
-
-        usersNavLink?.addEventListener('click', (event) => {
-            event.preventDefault();
-            showUsersView();
-        });
-
-        openDashboardNotificationsBtn?.addEventListener('click', (event) => {
-            event.stopPropagation();
-            if (!dashboardNotificationsPanel) return;
-            const willOpen = dashboardNotificationsPanel.classList.contains('hidden-section');
-            dashboardNotificationsPanel.classList.toggle('hidden-section');
-            openDashboardNotificationsBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-        });
-
-        document.addEventListener('click', (event) => {
-            const target = event.target;
-            if (!(target instanceof HTMLElement)) return;
-            if (!dashboardNotificationsPanel || dashboardNotificationsPanel.classList.contains('hidden-section')) return;
-
-            const clickedBell = target.closest('[data-open-dashboard-notifications="true"]');
-            const clickedPanel = target.closest('#dashboard-notifications');
-            if (!clickedBell && !clickedPanel) {
-                dashboardNotificationsPanel.classList.add('hidden-section');
-                openDashboardNotificationsBtn?.setAttribute('aria-expanded', 'false');
-            }
-        });
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key !== 'Escape') return;
-            dashboardNotificationsPanel?.classList.add('hidden-section');
-            openDashboardNotificationsBtn?.setAttribute('aria-expanded', 'false');
-        });
-
-        markDashboardReadBtn?.addEventListener('click', () => {
-            dashboardNotificationsPanel?.querySelectorAll('.dashboard-note').forEach((note) => {
-                note.classList.remove('note-unread');
-                note.classList.add('note-read');
-            });
-            updatePageBadge();
-            markDashboardReadBtn.disabled = true;
-            markDashboardReadBtn.setAttribute('aria-label', 'All notifications read');
-            markDashboardReadBtn.title = 'All notifications read';
-        });
-
-        function openAddReceptionistModal() {
-            addReceptionistModal?.classList.remove('hidden-section');
-            document.body.classList.add('modal-open');
-        }
-
-        function hideAddReceptionistModal() {
-            addReceptionistModal?.classList.add('hidden-section');
-            document.body.classList.remove('modal-open');
-        }
-
-        toggleAddReceptionist?.addEventListener('click', openAddReceptionistModal);
-        closeAddReceptionistModal?.addEventListener('click', hideAddReceptionistModal);
-        addModalCancel?.addEventListener('click', hideAddReceptionistModal);
-        addReceptionistModal?.addEventListener('click', (event) => {
-            const target = event.target;
-            if (target instanceof HTMLElement && target.dataset.closeAddModal === 'true') {
-                hideAddReceptionistModal();
-            }
-        });
-
-        function openEditReceptionistModal(button) {
-            const updateUrl = button.getAttribute('data-update-url') ?? '';
-            if (editReceptionistForm && updateUrl) {
-                editReceptionistForm.action = updateUrl;
-            }
-
-            if (editModalReceptionistId) editModalReceptionistId.value = button.getAttribute('data-receptionist-id') ?? '';
-            if (editModalFullName) editModalFullName.value = button.getAttribute('data-full-name') ?? '';
-            if (editModalUsername) editModalUsername.value = button.getAttribute('data-username') ?? '';
-            if (editModalEmail) editModalEmail.value = button.getAttribute('data-email') ?? '';
-            if (editModalShift) editModalShift.value = button.getAttribute('data-shift') ?? '';
-
-            editReceptionistModal?.classList.remove('hidden-section');
-            document.body.classList.add('modal-open');
-        }
-
-        function hideEditReceptionistModal() {
-            editReceptionistModal?.classList.add('hidden-section');
-            document.body.classList.remove('modal-open');
-        }
-
-        document.querySelectorAll('.edit-receptionist-btn').forEach((button) => {
-            button.addEventListener('click', () => openEditReceptionistModal(button));
-        });
-        closeEditReceptionistModal?.addEventListener('click', hideEditReceptionistModal);
-        editModalCancel?.addEventListener('click', hideEditReceptionistModal);
-        editReceptionistModal?.addEventListener('click', (event) => {
-            const target = event.target;
-            if (target instanceof HTMLElement && target.dataset.closeEditModal === 'true') {
-                hideEditReceptionistModal();
-            }
-        });
-
-        const deleteReceptionistModal = document.getElementById('delete-receptionist-modal');
-        const deleteReceptionistForm = document.getElementById('delete-receptionist-form');
-        const deleteReceptionistName = document.getElementById('delete-receptionist-name');
-        const deleteReceptionistConfirm = document.getElementById('delete-receptionist-confirm');
-
-        function openDeleteReceptionistModal(button) {
-            const url = button.getAttribute('data-delete-url') ?? '';
-            const name = button.getAttribute('data-receptionist-name') ?? 'this receptionist';
-            if (deleteReceptionistForm && url) deleteReceptionistForm.action = url;
-            if (deleteReceptionistName) deleteReceptionistName.textContent = name;
-            deleteReceptionistModal?.classList.remove('hidden-section');
-            document.body.classList.add('modal-open');
-            deleteReceptionistConfirm?.focus();
-        }
-
-        function closeDeleteReceptionistModal() {
-            deleteReceptionistModal?.classList.add('hidden-section');
-            document.body.classList.remove('modal-open');
-            if (deleteReceptionistForm) deleteReceptionistForm.action = '';
-        }
-
-        document.querySelectorAll('.delete-receptionist-btn').forEach((button) => {
-            button.addEventListener('click', () => openDeleteReceptionistModal(button));
-        });
-        deleteReceptionistModal?.querySelectorAll('[data-close-delete-modal]').forEach((el) => {
-            el.addEventListener('click', closeDeleteReceptionistModal);
-        });
-        deleteReceptionistConfirm?.addEventListener('click', () => deleteReceptionistForm?.submit());
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && deleteReceptionistModal && !deleteReceptionistModal.classList.contains('hidden-section')) {
-                closeDeleteReceptionistModal();
-            }
-        });
-
-        function openProfileModal(button) {
-            const fullName = button.getAttribute('data-full-name') ?? '';
-            const username = button.getAttribute('data-username') ?? '';
-            const receptionistId = button.getAttribute('data-receptionist-id') ?? '';
-            const email = button.getAttribute('data-email') ?? '';
-            const shift = button.getAttribute('data-shift') ?? '';
-            const profilePicture = button.getAttribute('data-profile-picture') ?? '';
-
-            if (modalFullName) modalFullName.value = fullName;
-            if (modalUsername) modalUsername.value = username;
-            if (modalReceptionistId) modalReceptionistId.value = receptionistId;
-            if (modalEmail) modalEmail.value = email;
-            if (modalShift) modalShift.value = shift;
-
-            if (profilePicture && modalProfileImage && modalProfileFallback) {
-                modalProfileImage.src = profilePicture;
-                modalProfileImage.classList.remove('hidden-section');
-                modalProfileFallback.classList.add('hidden-section');
-            } else if (modalProfileFallback && modalProfileImage) {
-                modalProfileFallback.textContent = (username || 'RP').substring(0, 2).toUpperCase();
-                modalProfileFallback.classList.remove('hidden-section');
-                modalProfileImage.classList.add('hidden-section');
-            }
-
-            profileModal?.classList.remove('hidden-section');
-            document.body.classList.add('modal-open');
-        }
-
-        function hideProfileModal() {
-            profileModal?.classList.add('hidden-section');
-            document.body.classList.remove('modal-open');
-        }
-
-        document.querySelectorAll('.view-profile-btn').forEach((button) => {
-            button.addEventListener('click', () => openProfileModal(button));
-        });
-        closeProfileModal?.addEventListener('click', hideProfileModal);
-        profileModalCancel?.addEventListener('click', hideProfileModal);
-        profileModal?.addEventListener('click', (event) => {
-            const target = event.target;
-            if (target instanceof HTMLElement && target.dataset.closeModal === 'true') {
-                hideProfileModal();
-            }
-        });
-
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('section') === 'users' || params.has('profile') || params.has('edit')) {
-            showUsersView();
-        }
-        @if ($errors->any())
-            showUsersView();
-            openAddReceptionistModal();
-        @endif
-
         const statusToast = document.getElementById('status-toast');
         if (statusToast) {
             const closeBtn = statusToast.querySelector('.toast-close');

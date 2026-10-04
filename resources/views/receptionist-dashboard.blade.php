@@ -10,8 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <link rel="stylesheet" href="{{ asset('css/receptionist-dashboard.css') }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
     @include('partials.staff-mobile-style')
@@ -120,85 +118,58 @@
                     </div>
                 @endif
 
-                <nav class="mobile-dashboard-actions" aria-label="Dashboard quick actions">
-                    <a href="{{ route('appointments.index') }}"><i class="bi bi-calendar-plus" aria-hidden="true"></i>Appointments</a>
-                    <a href="{{ route('client-records.index') }}"><i class="bi bi-folder2-open" aria-hidden="true"></i>Client records</a>
-                    <a href="{{ route('therapist-tracking.index') }}"><i class="bi bi-activity" aria-hidden="true"></i>Therapists</a>
-                </nav>
+                <section class="analytics staff-overview staff-overview--receptionist">
+                    <header class="staff-overview-heading">
+                        <div>
+                            <p class="staff-overview-kicker">Front desk</p>
+                            <h2>Today's service desk</h2>
+                            <p>Keep arrivals, payments, therapists, and active sessions moving.</p>
+                        </div>
+                        <div class="staff-overview-actions">
+                            <a class="staff-action-link staff-action-link--primary" href="{{ route('appointments.index') }}">Create appointment</a>
+                            <a class="staff-action-link" href="{{ route('client-records.index') }}">Find client</a>
+                        </div>
+                    </header>
 
-                <section class="analytics">
-                    <div class="metric-grid receptionist-metric-grid">
-                        <article class="metric-card">
-                            <div class="metric-label">Ongoing Sessions</div>
-                            <div class="metric-value" data-ongoing-sessions-count>{{ $ongoingSessions ?? 0 }}</div>
-                            <div class="metric-sub">Active right now</div>
-                        </article>
-                        <article class="metric-card">
-                            <div class="metric-label">Today's Sales</div>
-                            <div class="metric-value">₱{{ $todaySales ?? 0 }}</div>
-                            <div class="metric-sub">{{ $todayTransactions ?? 0 }} transactions</div>
-                        </article>
-                        <article class="metric-card">
-                            <div class="metric-label">Active Therapists</div>
-                            <div class="metric-value">{{ $activeTherapists ?? 0 }}</div>
-                            <div class="metric-sub">of {{ $therapistCount ?? 0 }} total</div>
-                        </article>
-                        <article class="metric-card">
-                            <div class="metric-label">Upcoming Appointments</div>
-                            <div class="metric-value" data-upcoming-appointments-count>{{ $upcomingAppointments ?? 0 }}</div>
-                            <div class="metric-sub">Scheduled bookings</div>
-                        </article>
+                    <div class="staff-summary" aria-label="Receptionist summary">
+                        <dl class="staff-summary-item staff-summary-item--primary">
+                            <dt>Today's appointments</dt>
+                            <dd>{{ $appointmentsToday ?? 0 }}</dd>
+                            <span>Still active today</span>
+                        </dl>
+                        <dl class="staff-summary-item">
+                            <dt>Ongoing sessions</dt>
+                            <dd data-ongoing-sessions-count>{{ $ongoingSessions ?? 0 }}</dd>
+                            <span>Active right now</span>
+                        </dl>
+                        <dl class="staff-summary-item">
+                            <dt>Upcoming appointments</dt>
+                            <dd data-upcoming-appointments-count>{{ $upcomingAppointments ?? 0 }}</dd>
+                            <span>From now onward</span>
+                        </dl>
+                        <dl class="staff-summary-item">
+                            <dt>Active therapists</dt>
+                            <dd>{{ $activeTherapists ?? 0 }}<small>/{{ $therapistCount ?? 0 }}</small></dd>
+                            <span>Available staff</span>
+                        </dl>
                     </div>
 
-                    <div class="chart-grid">
-                        <article class="data-card">
-                            <div class="card-head">
-                                <h3>Sessions Trend</h3>
+                    <div class="staff-workspace-grid staff-workspace-grid--frontdesk">
+                        <section class="staff-workspace staff-workspace--primary" aria-labelledby="frontdesk-today-title">
+                            <div class="staff-workspace-head">
+                                <div>
+                                    <h3 id="frontdesk-today-title">Today's appointments</h3>
+                                    <p>Collect balances, reschedule, start sessions, or confirm no-shows from the full schedule.</p>
+                                </div>
+                                <a href="{{ route('appointments.index') }}">Open schedule</a>
                             </div>
-                            <canvas id="sessionsChart" aria-label="Sessions trend chart"></canvas>
-                        </article>
-                        <article class="data-card">
-                            <div class="card-head">
-                                <h3>Sales by Service</h3>
-                            </div>
-                            <canvas id="salesChart" aria-label="Sales by service chart"></canvas>
-                        </article>
-                    </div>
-
-                    <div class="table-grid">
-                        <article class="data-card">
-                            <div class="card-head">
-                                <h3>Current Sessions</h3>
-                            </div>
-                            <div class="session-list">
-                                @forelse ($currentSessions ?? [] as $session)
-                                    <div class="session-item">
-                                        <div class="session-main">
-                                            <strong>{{ $session['client'] }}</strong>
-                                            <span>{{ $session['service'] }} · {{ $session['therapist'] ?? '' }}</span>
-                                        </div>
-                                        <div class="session-meta">
-                                            <span class="meta-chip progress">{{ $session['progress'] }}</span>
-                                            <span class="meta-chip {{ $session['phase_class'] }}">{{ $session['phase'] }}</span>
-                                        </div>
-                                    </div>
-                                @empty
-                                    <p class="session-list-empty">No ongoing sessions right now.</p>
-                                @endforelse
-                            </div>
-                        </article>
-
-                        <article class="data-card">
-                            <div class="card-head">
-                                <h3>Today's Appointments</h3>
-                            </div>
-                            <div class="session-list" data-dashboard-today-appointments>
+                            <div class="session-list staff-operation-list" data-dashboard-today-appointments>
                                 @forelse ($todayAppointments ?? [] as $appointment)
                                     <div class="session-item">
                                         <div class="session-main">
                                             <strong>{{ $appointment['client'] }}</strong>
-                                            <span>{{ $appointment['service'] }} · {{ $appointment['therapist'] ?? '' }}</span>
-                                            @if (!empty($appointment['payment_summary']) && $appointment['payment_summary'] !== '—')
+                                            <span>{{ $appointment['service'] }} &middot; {{ $appointment['therapist'] ?? '' }}</span>
+                                            @if (!empty($appointment['payment_summary']))
                                                 <span class="session-payment">{{ $appointment['payment_summary'] }}</span>
                                             @endif
                                         </div>
@@ -208,95 +179,42 @@
                                         </div>
                                     </div>
                                 @empty
-                                    <p class="session-list-empty">No appointments scheduled for today.</p>
+                                    <p class="staff-empty-state">No appointments scheduled for today.</p>
                                 @endforelse
                             </div>
-                        </article>
+                        </section>
+
+                        <section class="staff-workspace" aria-labelledby="frontdesk-sessions-title">
+                            <div class="staff-workspace-head">
+                                <div>
+                                    <h3 id="frontdesk-sessions-title">Ongoing sessions</h3>
+                                    <p>Current progress by customer and therapist.</p>
+                                </div>
+                                <a href="{{ route('ongoing-sessions.index') }}">Monitor</a>
+                            </div>
+                            <div class="session-list staff-operation-list">
+                                @forelse ($currentSessions ?? [] as $session)
+                                    <div class="session-item">
+                                        <div class="session-main">
+                                            <strong>{{ $session['client'] }}</strong>
+                                            <span>{{ $session['service'] }} &middot; {{ $session['therapist'] ?? '' }}</span>
+                                        </div>
+                                        <div class="session-meta">
+                                            <span class="meta-chip progress">{{ $session['progress'] }}</span>
+                                            <span class="meta-chip {{ $session['phase_class'] }}">{{ $session['phase'] }}</span>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <p class="staff-empty-state">No ongoing sessions right now.</p>
+                                @endforelse
+                            </div>
+                        </section>
                     </div>
                 </section>
             </main>
         </div>
     </div>
     <script>
-        if (window.Chart) {
-            const sessionsCtx = document.getElementById('sessionsChart');
-            if (sessionsCtx) {
-                new Chart(sessionsCtx, {
-                    type: 'line',
-                    data: {
-                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                        datasets: [{
-                            label: 'Sessions',
-                            data: [8, 11, 10, 14, 12, 9, 13],
-                            borderColor: '#4f6d8c',
-                            backgroundColor: 'rgba(79, 109, 140, 0.18)',
-                            tension: 0.35,
-                            fill: true,
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { grid: { display: false } },
-                            y: { beginAtZero: true, ticks: { stepSize: 5 } }
-                        }
-                    }
-                });
-            }
-
-            const salesCtx = document.getElementById('salesChart');
-            if (salesCtx) {
-                new Chart(salesCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: [
-                            'Deep Tissue',
-                            'Swedish Massage',
-                            'Aromatherapy',
-                            'Sports Massage',
-                            'Hot Stone',
-                            'Foot Reflexology',
-                            'Prenatal Massage'
-                        ],
-                        datasets: [{
-                            data: [35, 24, 21, 20, 15, 12, 9],
-                            backgroundColor: ['#4f6d8c', '#2f8f83', '#2f9d62', '#c95a7b', '#f0a74d', '#7f8c8d', '#8e44ad'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    boxWidth: 14,
-                                    boxHeight: 14,
-                                    font: {
-                                        size: 12
-                                    }
-                                }
-                            },
-                            datalabels: {
-                                color: '#ffffff',
-                                formatter: (value) => value,
-                                font: {
-                                    weight: '700',
-                                    size: 14
-                                }
-                            }
-                        },
-                        cutout: '64%'
-                    },
-                    plugins: [ChartDataLabels]
-                });
-            }
-        }
-
         const statusToast = document.getElementById('status-toast');
         if (statusToast) {
             const closeBtn = statusToast.querySelector('.toast-close');

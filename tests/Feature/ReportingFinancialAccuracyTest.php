@@ -109,6 +109,52 @@ class ReportingFinancialAccuracyTest extends TestCase
         $this->assertSame(-50, (int) $payload['trendData'][11]);
     }
 
+    public function test_admin_dashboard_chart_uses_collections_memberships_and_refunds(): void
+    {
+        Carbon::setTestNow('2026-10-04 12:00:00');
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::query()->create([
+            'user_id' => $customer->id,
+            'client_name' => $customer->name,
+            'service_name' => 'Aromatherapy',
+            'therapist_name' => 'Liza Reyes',
+            'booking_date' => '2026-10-04',
+            'time_slot' => '10:00 AM',
+            'amount' => 300,
+        ]);
+
+        PaymentLedgerEntry::query()->create([
+            'spa_booking_id' => $booking->id,
+            'entry_type' => PaymentLedgerEntry::TYPE_INITIAL_PAYMENT,
+            'amount' => 200,
+            'occurred_at' => '2026-10-03 10:00:00',
+        ]);
+        PaymentLedgerEntry::query()->create([
+            'spa_booking_id' => $booking->id,
+            'entry_type' => PaymentLedgerEntry::TYPE_REFUND,
+            'amount' => 50,
+            'occurred_at' => '2026-10-03 11:00:00',
+        ]);
+        MembershipPurchase::query()->create([
+            'user_id' => $customer->id,
+            'plan_name' => 'Annual Membership',
+            'validity_days' => 365,
+            'amount' => 25,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'status' => MembershipPurchase::STATUS_ACTIVE,
+            'paid_at' => '2026-10-03 12:00:00',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('7-day net sales')
+            ->assertSee('data-sales-date="2026-10-03"', false)
+            ->assertSee('data-sales-amount="175.00"', false)
+            ->assertSee('Collected payments and memberships, less refunds');
+    }
+
     public function test_excel_workbook_is_formatted_and_contains_complete_payment_ledger(): void
     {
         Carbon::setTestNow('2026-09-27 18:00:00');
