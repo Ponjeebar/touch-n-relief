@@ -128,6 +128,20 @@ test('package and membership section stays readable on mobile and desktop', asyn
 
         const section = page.locator('#packages');
         await section.scrollIntoViewIfNeeded();
+        const eyebrowContrast = await section.locator('.catalog-section-heading .section-eyebrow').evaluate((element) => {
+            const parseRgb = (value) => value.match(/[\d.]+/g).slice(0, 3).map(Number);
+            const luminance = (rgb) => {
+                const channels = rgb.map((value) => {
+                    const channel = value / 255;
+                    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+                });
+                return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
+            };
+            const foreground = luminance(parseRgb(getComputedStyle(element).color));
+            const background = luminance(parseRgb(getComputedStyle(element.closest('.package-membership')).backgroundColor));
+            return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
+        });
+        expect(eyebrowContrast).toBeGreaterThanOrEqual(4.5);
         const packageCount = await section.locator('.package-card').count();
         expect(packageCount).toBeGreaterThan(0);
         await expect(section.getByText('Included treatments')).toHaveCount(packageCount);

@@ -95,6 +95,10 @@ html[data-theme="dark"] .package-membership {
     background: #141d1a;
 }
 
+html[data-theme="dark"] .catalog-section-heading .section-eyebrow {
+    color: #bce4d3;
+}
+
 html[data-theme="dark"] .package-pricing {
     border-color: rgba(179, 220, 204, 0.14);
 }
@@ -1071,6 +1075,10 @@ html[data-theme="dark"] .landing-theme-icon-light {
     max-width: 680px;
     margin: 0 auto 2.4rem;
     text-align: center;
+}
+
+.catalog-section-heading .section-eyebrow {
+    color: #365f53;
 }
 
 .catalog-section-heading h2,
