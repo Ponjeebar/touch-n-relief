@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class NoShowService
 {
+    public const ACCOUNT_RESTRICTION_THRESHOLD = 3;
+
     public const REVIEW_WINDOW_MINUTES = 5;
 
     public const AUTOMATIC_NO_SHOW_MINUTES = SpaSessionService::START_GRACE_MINUTES + self::REVIEW_WINDOW_MINUTES;
@@ -56,7 +58,7 @@ class NoShowService
                 ->count();
 
             $banned = false;
-            if ($noShowCount >= 3 && $customer->isUser() && ! $customer->isWalkIn()) {
+            if ($noShowCount >= self::ACCOUNT_RESTRICTION_THRESHOLD && $customer->isUser() && ! $customer->isWalkIn()) {
                 $customer->forceFill(['banned_at' => $customer->banned_at ?? now()])->save();
                 $banned = true;
             }

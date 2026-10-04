@@ -24,7 +24,7 @@
                     </div>
                     <div class="profile-field">
                         <label for="cr-add-birthday">Birthday</label>
-                        <input id="cr-add-birthday" type="date" name="birthday" value="{{ old('return_to') === $crAddReturnTo ? old('birthday', '') : '' }}">
+                        <input id="cr-add-birthday" type="date" name="birthday" max="{{ \App\Support\CustomerEligibility::latestEligibleBirthday() }}" value="{{ old('return_to') === $crAddReturnTo ? old('birthday', '') : '' }}">
                     </div>
                     <div class="profile-field">
                         <label for="cr-add-number">Number</label>
@@ -64,7 +64,7 @@
                 </div>
                 <div class="profile-field">
                     <label for="cr-edit-customer-birthday">Birthday</label>
-                    <input type="date" name="birthday" id="cr-edit-customer-birthday">
+                    <input type="date" name="birthday" id="cr-edit-customer-birthday" max="{{ \App\Support\CustomerEligibility::latestEligibleBirthday() }}">
                 </div>
                 <div class="profile-field">
                     <label for="cr-edit-customer-number">Number</label>

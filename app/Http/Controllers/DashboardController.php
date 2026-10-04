@@ -11,12 +11,12 @@ use App\Models\Receptionist;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\Therapist;
-use App\Models\TimeSlot;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\BackupRecoveryService;
 use App\Services\BookingSlotService;
 use App\Services\NotificationFeedService;
+use App\Services\NoShowService;
 use App\Services\PaymentLedgerService;
 use App\Services\ReportingPdfChartService;
 use App\Services\ReportingSpreadsheetService;
@@ -26,8 +26,10 @@ use App\Services\SpaSessionService;
 use App\Services\TherapistAvailabilityService;
 use App\Services\TherapistCatalog;
 use App\Services\WalkInClientService;
+use App\Support\CustomerEligibility;
 use App\Support\PaymentMethodCatalog;
 use App\Support\SensitiveInput;
+use App\Support\StrongPassword;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -307,13 +309,14 @@ class DashboardController extends Controller
     {
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
-            'birthday' => ['nullable', 'date'],
+            'birthday' => ['nullable', 'date', CustomerEligibility::birthdayRule()],
             'number' => ['nullable', 'regex:/^09\d{9}$/'],
             'email' => ['required', 'email', 'max:255', 'unique:customers,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', StrongPassword::rule()],
             'return_to' => ['nullable', 'string', 'in:users.index,client-records.index,client-records.show'],
         ], [
             'number.regex' => 'Phone number must be 11 digits starting with 09.',
+            'birthday.before_or_equal' => CustomerEligibility::birthdayMessage(),
         ]);
 
         $returnTo = $validated['return_to'] ?? 'users.index';
@@ -338,13 +341,14 @@ class DashboardController extends Controller
     {
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
-            'birthday' => ['nullable', 'date'],
+            'birthday' => ['nullable', 'date', CustomerEligibility::birthdayRule()],
             'number' => ['nullable', 'regex:/^09\d{9}$/'],
             'email' => ['required', 'email', 'max:255', 'unique:customers,email,'.$customer->id],
-            'password' => ['nullable', 'string', 'min:8'],
+            'password' => ['nullable', 'string', StrongPassword::rule()],
             'return_to' => ['nullable', 'string', 'in:users.index,client-records.index,client-records.show'],
         ], [
             'number.regex' => 'Phone number must be 11 digits starting with 09.',
+            'birthday.before_or_equal' => CustomerEligibility::birthdayMessage(),
         ]);
 
         $returnTo = $validated['return_to'] ?? 'users.index';
@@ -432,15 +436,8 @@ class DashboardController extends Controller
 
     private function ensureCatalogSeeded(): void
     {
-        app(TherapistCatalog::class)->ensureSeeded();
-        app(SpaServiceCatalog::class)->ensureSeeded();
         app(SiteSettingsService::class)->ensureSeeded();
 
-        $slots = app(BookingSlotService::class);
-        if ($slots->tablesReady() && TimeSlot::query()->count() === 0) {
-            $slots->seedDefaults();
-        }
-        $slots->attachDefaultSlotsForServicesWithoutSchedule();
     }
 
     private function redirectAfterCustomerWrite(string $returnTo, ?Customer $customer, string $message): RedirectResponse
@@ -804,147 +801,6 @@ class DashboardController extends Controller
 
         $notifications = app(NotificationFeedService::class)->recentBookingNotifications(6);
 
-        $appointments = collect([
-            [
-                'client' => 'Otis Wright',
-                'service' => 'Deep Tissue',
-                'therapist' => 'Maria Santos',
-                'date' => 'Jun 10, 2026',
-                'time' => '08:00 AM - 09:30 AM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Zayd Wilson',
-                'service' => 'Swedish Massage',
-                'therapist' => 'Angela Fernandez',
-                'date' => 'Jun 10, 2026',
-                'time' => '10:00 AM - 11:00 AM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Penny Taylor',
-                'service' => 'Aromatherapy',
-                'therapist' => 'Liza Reyes',
-                'date' => 'Jun 10, 2026',
-                'time' => '11:30 AM - 01:00 PM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Francisca Davis',
-                'service' => 'Sports Massage',
-                'therapist' => 'Carlo Ramos',
-                'date' => 'Jun 10, 2026',
-                'time' => '09:00 AM - 10:10 AM',
-                'status' => 'Cancelled',
-            ],
-            [
-                'client' => 'Norman Thomas',
-                'service' => 'Hot Stone',
-                'therapist' => 'Maria Santos',
-                'date' => 'Jun 10, 2026',
-                'time' => '10:30 AM - 12:00 PM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Elliot Price',
-                'service' => 'Foot Reflexology',
-                'therapist' => 'Angela Fernandez',
-                'date' => 'Jun 10, 2026',
-                'time' => '01:20 PM - 02:00 PM',
-                'status' => 'Cancelled',
-            ],
-            [
-                'client' => 'Rosie Jenkins',
-                'service' => 'Prenatal Massage',
-                'therapist' => 'Liza Reyes',
-                'date' => 'Jun 10, 2026',
-                'time' => '09:30 AM - 11:20 AM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Camila Torres',
-                'service' => 'Aromatherapy',
-                'therapist' => 'Angela Fernandez',
-                'date' => 'Jun 11, 2026',
-                'time' => '09:00 AM - 10:00 AM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Leo Fernandez',
-                'service' => 'Thai Massage',
-                'therapist' => 'Carlo Ramos',
-                'date' => 'Jun 11, 2026',
-                'time' => '01:30 PM - 02:45 PM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Maya Liu',
-                'service' => 'Hot Stone',
-                'therapist' => 'Maria Santos',
-                'date' => 'Jun 12, 2026',
-                'time' => '10:15 AM - 11:45 AM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Noel Ramirez',
-                'service' => 'Deep Tissue',
-                'therapist' => 'Liza Reyes',
-                'date' => 'Jun 12, 2026',
-                'time' => '03:00 PM - 04:30 PM',
-                'status' => 'Cancelled',
-            ],
-            [
-                'client' => 'Iris Gomez',
-                'service' => 'Swedish Massage',
-                'therapist' => 'Angela Fernandez',
-                'date' => 'Jun 13, 2026',
-                'time' => '08:30 AM - 09:30 AM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Theo Hall',
-                'service' => 'Sports Massage',
-                'therapist' => 'Carlo Ramos',
-                'date' => 'Jun 13, 2026',
-                'time' => '11:00 AM - 12:00 PM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Nina Clarke',
-                'service' => 'Foot Reflexology',
-                'therapist' => 'Maria Santos',
-                'date' => 'Jun 14, 2026',
-                'time' => '02:00 PM - 02:45 PM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Owen Patel',
-                'service' => 'Prenatal Massage',
-                'therapist' => 'Liza Reyes',
-                'date' => 'Jun 14, 2026',
-                'time' => '04:15 PM - 05:15 PM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Sara Miles',
-                'service' => 'Hot Stone',
-                'therapist' => 'Angela Fernandez',
-                'date' => 'Jun 15, 2026',
-                'time' => '09:45 AM - 11:15 AM',
-                'status' => 'Confirmed',
-            ],
-            [
-                'client' => 'Victor Khan',
-                'service' => 'Deep Tissue',
-                'therapist' => 'Carlo Ramos',
-                'date' => 'Jun 15, 2026',
-                'time' => '01:00 PM - 02:30 PM',
-                'status' => 'Cancelled',
-            ],
-        ]);
-
-        $usesDatabase = SpaBooking::query()->exists();
-
         $bookings = SpaBooking::query()
             ->visibleToStaff()
             ->with('user')
@@ -952,81 +808,35 @@ class DashboardController extends Controller
             ->orderBy('time_slot')
             ->get();
 
-        if ($usesDatabase) {
-            $now = now();
-            $noShowCounts = SpaBooking::query()
-                ->whereIn('user_id', $bookings->pluck('user_id')->filter()->unique())
-                ->where('session_status', SpaBooking::STATUS_NO_SHOW)
-                ->selectRaw('user_id, COUNT(*) as aggregate')
-                ->groupBy('user_id')
-                ->pluck('aggregate', 'user_id');
-            $appointments = $bookings
-                ->map(fn (SpaBooking $booking): array => $sessions->toAppointmentRow(
-                    $booking,
-                    $now,
-                    (int) $noShowCounts->get($booking->user_id, 0),
-                ))
-                ->values();
-        }
+        $now = now();
+        $noShowCounts = SpaBooking::query()
+            ->whereIn('user_id', $bookings->pluck('user_id')->filter()->unique())
+            ->where('session_status', SpaBooking::STATUS_NO_SHOW)
+            ->selectRaw('user_id, COUNT(*) as aggregate')
+            ->groupBy('user_id')
+            ->pluck('aggregate', 'user_id');
+        $appointmentsWithParsedDate = $bookings
+            ->map(fn (SpaBooking $booking): array => $sessions->toAppointmentRow(
+                $booking,
+                $now,
+                (int) $noShowCounts->get($booking->user_id, 0),
+            ))
+            ->values();
 
-        // Calendar "today" is based on the earliest appointment date in this mock dataset.
-        $appointmentsWithParsedDate = $appointments->map(function (array $appointment): array {
-            if (! isset($appointment['parsed_date'])) {
-                $appointment['parsed_date'] = Carbon::createFromFormat('M d, Y', (string) ($appointment['date'] ?? ''));
-            }
-
-            return $appointment;
-        });
-
-        $calendarToday = $usesDatabase
-            ? now()->startOfDay()
-            : $appointmentsWithParsedDate
-                ->sortBy(fn (array $a) => $a['parsed_date']->getTimestamp())
-                ->first()['parsed_date'];
-
-        // Mock-only clock for demo appointments.
-        $demoNow = $calendarToday->copy()->setTime(12, 0, 0);
-
+        $calendarToday = now()->startOfDay();
         $selectedDateIso = (string) $request->string('date')->toString();
-        $selectedDate = null;
         if ($selectedDateIso !== '' && Carbon::hasFormat($selectedDateIso, 'Y-m-d')) {
             $selectedDate = Carbon::createFromFormat('Y-m-d', $selectedDateIso)->startOfDay();
         } else {
-            $selectedDate = now()->startOfDay();
+            $selectedDate = $calendarToday->copy();
             $selectedDateIso = $selectedDate->format('Y-m-d');
         }
 
         $calendarMonth = (int) $selectedDate->month;
         $calendarYear = (int) $selectedDate->year;
-
-        // When a day is chosen in the calendar, show appointments for that date only.
         $appointments = $appointmentsWithParsedDate
-            ->filter(fn (array $a) => $a['parsed_date']->isSameDay($selectedDate))
+            ->filter(fn (array $appointment): bool => $appointment['parsed_date']->isSameDay($selectedDate))
             ->values();
-
-        // If the selected date has no rows in the mock dataset (e.g. earlier days
-        // in the calendar), generate sample "past day" content so the UI isn't empty.
-        if (! $usesDatabase && $appointments->isEmpty() && $selectedDate->lt($calendarToday->copy()->startOfDay())) {
-            $dateLabel = $selectedDate->format('M d, Y');
-            $timeSlots = [
-                '09:00 AM - 10:00 AM',
-                '10:30 AM - 11:30 AM',
-                '01:00 PM - 02:00 PM',
-                '03:00 PM - 04:00 PM',
-            ];
-
-            $seed = $appointmentsWithParsedDate->values()->take(4)->values();
-
-            $appointments = $seed->map(function (array $a, int $i) use ($dateLabel, $timeSlots): array {
-                $a['date'] = $dateLabel;
-                $a['time'] = $timeSlots[$i] ?? ($a['time'] ?? '09:00 AM - 10:00 AM');
-                $a['status'] = $i % 3 === 0 ? 'Cancelled' : 'Completed';
-                $a['parsed_date'] = Carbon::createFromFormat('M d, Y', $dateLabel);
-
-                return $a;
-            })->values();
-        }
-
         $dateSort = $request->string('date_sort')->lower()->value() === 'desc' ? 'desc' : 'asc';
         $statusSort = $request->string('status_sort')->lower()->value() === 'desc' ? 'desc' : 'asc';
         $statusFilter = $request->string('status_filter')->lower()->value();
@@ -1035,50 +845,17 @@ class DashboardController extends Controller
         $nextDateSort = $dateSort === 'asc' ? 'desc' : 'asc';
         $nextStatusSort = $statusSort === 'asc' ? 'desc' : 'asc';
 
-        $appointments = $appointments
-            ->when(! $usesDatabase, function (Collection $rows) use ($selectedDate, $calendarToday, $demoNow) {
-                return $rows->map(function (array $appointment) use ($selectedDate, $calendarToday, $demoNow): array {
-                    if (! isset($appointment['starts_at'])) {
-                        [$startTime] = explode('-', $appointment['time']);
-                        $appointment['starts_at'] = Carbon::createFromFormat(
-                            'M d, Y h:i A',
-                            sprintf('%s %s', $appointment['date'], trim($startTime))
-                        );
-                    }
+        $appointments = $appointments->map(function (array $appointment): array {
+            if (! isset($appointment['starts_at'])) {
+                [$startTime] = explode('-', (string) ($appointment['time'] ?? ''));
+                $appointment['starts_at'] = Carbon::createFromFormat(
+                    'M d, Y h:i A',
+                    sprintf('%s %s', $appointment['date'], trim($startTime))
+                );
+            }
 
-                    $appointment['late_cutoff_at'] = $appointment['starts_at']->copy()->addMinutes(10);
-
-                    if (($appointment['status'] ?? '') !== 'Cancelled') {
-                        if ($selectedDate->lt($calendarToday->copy()->startOfDay())) {
-                            $appointment['status'] = 'Completed';
-                        } elseif (
-                            ($appointment['status'] ?? '') === 'Confirmed'
-                            && $selectedDate->isSameDay($calendarToday)
-                            && $appointment['late_cutoff_at']->lte($demoNow)
-                        ) {
-                            $appointment['status'] = 'Cancelled';
-                        } elseif ($selectedDate->isSameDay($calendarToday) && $appointment['starts_at']->lt($demoNow)) {
-                            $appointment['status'] = 'Completed';
-                        }
-                    }
-
-                    return $appointment;
-                });
-            })
-            ->when($usesDatabase, function (Collection $rows) {
-                return $rows->map(function (array $appointment): array {
-                    if (! isset($appointment['starts_at'])) {
-                        [$startTime] = explode('-', (string) ($appointment['time'] ?? ''));
-                        $appointment['starts_at'] = Carbon::createFromFormat(
-                            'M d, Y h:i A',
-                            sprintf('%s %s', $appointment['date'], trim($startTime))
-                        );
-                    }
-
-                    return $appointment;
-                });
-            });
-
+            return $appointment;
+        });
         $statusRankAsc = [
             'In Session' => 0,
             'Pending' => 1,
@@ -1188,6 +965,7 @@ class DashboardController extends Controller
             return [(string) $service->name => (float) ($service->price_amount ?? 0)];
         })->all();
         $therapistOptions = Therapist::query()
+            ->where('is_active', true)
             ->orderBy('name')
             ->pluck('name');
         $hasPaymentFields = Schema::hasColumn('spa_bookings', 'payment_method');
@@ -1229,25 +1007,22 @@ class DashboardController extends Controller
             'staffAvailabilityUrl' => route('appointments.availability'),
             'appointmentStoreUrl' => route('appointments.store'),
             'clientSearchUrl' => route('appointments.clients.search'),
-            'minimumBirthday' => now()->subYears(15)->toDateString(),
+            'minimumBirthday' => CustomerEligibility::latestEligibleBirthday(),
             'slotMap' => $slots->slotMapByService(),
             'allSlots' => $slots->allSlotLabels(),
             'today' => now()->toDateString(),
             'openAddAppointment' => session('open_add_appointment', false),
             'servicePriceMap' => $servicePriceMap,
             'paymentMethods' => $hasPaymentFields ? PaymentMethodCatalog::staffMethods() : [],
+            'downpaymentRate' => PaymentMethodCatalog::DOWNPAYMENT_RATE,
+            'downpaymentPercentage' => PaymentMethodCatalog::downpaymentPercentage(),
+            'noShowLimit' => NoShowService::ACCOUNT_RESTRICTION_THRESHOLD,
             'hasPaymentFields' => $hasPaymentFields,
         ]);
     }
 
     public function services(Request $request, BookingSlotService $slots, SpaServiceCatalog $catalog): View
     {
-        $catalog->ensureSeeded();
-
-        if ($slots->tablesReady() && TimeSlot::query()->count() === 0) {
-            $slots->seedDefaults();
-        }
-
         $slotMap = $slots->slotMapByService();
         $bookingCounts = SpaBooking::query()
             ->selectRaw('service_name, COUNT(*) as total')
@@ -1345,9 +1120,8 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function storeService(Request $request, BookingSlotService $slots, SpaServiceCatalog $catalog): RedirectResponse
+    public function storeService(Request $request, BookingSlotService $slots): RedirectResponse
     {
-        $catalog->ensureSeeded();
         $validated = $this->validateServiceRequest($request);
 
         $service = SpaService::query()->create([
@@ -1363,10 +1137,6 @@ class DashboardController extends Controller
             'prenatal_only' => $request->boolean('prenatal_only'),
             'is_active' => true,
         ]);
-
-        if ($slots->tablesReady() && TimeSlot::query()->count() === 0) {
-            $slots->seedDefaults();
-        }
 
         $slots->attachDefaultSlotsForService($service->name);
 
@@ -1430,10 +1200,6 @@ class DashboardController extends Controller
 
     public function serviceTimeSlotsData(Request $request, SpaService $spaService, BookingSlotService $slots): JsonResponse
     {
-        if ($slots->tablesReady() && TimeSlot::query()->count() === 0) {
-            $slots->seedDefaults();
-        }
-
         $validated = $request->validate([
             'date' => ['nullable', 'date'],
             'mode' => ['nullable', 'in:weekly,date'],
@@ -1515,10 +1281,6 @@ class DashboardController extends Controller
 
     public function storeServiceTimeSlot(Request $request, SpaService $spaService, BookingSlotService $slots): JsonResponse
     {
-        if ($slots->tablesReady() && TimeSlot::query()->count() === 0) {
-            $slots->seedDefaults();
-        }
-
         $validated = $request->validate([
             'time' => ['required', 'string', 'regex:/^\d{2}:\d{2}$/'],
             'mode' => ['nullable', 'in:weekly,date'],
@@ -3316,7 +3078,7 @@ class DashboardController extends Controller
             'phone_number' => ['nullable', 'regex:/^09\d{9}$/'],
             'birthday' => ['nullable', 'date'],
             'profile_picture' => ['nullable', 'image', 'max:2048'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', StrongPassword::rule()],
         ], [
             'phone_number.regex' => 'Phone number must be 11 digits starting with 09.',
         ]);

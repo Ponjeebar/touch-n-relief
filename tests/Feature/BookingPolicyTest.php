@@ -379,6 +379,7 @@ class BookingPolicyTest extends TestCase
             'user_id' => $customer->id,
             'client_name' => $customer->name,
             'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
             'booking_date' => $date,
             'time_slot' => $time,
             'duration_minutes' => 60,

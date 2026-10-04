@@ -110,7 +110,8 @@ class TherapistAvailabilityService
 
     public function isBookable(Therapist $therapist, ?Carbon $date = null): bool
     {
-        return $this->effectiveStatusForDate($therapist, ($date ?? now())->copy()) === 'available';
+        return (bool) $therapist->is_active
+            && $this->effectiveStatusForDate($therapist, ($date ?? now())->copy()) === 'available';
     }
 
     public function unavailableLabel(Therapist $therapist, ?Carbon $date = null): ?string
@@ -143,8 +144,10 @@ class TherapistAvailabilityService
     public function assertBookableOnDate(string $therapistName, string $bookingDate, string $field = 'therapist'): void
     {
         $therapist = $this->findByName($therapistName);
-        if ($therapist === null) {
-            return;
+        if ($therapist === null || ! (bool) $therapist->is_active) {
+            throw ValidationException::withMessages([
+                $field => 'The selected therapist is unavailable. Please choose another therapist.',
+            ]);
         }
 
         $date = Carbon::parse($bookingDate)->startOfDay();

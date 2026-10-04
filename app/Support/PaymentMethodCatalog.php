@@ -8,6 +8,8 @@ class PaymentMethodCatalog
 {
     public const FULL_PAYMENT_CUTOFF_MINUTES = 60;
 
+    public const DOWNPAYMENT_RATE = 0.5;
+
     public const TYPE_DOWNPAYMENT = 'downpayment';
 
     public const TYPE_FULL = 'full';
@@ -193,7 +195,7 @@ class PaymentMethodCatalog
     public static function typeLabelFor(?string $type): string
     {
         return match ($type) {
-            self::TYPE_DOWNPAYMENT => 'Downpayment (50%)',
+            self::TYPE_DOWNPAYMENT => 'Downpayment ('.self::downpaymentPercentage().'%)',
             self::TYPE_FULL => 'Full payment',
             default => '—',
         };
@@ -202,10 +204,15 @@ class PaymentMethodCatalog
     public static function calculateAmount(float $serviceAmount, string $type): float
     {
         if ($type === self::TYPE_DOWNPAYMENT) {
-            return round($serviceAmount * 0.5, 2);
+            return round($serviceAmount * self::DOWNPAYMENT_RATE, 2);
         }
 
         return round($serviceAmount, 2);
+    }
+
+    public static function downpaymentPercentage(): int
+    {
+        return (int) round(self::DOWNPAYMENT_RATE * 100);
     }
 
     public static function requiresFullPayment(string $bookingDate, string $timeSlot, ?Carbon $now = null): bool

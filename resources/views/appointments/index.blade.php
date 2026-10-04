@@ -318,7 +318,7 @@
                         </div>
                         <div class="profile-field">
                             <label for="add-walk-in-birthday">Birthday <span class="field-optional">(optional)</span></label>
-                            <input id="add-walk-in-birthday" name="client_birthday" type="date" max="{{ $minimumBirthday ?? now()->subYears(15)->toDateString() }}" value="{{ old('client_type') === 'walk_in' ? old('client_birthday') : '' }}">
+                            <input id="add-walk-in-birthday" name="client_birthday" type="date" max="{{ $minimumBirthday }}" value="{{ old('client_type') === 'walk_in' ? old('client_birthday') : '' }}">
                         </div>
                         <div class="profile-field">
                             <label for="add-walk-in-password">Password</label>
@@ -448,7 +448,7 @@
                             <div class="appt-payment-block">
                                 <p class="appt-payment-label">Payment type</p>
                                 <div class="appt-payment-type-group" role="radiogroup" aria-label="Payment type">
-                                    <button type="button" class="appt-payment-type" data-add-payment-type="downpayment">Downpayment (50%)</button>
+                            <button type="button" class="appt-payment-type" data-add-payment-type="downpayment">Downpayment ({{ $downpaymentPercentage }}%)</button>
                                     <button type="button" class="appt-payment-type" data-add-payment-type="full">Full payment</button>
                                 </div>
                                 <p class="field-help hidden-section" id="add-full-payment-notice">Appointments starting in less than 1 hour require full payment.</p>
@@ -837,7 +837,7 @@
         function addPaymentAmountFor(serviceName, type) {
             const price = addServicePriceFor(serviceName);
             if (type === 'full') return price;
-            return Math.round(price * 0.5 * 100) / 100;
+            return Math.round(price * @json($downpaymentRate) * 100) / 100;
         }
 
         function updateAddPaymentSummary() {
@@ -1804,11 +1804,11 @@
             const nextCount = Number.parseInt(button.getAttribute('data-next-no-show-count') ?? '1', 10) || 1;
             const willBan = button.getAttribute('data-will-ban') === '1';
             if (noShowImpact) {
-                noShowImpact.textContent = `Current no-shows: ${currentCount} of 3. Confirming will update the count to ${nextCount} of 3 and notify the customer.`;
+                noShowImpact.textContent = `Current no-shows: ${currentCount} of {{ $noShowLimit }}. Confirming will update the count to ${nextCount} of {{ $noShowLimit }} and notify the customer.`;
             }
             noShowBanWarning?.classList.toggle('hidden-section', !willBan);
             if (willBan && noShowBanWarningText) {
-                noShowBanWarningText.textContent = nextCount === 3
+                noShowBanWarningText.textContent = nextCount === {{ $noShowLimit }}
                     ? 'This is the third no-show. Confirming it will restrict the customer account.'
                     : 'The customer already reached the no-show limit. The account will remain restricted.';
             }

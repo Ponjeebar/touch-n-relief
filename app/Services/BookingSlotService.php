@@ -171,15 +171,11 @@ class BookingSlotService
     public function allSlotLabels(): array
     {
         if ($this->tablesReady()) {
-            $labels = TimeSlot::query()
+            return TimeSlot::query()
                 ->active()
                 ->orderBy('sort_order')
                 ->pluck('label')
                 ->all();
-
-            if ($labels !== []) {
-                return $labels;
-            }
         }
 
         return $this->fallbackAllSlotLabels();
@@ -204,9 +200,7 @@ class BookingSlotService
                 $map[$row->service_name][] = $row->label;
             }
 
-            if ($map !== []) {
-                return $map;
-            }
+            return $map;
         }
 
         return $this->fallbackSlotMapByService();
@@ -944,10 +938,6 @@ class BookingSlotService
      */
     public function adminSlotEditorPayload(string $serviceName, string $dateYmd, string $mode): array
     {
-        if ($this->tablesReady() && TimeSlot::query()->count() === 0) {
-            $this->seedDefaults();
-        }
-
         $windowLabels = array_flip($this->bookableWindowSlotLabels());
         $visibleCustomIds = $this->visibleCustomSlotIdsForService($serviceName, $dateYmd, $mode);
 

@@ -11,6 +11,8 @@ use App\Services\PaymongoService;
 use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
+use Database\Seeders\SpaServiceSeeder;
+use Database\Seeders\TherapistSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -168,6 +170,7 @@ class CustomerPaymentRecoveryTest extends TestCase
 
     public function test_expired_and_completed_bookings_can_start_a_fresh_booking(): void
     {
+        $this->seed([SpaServiceSeeder::class, TherapistSeeder::class]);
         Carbon::setTestNow('2026-09-24 09:00:00');
         $customer = User::factory()->create(['role' => User::ROLE_USER]);
         $expiredBooking = $this->pendingBooking($customer);

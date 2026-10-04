@@ -12,6 +12,7 @@ use App\Rules\NotRecentlyUsedPassword;
 use App\Services\ActivityLogger;
 use App\Services\AuthVerificationCodeService;
 use App\Services\UserActivityService;
+use App\Support\CustomerEligibility;
 use App\Support\SensitiveInput;
 use App\Support\StrongPassword;
 use Illuminate\Http\RedirectResponse;
@@ -98,11 +99,15 @@ class ProfileController extends Controller
             : null;
         $newStaffSessionToken = null;
 
+        $birthdayRules = $user->isUser()
+            ? ['nullable', 'date', CustomerEligibility::birthdayRule()]
+            : ['nullable', 'date', 'before_or_equal:today'];
+
         $validated = $request->validateWithBag('profile', [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
-            'birthday' => ['nullable', 'date', 'before_or_equal:today'],
+            'birthday' => $birthdayRules,
             'username' => ['required', 'string', 'min:3', 'max:30', Rule::unique('users', 'username')->ignore($user->id), 'alpha_dash:ascii'],
             'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'current_password' => ['nullable', 'string', 'required_with:password'],
@@ -124,6 +129,9 @@ class ProfileController extends Controller
             'receptionist_birthday' => ['nullable', 'date'],
         ], [
             'contact_number.regex' => 'Phone number must be 11 digits starting with 09.',
+            'birthday.before_or_equal' => $user->isUser()
+                ? CustomerEligibility::birthdayMessage()
+                : 'The birthday must be today or an earlier date.',
         ]);
 
         $requestedEmail = strtolower(trim((string) $validated['email']));

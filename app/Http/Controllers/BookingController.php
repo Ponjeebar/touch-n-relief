@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\MembershipPlan;
 use App\Models\SpaBooking;
-use App\Models\TimeSlot;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\BookingCancellationService;
@@ -152,6 +151,8 @@ class BookingController extends Controller
             'paymongoEnabled' => $this->paymongo->isConfigured(),
             'paymongoMethods' => $this->paymongo->paymentMethodTypes(),
             'paymongoChannels' => PaymentMethodCatalog::paymongoChannelOptions($this->paymongo->paymentMethodTypes()),
+            'downpaymentRate' => PaymentMethodCatalog::DOWNPAYMENT_RATE,
+            'downpaymentPercentage' => PaymentMethodCatalog::downpaymentPercentage(),
         ]);
     }
 
@@ -607,18 +608,8 @@ class BookingController extends Controller
 
     private function ensureSlotsSeeded(): void
     {
-        app(TherapistCatalog::class)->ensureSeeded();
-        app(SpaServiceCatalog::class)->ensureSeeded();
         app(SiteSettingsService::class)->ensureSeeded();
 
-        if (! $this->slots->tablesReady()) {
-            return;
-        }
-
-        if (TimeSlot::query()->count() === 0) {
-            $this->slots->seedDefaults();
-        }
-        $this->slots->attachDefaultSlotsForServicesWithoutSchedule();
     }
 
     /**

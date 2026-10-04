@@ -12,8 +12,6 @@ class SpaServiceCatalog
      */
     public function all(): array
     {
-        $this->ensureSeeded();
-
         if (Schema::hasTable('spa_services')) {
             $query = SpaService::query()->where('is_active', true);
             if (Schema::hasColumn('spa_services', 'offering_type')) {
@@ -26,9 +24,7 @@ class SpaServiceCatalog
                 ->map(fn (SpaService $service): array => $service->toCatalogArray())
                 ->all();
 
-            if ($fromDb !== []) {
-                return $fromDb;
-            }
+            return $fromDb;
         }
 
         return $this->defaultCatalog();
@@ -51,9 +47,7 @@ class SpaServiceCatalog
     /** @return array<int, array<string, mixed>> */
     public function packages(): array
     {
-        $this->ensureSeeded();
-
-        if (! Schema::hasColumn('spa_services', 'offering_type')) {
+        if (! Schema::hasTable('spa_services') || ! Schema::hasColumn('spa_services', 'offering_type')) {
             return [];
         }
 

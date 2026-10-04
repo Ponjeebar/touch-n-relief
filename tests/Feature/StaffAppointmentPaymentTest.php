@@ -21,6 +21,14 @@ class StaffAppointmentPaymentTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $slots = app(BookingSlotService::class);
+        $slots->seedDefaults();
+        $slots->attachDefaultSlotsForServicesWithoutSchedule();
+    }
+
     public function test_staff_payment_choices_are_paymongo_and_counter_for_both_roles(): void
     {
         $this->assertSame(['paymongo', 'cash_counter'], PaymentMethodCatalog::staffMethodKeys());

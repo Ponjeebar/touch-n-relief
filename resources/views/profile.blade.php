@@ -836,7 +836,7 @@
                                     type="date"
                                     name="birthday"
                                     value="{{ old('birthday', optional($user->birthday)->format('Y-m-d')) }}"
-                                    max="{{ now()->toDateString() }}"
+                                    max="{{ $user->isUser() ? \App\Support\CustomerEligibility::latestEligibleBirthday() : now()->toDateString() }}"
                                 >
                             </div>
                             <div class="profile-field">

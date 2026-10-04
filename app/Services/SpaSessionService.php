@@ -604,7 +604,7 @@ class SpaSessionService
             'can_mark_no_show' => $canMarkNoShow,
             'no_show_count' => $customerNoShowCount,
             'next_no_show_count' => $customerNoShowCount + 1,
-            'will_ban_on_no_show' => $customerNoShowCount + 1 >= 3,
+            'will_ban_on_no_show' => $customerNoShowCount + 1 >= NoShowService::ACCOUNT_RESTRICTION_THRESHOLD,
             'client_user_id' => (int) $booking->user_id,
             ...$this->paymentMeta($booking),
         ];

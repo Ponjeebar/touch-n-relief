@@ -330,6 +330,9 @@ class RevisionAdjustmentsTest extends TestCase
 
     public function test_staff_downpayment_is_rejected_inside_one_hour_cutoff(): void
     {
+        $slotsService = app(BookingSlotService::class);
+        $slotsService->seedDefaults();
+        $slotsService->attachDefaultSlotsForServicesWithoutSchedule();
         $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);
         $client = User::factory()->create(['role' => User::ROLE_USER]);
         $this->actingAs($staff)->get(route('appointments.index'))->assertOk();

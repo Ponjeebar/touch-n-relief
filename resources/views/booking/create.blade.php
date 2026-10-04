@@ -313,7 +313,7 @@
                         <div class="bk-payment-type-group" role="radiogroup" aria-label="Payment type">
                             <button type="button" class="bk-payment-type is-active" data-payment-type="downpayment">
                                 <span class="bk-payment-type-title">Downpayment</span>
-                                <span class="bk-payment-type-sub">50% to confirm</span>
+                                <span class="bk-payment-type-sub">{{ $downpaymentPercentage }}% to confirm</span>
                             </button>
                             <button type="button" class="bk-payment-type" data-payment-type="full">
                                 <span class="bk-payment-type-title">Full payment</span>
@@ -807,7 +807,7 @@
             function paymentAmountFor(serviceName, type) {
                 var price = servicePriceFor(serviceName);
                 if (type === 'full') return price;
-                return Math.round(price * 0.5 * 100) / 100;
+                return Math.round(price * @json($downpaymentRate) * 100) / 100;
             }
 
             function updatePaymentSummary(serviceName) {

@@ -4,12 +4,19 @@ namespace Tests\Feature;
 
 use App\Models\SpaBooking;
 use App\Models\User;
+use Database\Seeders\SpaServiceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ChatbotTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(SpaServiceSeeder::class);
+    }
 
     public function test_guest_can_ask_general_questions_but_is_prompted_to_sign_in_for_appointments(): void
     {

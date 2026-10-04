@@ -93,7 +93,7 @@
                         id="register-birthday"
                         name="birthday"
                         value="{{ old('birthday') }}"
-                        max="{{ now()->subYears(15)->format('Y-m-d') }}"
+                        max="{{ \App\Support\CustomerEligibility::latestEligibleBirthday() }}"
                         autocomplete="bday"
                         class="@error('birthday', 'register') invalid @enderror"
                         required

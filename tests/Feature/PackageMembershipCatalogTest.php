@@ -30,6 +30,9 @@ class PackageMembershipCatalogTest extends TestCase
     public function test_customer_booking_page_lists_packages_in_their_own_group(): void
     {
         $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $slots = app(BookingSlotService::class);
+        $slots->seedDefaults();
+        $slots->attachDefaultSlotsForService('THERA #2');
 
         $this->actingAs($customer)
             ->get(route('booking.index', ['service' => 'THERA #2']))
@@ -40,7 +43,7 @@ class PackageMembershipCatalogTest extends TestCase
             ->assertSee('PHP 599.00');
 
         $this->assertSame(90, app(SpaServiceCatalog::class)->durationMinutesFor('THERA #2'));
-        $this->assertNotEmpty(app(BookingSlotService::class)->slotMapByService()['THERA #2'] ?? []);
+        $this->assertNotEmpty($slots->slotMapByService()['THERA #2'] ?? []);
     }
 
     public function test_booking_page_back_link_uses_the_correct_role_destination(): void

@@ -14,8 +14,6 @@ class TherapistCatalog
      */
     public function forBooking(?Carbon $date = null): array
     {
-        $this->ensureSeeded();
-
         if (! Schema::hasTable('therapists')) {
             return $this->defaultBookingRows($date);
         }
@@ -34,7 +32,7 @@ class TherapistCatalog
             ->map(fn (Therapist $therapist): array => $therapist->toBookingArray($when))
             ->all();
 
-        return $fromDb !== [] ? $fromDb : $this->defaultBookingRows($date);
+        return $fromDb;
     }
 
     /**
@@ -65,8 +63,6 @@ class TherapistCatalog
      */
     public function forLanding(bool $hidePrenatalRefs = false): array
     {
-        $this->ensureSeeded();
-
         if (! Schema::hasTable('therapists')) {
             return $this->withCompletedSessionCounts(array_map(
                 fn (array $therapist): array => $this->filterLandingTherapist($therapist, $hidePrenatalRefs),
@@ -86,13 +82,6 @@ class TherapistCatalog
             ->map(fn (Therapist $therapist): array => $therapist->toLandingArray($hidePrenatalRefs))
             ->all();
 
-        if ($fromDb === []) {
-            return $this->withCompletedSessionCounts(array_map(
-                fn (array $therapist): array => $this->filterLandingTherapist($therapist, $hidePrenatalRefs),
-                $this->defaultCatalog(),
-            ), 'sessions');
-        }
-
         return $this->withCompletedSessionCounts($fromDb, 'sessions');
     }
 
@@ -101,8 +90,6 @@ class TherapistCatalog
      */
     public function forTracking(): array
     {
-        $this->ensureSeeded();
-
         if (! Schema::hasTable('therapists')) {
             return $this->withCompletedSessionCounts($this->defaultTrackingRows(), 'sessions_label');
         }

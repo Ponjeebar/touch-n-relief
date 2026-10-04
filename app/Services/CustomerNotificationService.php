@@ -154,10 +154,11 @@ class CustomerNotificationService
         }
 
         $message = sprintf(
-            'Your %s appointment on %s was recorded as a no-show (%d of 3).',
+            'Your %s appointment on %s was recorded as a no-show (%d of %d).',
             (string) $booking->service_name,
             $this->formatSchedule($booking),
             $noShowCount,
+            NoShowService::ACCOUNT_RESTRICTION_THRESHOLD,
         );
         if ($banned) {
             $message .= ' Your account is now restricted. Please contact the spa team for help.';
@@ -188,10 +189,11 @@ class CustomerNotificationService
             type: CustomerNotification::TYPE_NO_SHOW_REVERSED,
             title: 'No-show record corrected',
             message: sprintf(
-                'The no-show recorded for your %s appointment on %s was removed. Your current count is %d of 3.',
+                'The no-show recorded for your %s appointment on %s was removed. Your current count is %d of %d.',
                 (string) $booking->service_name,
                 $this->formatSchedule($booking),
                 $noShowCount,
+                NoShowService::ACCOUNT_RESTRICTION_THRESHOLD,
             ),
             details: $this->noShowDetails($booking, $noShowCount),
             dedupKey: 'booking:'.$booking->id.':no-show-reversed:'.now()->timestamp,

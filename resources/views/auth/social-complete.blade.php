@@ -63,7 +63,7 @@
 
                     <div class="social-complete-field">
                         <label for="social-birthday">Birthday</label>
-                        <input id="social-birthday" name="birthday" type="date" value="{{ old('birthday') }}" max="{{ now()->subYears(15)->format('Y-m-d') }}" autocomplete="bday" class="@error('birthday') invalid @enderror" aria-describedby="social-birthday-hint" required>
+                        <input id="social-birthday" name="birthday" type="date" value="{{ old('birthday') }}" max="{{ $minimumBirthday }}" autocomplete="bday" class="@error('birthday') invalid @enderror" aria-describedby="social-birthday-hint" required>
                         <small id="social-birthday-hint">You must be at least 15 years old.</small>
                         @error('birthday')<p class="social-field-error">{{ $message }}</p>@enderror
                     </div>

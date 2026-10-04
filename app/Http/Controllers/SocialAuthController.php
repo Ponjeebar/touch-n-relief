@@ -6,6 +6,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\WalkInClientService;
+use App\Support\CustomerEligibility;
 use App\Support\SensitiveInput;
 use App\Support\StrongPassword;
 use App\Support\WalkInSchema;
@@ -152,7 +153,10 @@ class SocialAuthController extends Controller
             ]);
         }
 
-        return view('auth.social-complete', ['pending' => $pending]);
+        return view('auth.social-complete', [
+            'pending' => $pending,
+            'minimumBirthday' => CustomerEligibility::latestEligibleBirthday(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -166,13 +170,13 @@ class SocialAuthController extends Controller
 
         $validated = $request->validate([
             'contact_number' => ['required', 'regex:/^09\d{9}$/'],
-            'birthday' => ['required', 'date', 'before_or_equal:'.now()->subYears(15)->toDateString()],
+            'birthday' => ['required', 'date', CustomerEligibility::birthdayRule()],
             'sex' => ['required', Rule::in(User::sexOptions())],
             'password' => ['required', 'confirmed', StrongPassword::rule()],
             'terms_accepted' => ['accepted'],
         ], [
             'contact_number.regex' => 'Phone number must be 11 digits starting with 09.',
-            'birthday.before_or_equal' => 'You must be at least 15 years old to register.',
+            'birthday.before_or_equal' => CustomerEligibility::birthdayMessage(),
             'terms_accepted.accepted' => 'You must agree to the Terms and Conditions and Privacy Policy to create an account.',
         ]);
 

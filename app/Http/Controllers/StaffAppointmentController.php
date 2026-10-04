@@ -6,7 +6,6 @@ use App\Models\Customer;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\Therapist;
-use App\Models\TimeSlot;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\BookingCancellationService;
@@ -19,10 +18,11 @@ use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
 use App\Services\SpaServiceCatalog;
 use App\Services\TherapistAvailabilityService;
-use App\Services\TherapistCatalog;
 use App\Services\WalkInClientService;
+use App\Support\CustomerEligibility;
 use App\Support\PaymentMethodCatalog;
 use App\Support\SensitiveInput;
+use App\Support\StrongPassword;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -34,7 +34,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class StaffAppointmentController extends Controller
@@ -55,8 +54,6 @@ class StaffAppointmentController extends Controller
     public function availability(Request $request): JsonResponse
     {
         $this->ensureStaff($request);
-        $this->ensureCatalogSeeded();
-
         $serviceNames = $this->activeServiceNames();
         $therapistNames = $this->therapistNames();
 
@@ -161,8 +158,6 @@ class StaffAppointmentController extends Controller
                 ->with('open_add_appointment', true);
         }
 
-        $this->ensureCatalogSeeded();
-
         $serviceNames = $this->activeServiceNames();
         $therapistNames = $this->therapistNames();
         $allSlots = $this->slots->allSlotLabels();
@@ -189,8 +184,8 @@ class StaffAppointmentController extends Controller
             'client_name' => ['required', 'string', 'max:255'],
             'client_email' => ['nullable', 'email', 'max:255'],
             'client_phone' => ['nullable', 'regex:/^09\d{9}$/'],
-            'client_password' => ['nullable', 'required_if:client_type,walk_in', 'confirmed', Password::defaults()],
-            'client_birthday' => ['nullable', 'date'],
+            'client_password' => ['nullable', 'required_if:client_type,walk_in', 'confirmed', StrongPassword::rule()],
+            'client_birthday' => ['nullable', 'date', CustomerEligibility::birthdayRule()],
             'client_sex' => ['nullable', Rule::in(User::sexOptions())],
             'service' => ['required', 'string', 'in:'.implode(',', $serviceNames)],
             'therapist' => ['nullable', 'string', Rule::in($therapistNames)],
@@ -210,6 +205,7 @@ class StaffAppointmentController extends Controller
             $messages['payment_method.required'] = 'Select a payment method.';
             $messages['payment_type.required'] = 'Select down payment or full payment.';
         }
+        $messages['client_birthday.before_or_equal'] = CustomerEligibility::birthdayMessage();
 
         $validated = Validator::make($request->all(), $rules, $messages)->validateWithBag('appointment');
 
@@ -456,8 +452,6 @@ class StaffAppointmentController extends Controller
     public function rescheduleAvailability(Request $request, SpaBooking $spaBooking): JsonResponse
     {
         $this->ensureStaff($request);
-        $this->ensureCatalogSeeded();
-
         $this->walkInClients->assertValidBookingClient($spaBooking);
 
         $validated = $request->validate([
@@ -472,8 +466,6 @@ class StaffAppointmentController extends Controller
     public function reschedule(Request $request, SpaBooking $spaBooking): JsonResponse|RedirectResponse
     {
         $staff = $this->ensureStaff($request);
-        $this->ensureCatalogSeeded();
-
         $spaBooking->loadMissing('user');
         $this->walkInClients->assertValidBookingClient($spaBooking);
 
@@ -694,7 +686,7 @@ class StaffAppointmentController extends Controller
             request: $request,
         );
 
-        $message = 'Appointment marked as no-show ('.$result['count'].' of 3).';
+        $message = 'Appointment marked as no-show ('.$result['count'].' of '.NoShowService::ACCOUNT_RESTRICTION_THRESHOLD.').';
         if ($result['banned']) {
             $message .= ' The customer account is now banned.';
         }
@@ -732,7 +724,7 @@ class StaffAppointmentController extends Controller
                 ->where('user_id', $booking->user_id)
                 ->where('session_status', SpaBooking::STATUS_NO_SHOW)
                 ->count();
-            $unbanned = $customer->banned_at !== null && $noShowCount < 3;
+            $unbanned = $customer->banned_at !== null && $noShowCount < NoShowService::ACCOUNT_RESTRICTION_THRESHOLD;
             if ($unbanned) {
                 $customer->forceFill(['banned_at' => null])->save();
             }
@@ -759,7 +751,7 @@ class StaffAppointmentController extends Controller
             request: $request,
         );
 
-        $message = 'No-show corrected. The customer now has '.$result['count'].' of 3 no-shows.';
+        $message = 'No-show corrected. The customer now has '.$result['count'].' of '.NoShowService::ACCOUNT_RESTRICTION_THRESHOLD.' no-shows.';
         if ($result['unbanned']) {
             $message .= ' The account restriction was removed.';
         }
@@ -884,17 +876,6 @@ class StaffAppointmentController extends Controller
         return $user;
     }
 
-    private function ensureCatalogSeeded(): void
-    {
-        app(TherapistCatalog::class)->ensureSeeded();
-        app(SpaServiceCatalog::class)->ensureSeeded();
-
-        if ($this->slots->tablesReady() && TimeSlot::query()->count() === 0) {
-            $this->slots->seedDefaults();
-        }
-        $this->slots->attachDefaultSlotsForServicesWithoutSchedule();
-    }
-
     /**
      * @return array<int, string>
      */
@@ -913,6 +894,7 @@ class StaffAppointmentController extends Controller
     private function therapistNames(): array
     {
         return Therapist::query()
+            ->where('is_active', true)
             ->orderBy('name')
             ->pluck('name')
             ->all();
