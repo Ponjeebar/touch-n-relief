@@ -11,9 +11,7 @@
     $autoStartReceptionistTour = $tourRole === 'receptionist'
         && (bool) session('receptionist_tour_enabled', false);
     $tourPage = $tourPage ?? Route::currentRouteName() ?? 'page';
-    $autoStartTour = $autoStartCustomerTour
-        || $autoStartReceptionistTour
-        || in_array($tourPage, ['booking.create', 'profile.edit'], true);
+    $autoStartTour = $autoStartCustomerTour || $autoStartReceptionistTour;
 @endphp
 @once
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.8.0/dist/driver.css">

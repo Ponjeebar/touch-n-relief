@@ -31,7 +31,7 @@ class CustomerTourTest extends TestCase
             ->assertSee('data-customer-tour-auto-start="0"', false);
     }
 
-    public function test_customer_receives_contextual_tours_on_booking_and_profile_pages(): void
+    public function test_completed_customer_can_replay_contextual_tours_without_automatic_startup(): void
     {
         $customer = User::factory()->create([
             'role' => User::ROLE_USER,
@@ -42,15 +42,17 @@ class CustomerTourTest extends TestCase
             ->get(route('booking.index'))
             ->assertOk()
             ->assertSee('data-customer-tour-page="booking.create"', false)
-            ->assertSee('data-customer-tour-auto-start="1"', false)
+            ->assertSee('data-customer-tour-auto-start="0"', false)
+            ->assertSee('data-start-customer-tour', false)
             ->assertSee('Booking guide');
 
         $this->actingAs($customer)
             ->get(route('profile.edit'))
             ->assertOk()
             ->assertSee('data-customer-tour-page="profile.edit"', false)
-            ->assertSee('data-customer-tour-auto-start="1"', false)
+            ->assertSee('data-customer-tour-auto-start="0"', false)
             ->assertSee('data-tour-scope="appointments"', false)
+            ->assertSee('data-start-customer-tour', false)
             ->assertSee('driver.js@1.8.0', false);
     }
 
@@ -150,6 +152,7 @@ class CustomerTourTest extends TestCase
     {
         $customer = User::factory()->create([
             'role' => User::ROLE_USER,
+            'password' => 'CorrectPassword123!',
             'sex' => User::SEX_MALE,
             'profile_completed_at' => null,
         ]);
@@ -171,5 +174,23 @@ class CustomerTourTest extends TestCase
             ->get(route('landing'))
             ->assertOk()
             ->assertSee('data-customer-tour-auto-start="0"', false);
+
+        $this->post(route('logout'))->assertRedirect(route('login'));
+
+        $this->post(route('login.attempt'), [
+            'login' => $customer->email,
+            'password' => 'CorrectPassword123!',
+        ])->assertRedirect(route('landing'))
+            ->assertSessionMissing('customer_tour_pending');
+
+        $this->get(route('booking.index'))
+            ->assertOk()
+            ->assertSee('data-customer-tour-auto-start="0"', false)
+            ->assertSee('data-start-customer-tour', false);
+
+        $this->get(route('profile.edit'))
+            ->assertOk()
+            ->assertSee('data-customer-tour-auto-start="0"', false)
+            ->assertSee('data-start-customer-tour', false);
     }
 }
