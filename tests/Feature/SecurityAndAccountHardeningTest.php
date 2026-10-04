@@ -108,7 +108,7 @@ class SecurityAndAccountHardeningTest extends TestCase
             ->assertHeader('X-Frame-Options', 'DENY')
             ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
             ->assertHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=()')
-            ->assertHeader('Content-Security-Policy', "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'");
+            ->assertHeader('Content-Security-Policy', "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://checkout.paymongo.com");
     }
 
     public function test_registered_client_search_results_are_inserted_as_text(): void

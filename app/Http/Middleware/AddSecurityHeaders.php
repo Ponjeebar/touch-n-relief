@@ -23,7 +23,7 @@ class AddSecurityHeaders
         $response->headers->set('Permissions-Policy', 'camera=(), geolocation=(), microphone=()');
         $response->headers->set(
             'Content-Security-Policy',
-            "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'"
+            "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://checkout.paymongo.com"
         );
 
         if (app()->environment('production') && $request->isSecure()) {

@@ -641,7 +641,20 @@
 
             mobileBackButton?.addEventListener('click', function () {
                 var activeIndex = mobileSteps.indexOf(currentMobileStep);
-                if (activeIndex > 0) showMobileStep(mobileSteps[activeIndex - 1], 'back');
+                if (activeIndex <= 0) return;
+
+                var previousStep = mobileSteps[activeIndex - 1];
+                if (previousStep === 'date') {
+                    clearServiceSelection();
+                    clearTherapistSelection();
+                    hiddenSlot.value = '';
+                    oldSlot = '';
+                    resetAvailabilityCache();
+                    syncBookingSteps();
+                    renderSlots();
+                }
+
+                showMobileStep(previousStep, 'back');
             });
 
             function clearServiceSelection() {

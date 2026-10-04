@@ -846,7 +846,7 @@ body:has(.booking-page) {
     min-height: 0;
 }
 
-.booking-panel-schedule .booking-field:has(.time-slots) {
+.booking-mobile-wizard-ready[data-mobile-step="time"] .booking-panel-schedule .booking-field-time {
     flex: 1;
     display: flex;
     flex-direction: column;

@@ -270,6 +270,11 @@ test('changing the booking date resets service, therapist, and time selections',
         await back.click();
         await back.click();
         await expect(page.locator('#booking-grid')).toHaveAttribute('data-mobile-step', 'date');
+        await expect(page.locator('.booking-field-time')).toBeHidden();
+        await expect(page.locator('input[name="service"]:checked')).toHaveCount(0);
+        await expect(page.locator('input[name="therapist"]:checked')).toHaveCount(0);
+        await expect(page.locator('#time_slot')).toHaveValue('');
+        await expect(page.locator('#time-slots')).toBeEmpty();
 
         await dateInput.fill(secondDate);
 
