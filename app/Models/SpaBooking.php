@@ -25,7 +25,9 @@ class SpaBooking extends Model
 
     public const STATUS_NO_SHOW = 'no_show';
 
-    public const DISPLAY_PENDING = 'Pending';
+    public const DISPLAY_PAYMENT_PENDING = 'Payment Pending';
+
+    public const DISPLAY_BALANCE_DUE = 'Confirmed – Balance Due';
 
     public const DISPLAY_RESCHEDULED = 'Rescheduled';
 

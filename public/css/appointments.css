@@ -258,7 +258,8 @@
     color: var(--accent-green);
 }
 
-.pill.pending {
+.pill.pending,
+.pill.balance-due {
     background: #fff5ef;
     border-color: #f7dbc9;
     color: #c77742;
@@ -622,7 +623,10 @@ html[data-theme="dark"] .appt-late-review {
     color: var(--accent-green);
 }
 
-.appt-status.pending {
+.appt-status.payment-pending,
+.appt-status.pending,
+.appt-status.confirmed-balance-due,
+.appt-status.balance-due {
     background: #fff5ef;
     border-color: #f7dbc9;
     color: #c77742;

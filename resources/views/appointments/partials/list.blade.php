@@ -3,6 +3,7 @@
         data-appointments-meta="true"
         data-confirmed="{{ $stats['confirmed'] ?? 0 }}"
         data-pending="{{ $stats['pending'] ?? 0 }}"
+        data-balance-due="{{ $stats['balance_due'] ?? 0 }}"
         data-rescheduled="{{ $stats['rescheduled'] ?? 0 }}"
         data-late="{{ $stats['late'] ?? 0 }}"
         data-completed="{{ $stats['completed'] ?? 0 }}"
@@ -18,12 +19,13 @@
             $isCancelled = ($appointment['status'] ?? '') === 'Cancelled';
             $isCompleted = ($appointment['status'] ?? '') === 'Completed';
             $isConfirmed = ($appointment['status'] ?? '') === 'Confirmed';
-            $isPending = ($appointment['status'] ?? '') === 'Pending';
+            $isPending = ($appointment['status'] ?? '') === \App\Models\SpaBooking::DISPLAY_PAYMENT_PENDING;
+            $isBalanceDue = ($appointment['status'] ?? '') === \App\Models\SpaBooking::DISPLAY_BALANCE_DUE;
             $isRescheduled = ($appointment['status'] ?? '') === 'Rescheduled';
             $isInSession = ($appointment['status'] ?? '') === 'In Session';
             $isNoShow = ($appointment['status'] ?? '') === 'No Show';
             $isLate = ($appointment['status'] ?? '') === 'Late';
-            $isActiveBooking = $isConfirmed || $isPending || $isRescheduled || $isLate;
+            $isActiveBooking = $isConfirmed || $isPending || $isBalanceDue || $isRescheduled || $isLate;
             $bookingId = $appointment['booking_id'] ?? null;
         @endphp
         <div class="appt-row" role="listitem" data-booking-id="{{ $bookingId ?? '' }}">

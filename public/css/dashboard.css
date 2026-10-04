@@ -1037,6 +1037,12 @@ a.profile-dropdown-item {
     color: #2f9d62;
 }
 
+.meta-chip.balance-due {
+    background: #fff5ef;
+    border-color: #f7dbc9;
+    color: #c77742;
+}
+
 .meta-chip.scheduled,
 .meta-chip.waiting {
     background: #fdf1f6;

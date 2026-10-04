@@ -156,7 +156,8 @@
                                     <h3>Clients</h3>
                                     <span class="appointments-sub" data-pill-group-current="true" @if(($isPastDay ?? false) === true) style="display:none" @endif>
                                         <button class="pill all pill-filter" type="button" data-status-filter="">{{ $stats['total'] ?? 0 }} All Appointments</button>
-                                        <button class="pill pending pill-filter" type="button" data-pill-pending="true" data-status-filter="pending">{{ $stats['pending'] ?? 0 }} Pending</button>
+                                        <button class="pill pending pill-filter" type="button" data-pill-pending="true" data-status-filter="pending">{{ $stats['pending'] ?? 0 }} Payment Pending</button>
+                                        <button class="pill balance-due pill-filter" type="button" data-pill-balance-due="true" data-status-filter="balance-due">{{ $stats['balance_due'] ?? 0 }} Balance Due</button>
                                         <button class="pill rescheduled pill-filter" type="button" data-pill-rescheduled="true" data-status-filter="rescheduled">{{ $stats['rescheduled'] ?? 0 }} Rescheduled</button>
                                         <button class="pill late pill-filter" type="button" data-pill-late="true" data-status-filter="late">{{ $stats['late'] ?? 0 }} Late</button>
                                         <button class="pill confirmed pill-filter" type="button" data-pill-confirmed="true" data-status-filter="confirmed">{{ $stats['confirmed'] ?? 0 }} Confirmed</button>
@@ -2398,7 +2399,7 @@
 
         const initialParams = new URLSearchParams(window.location.search);
         const initialStatusFilter = (initialParams.get('status_filter') ?? '').toLowerCase();
-        if (['confirmed', 'pending', 'rescheduled', 'completed', 'cancelled', 'no-show'].includes(initialStatusFilter)) {
+        if (['confirmed', 'balance-due', 'pending', 'rescheduled', 'completed', 'cancelled', 'no-show'].includes(initialStatusFilter)) {
             currentStatusFilter = initialStatusFilter;
         }
 
@@ -2432,7 +2433,7 @@
             return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
         }
 
-        function updateDaySummary(iso, confirmed, completed, cancelled, pending, rescheduled) {
+        function updateDaySummary(iso, confirmed, completed, cancelled, pending, balanceDue, rescheduled) {
             if (dayLabelEl) {
                 const todayIso = dayLabelEl.getAttribute('data-today-iso') ?? '';
                 dayLabelEl.textContent = iso && iso !== todayIso ? formatDateLabelFromIso(iso) : 'Today';
@@ -2440,10 +2441,11 @@
 
             const confirmedNum = parseInt(String(confirmed ?? '0'), 10) || 0;
             const pendingNum = parseInt(String(pending ?? '0'), 10) || 0;
+            const balanceDueNum = parseInt(String(balanceDue ?? '0'), 10) || 0;
             const rescheduledNum = parseInt(String(rescheduled ?? '0'), 10) || 0;
             const completedNum = parseInt(String(completed ?? '0'), 10) || 0;
             const cancelledNum = parseInt(String(cancelled ?? '0'), 10) || 0;
-            const totalNum = confirmedNum + pendingNum + rescheduledNum + completedNum + cancelledNum;
+            const totalNum = confirmedNum + pendingNum + balanceDueNum + rescheduledNum + completedNum + cancelledNum;
 
             if (dayTotalEl) {
                 dayTotalEl.textContent = String(totalNum);
@@ -2530,6 +2532,7 @@
             const meta = appointmentsListContainer.querySelector('[data-appointments-meta="true"]');
             const confirmed = meta?.getAttribute('data-confirmed') ?? null;
             const pending = meta?.getAttribute('data-pending') ?? null;
+            const balanceDue = meta?.getAttribute('data-balance-due') ?? null;
             const rescheduled = meta?.getAttribute('data-rescheduled') ?? null;
             const late = meta?.getAttribute('data-late') ?? null;
             const cancelled = meta?.getAttribute('data-cancelled') ?? null;
@@ -2552,7 +2555,12 @@
             }
             if (pending !== null) {
                 document.querySelectorAll('[data-pill-pending="true"]').forEach((el) => {
-                    el.textContent = `${pending} Pending`;
+                    el.textContent = `${pending} Payment Pending`;
+                });
+            }
+            if (balanceDue !== null) {
+                document.querySelectorAll('[data-pill-balance-due="true"]').forEach((el) => {
+                    el.textContent = `${balanceDue} Balance Due`;
                 });
             }
             if (rescheduled !== null) {
@@ -2586,7 +2594,7 @@
                 });
             }
 
-            updateDaySummary(resolvedDateIso, confirmed, completed, cancelled, pending, rescheduled);
+            updateDaySummary(resolvedDateIso, confirmed, completed, cancelled, pending, balanceDue, rescheduled);
         }
 
         if (appointmentsListContainer) {
@@ -2837,6 +2845,7 @@
             initialMeta?.getAttribute('data-completed') ?? '0',
             initialMeta?.getAttribute('data-cancelled') ?? '0',
             initialMeta?.getAttribute('data-pending') ?? '0',
+            initialMeta?.getAttribute('data-balance-due') ?? '0',
             initialMeta?.getAttribute('data-rescheduled') ?? '0'
         );
     </script>

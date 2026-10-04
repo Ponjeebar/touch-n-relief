@@ -154,6 +154,12 @@ html[data-theme="dark"] .meta-chip.active {
     color: var(--accent-green);
 }
 
+html[data-theme="dark"] .meta-chip.balance-due {
+    background: rgba(245, 166, 35, 0.12);
+    border-color: rgba(245, 166, 35, 0.35);
+    color: #f3bd67;
+}
+
 html[data-theme="dark"] .meta-chip.scheduled,
 html[data-theme="dark"] .meta-chip.waiting {
     background: rgba(251, 156, 187, 0.1);
@@ -890,8 +896,11 @@ html[data-theme="dark"] .appt-status.completed {
 }
 
 html[data-theme="dark"] .pill.pending,
+html[data-theme="dark"] .pill.balance-due,
 html[data-theme="dark"] .pill.scheduled,
-html[data-theme="dark"] .appt-status.pending {
+html[data-theme="dark"] .appt-status.pending,
+html[data-theme="dark"] .appt-status.confirmed-balance-due,
+html[data-theme="dark"] .appt-status.balance-due {
     background: rgba(251, 191, 36, 0.14);
     border-color: rgba(251, 191, 36, 0.32);
     color: #fcd34d;

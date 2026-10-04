@@ -359,8 +359,12 @@ class SpaSessionService
             return SpaBooking::DISPLAY_RESCHEDULED;
         }
 
+        if ($booking->payment_status !== PaymentMethodCatalog::STATUS_PAID) {
+            return SpaBooking::DISPLAY_PAYMENT_PENDING;
+        }
+
         if (! $booking->isFullyPaid()) {
-            return SpaBooking::DISPLAY_PENDING;
+            return SpaBooking::DISPLAY_BALANCE_DUE;
         }
 
         return 'Confirmed';
@@ -697,7 +701,8 @@ class SpaSessionService
             'Cancelled' => 'cancelled',
             'Completed' => 'completed',
             'In Session' => 'active',
-            SpaBooking::DISPLAY_PENDING => 'pending',
+            SpaBooking::DISPLAY_PAYMENT_PENDING => 'pending',
+            SpaBooking::DISPLAY_BALANCE_DUE => 'balance-due',
             SpaBooking::DISPLAY_RESCHEDULED => 'rescheduled',
             default => 'confirmed',
         };

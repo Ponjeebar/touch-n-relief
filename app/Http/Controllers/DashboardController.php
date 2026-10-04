@@ -215,7 +215,7 @@ class DashboardController extends Controller
             'date_from' => ['nullable', 'required_if:scope,range', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'required_if:scope,range', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'status_scope' => ['nullable', Rule::in(['all', 'current'])],
-            'status_filter' => ['nullable', Rule::in(['confirmed', 'pending', 'rescheduled', 'completed', 'cancelled', 'no-show', 'in-session'])],
+            'status_filter' => ['nullable', Rule::in(['confirmed', 'balance-due', 'pending', 'rescheduled', 'completed', 'cancelled', 'no-show', 'in-session'])],
             'search' => ['nullable', 'string', 'max:100'],
         ]);
         $scope = $validated['scope'] ?? (isset($validated['date']) ? 'date' : 'today');
@@ -258,7 +258,12 @@ class DashboardController extends Controller
             $sessionService = app(SpaSessionService::class);
             $bookings = $bookings
                 ->filter(function (SpaBooking $booking) use ($sessionService, $statusFilter): bool {
-                    $resolved = strtolower(str_replace(' ', '-', $sessionService->appointmentStatus($booking)));
+                    $status = $sessionService->appointmentStatus($booking);
+                    $resolved = match ($status) {
+                        SpaBooking::DISPLAY_PAYMENT_PENDING => 'pending',
+                        SpaBooking::DISPLAY_BALANCE_DUE => 'balance-due',
+                        default => strtolower(str_replace(' ', '-', $status)),
+                    };
 
                     return $resolved === $statusFilter;
                 })
@@ -959,7 +964,7 @@ class DashboardController extends Controller
         $dateSort = $request->string('date_sort')->lower()->value() === 'desc' ? 'desc' : 'asc';
         $statusSort = $request->string('status_sort')->lower()->value() === 'desc' ? 'desc' : 'asc';
         $statusFilter = $request->string('status_filter')->lower()->value();
-        $statusFilter = in_array($statusFilter, ['confirmed', 'pending', 'rescheduled', 'late', 'completed', 'cancelled', 'no-show', 'in-session'], true) ? $statusFilter : '';
+        $statusFilter = in_array($statusFilter, ['confirmed', 'balance-due', 'pending', 'rescheduled', 'late', 'completed', 'cancelled', 'no-show', 'in-session'], true) ? $statusFilter : '';
         $search = trim($request->string('search')->toString());
         $nextDateSort = $dateSort === 'asc' ? 'desc' : 'asc';
         $nextStatusSort = $statusSort === 'asc' ? 'desc' : 'asc';
@@ -977,13 +982,14 @@ class DashboardController extends Controller
         });
         $statusRankAsc = [
             'In Session' => 0,
-            'Pending' => 1,
-            'Rescheduled' => 2,
-            'Late' => 3,
-            'Confirmed' => 4,
-            'Completed' => 5,
-            'Cancelled' => 6,
-            'No Show' => 7,
+            SpaBooking::DISPLAY_PAYMENT_PENDING => 1,
+            SpaBooking::DISPLAY_BALANCE_DUE => 2,
+            'Rescheduled' => 3,
+            'Late' => 4,
+            'Confirmed' => 5,
+            'Completed' => 6,
+            'Cancelled' => 7,
+            'No Show' => 8,
         ];
 
         $statusRankDesc = [
@@ -993,8 +999,9 @@ class DashboardController extends Controller
             'Late' => 3,
             'Confirmed' => 4,
             'Rescheduled' => 5,
-            'Pending' => 6,
-            'In Session' => 7,
+            SpaBooking::DISPLAY_BALANCE_DUE => 6,
+            SpaBooking::DISPLAY_PAYMENT_PENDING => 7,
+            'In Session' => 8,
         ];
 
         $appointments = $appointments
@@ -1011,7 +1018,13 @@ class DashboardController extends Controller
         $statusCounts = $appointments->countBy(function (array $appointment): string {
             $status = strtolower(trim((string) ($appointment['status'] ?? '')));
 
-            return $status === 'in session' ? 'in-session' : $status;
+            return match ($appointment['status'] ?? '') {
+                SpaBooking::DISPLAY_PAYMENT_PENDING => 'pending',
+                SpaBooking::DISPLAY_BALANCE_DUE => 'balance-due',
+                'In Session' => 'in-session',
+                'No Show' => 'no-show',
+                default => $status,
+            };
         });
 
         $activeClientsThisMonth = SpaBooking::query()
@@ -1025,6 +1038,7 @@ class DashboardController extends Controller
             'active_clients' => $activeClientsThisMonth,
             'total' => $appointments->count(),
             'pending' => (int) ($statusCounts->get('pending', 0)),
+            'balance_due' => (int) ($statusCounts->get('balance-due', 0)),
             'rescheduled' => (int) ($statusCounts->get('rescheduled', 0)),
             'confirmed' => (int) ($statusCounts->get('confirmed', 0)),
             'late' => (int) ($statusCounts->get('late', 0)),
@@ -1037,6 +1051,8 @@ class DashboardController extends Controller
         if ($statusFilter !== '') {
             $statusFilterLabel = match ($statusFilter) {
                 'in-session' => 'In Session',
+                'pending' => SpaBooking::DISPLAY_PAYMENT_PENDING,
+                'balance-due' => SpaBooking::DISPLAY_BALANCE_DUE,
                 'rescheduled' => 'Rescheduled',
                 'no-show' => 'No Show',
                 default => ucfirst($statusFilter),

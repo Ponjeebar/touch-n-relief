@@ -342,6 +342,7 @@ test('scheduled start confirms exact balance, traps focus, and restores the trig
     await dismissOptionalTour(page);
 
     const trigger = page.locator('[data-open-payment-start="true"][data-service="Aromatherapy"]');
+    await expect(page.locator('[data-pill-balance-due="true"]')).toContainText('Balance Due');
     await expect(trigger).toBeEnabled();
     await trigger.click();
 

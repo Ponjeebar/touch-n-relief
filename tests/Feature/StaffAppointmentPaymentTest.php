@@ -98,6 +98,105 @@ class StaffAppointmentPaymentTest extends TestCase
         $this->assertFalse($paid->fresh()->isAwaitingOnlinePayment());
     }
 
+    public function test_verified_downpayment_is_confirmed_with_balance_due_while_full_payment_is_confirmed(): void
+    {
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $date = now()->addDay()->toDateString();
+        $balanceDue = SpaBooking::create([
+            'user_id' => $customer->id,
+            'client_name' => 'Verified Downpayment Client',
+            'booking_source' => SpaBooking::SOURCE_ONLINE,
+            'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
+            'booking_date' => $date,
+            'time_slot' => '10:00 AM',
+            'amount' => 1000,
+            'payment_method' => PaymentMethodCatalog::CHANNEL_QRPH,
+            'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+            'payment_amount' => 500,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_status' => SpaBooking::STATUS_CONFIRMED,
+        ]);
+        $fullyPaid = SpaBooking::create([
+            'user_id' => $customer->id,
+            'client_name' => 'Fully Paid Client',
+            'booking_source' => SpaBooking::SOURCE_ONLINE,
+            'service_name' => 'Aromatherapy (Special)',
+            'therapist_name' => 'Angela Fernandez',
+            'booking_date' => $date,
+            'time_slot' => '02:00 PM',
+            'amount' => 1000,
+            'payment_method' => PaymentMethodCatalog::CHANNEL_QRPH,
+            'payment_type' => PaymentMethodCatalog::TYPE_FULL,
+            'payment_amount' => 1000,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_status' => SpaBooking::STATUS_CONFIRMED,
+        ]);
+        $paymentPending = SpaBooking::create([
+            'user_id' => $customer->id,
+            'client_name' => 'Unverified Checkout Client',
+            'booking_source' => SpaBooking::SOURCE_WALK_IN,
+            'service_name' => 'Thai Massage',
+            'therapist_name' => 'Carlos Mendoza',
+            'booking_date' => $date,
+            'time_slot' => '04:00 PM',
+            'amount' => 1000,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+            'payment_amount' => 500,
+            'payment_status' => PaymentMethodCatalog::STATUS_PENDING,
+            'session_status' => SpaBooking::STATUS_CONFIRMED,
+        ]);
+
+        $this->assertSame(
+            SpaBooking::DISPLAY_BALANCE_DUE,
+            app(SpaSessionService::class)->appointmentStatus($balanceDue),
+        );
+        $this->assertSame('Confirmed', app(SpaSessionService::class)->appointmentStatus($fullyPaid));
+        $this->assertSame(
+            SpaBooking::DISPLAY_PAYMENT_PENDING,
+            app(SpaSessionService::class)->appointmentStatus($paymentPending),
+        );
+
+        $this->actingAs($staff)
+            ->get(route('appointments.index', ['date' => $date]))
+            ->assertOk()
+            ->assertSeeText('1 Payment Pending')
+            ->assertSeeText('1 Balance Due')
+            ->assertSeeText('1 Confirmed')
+            ->assertSeeText(SpaBooking::DISPLAY_BALANCE_DUE);
+
+        $this->get(route('appointments.index', ['date' => $date, 'status_filter' => 'balance-due', 'ajax' => 1]))
+            ->assertOk()
+            ->assertSee('Verified Downpayment Client')
+            ->assertDontSee('Fully Paid Client')
+            ->assertDontSee('Unverified Checkout Client');
+
+        $this->get(route('appointments.index', ['date' => $date, 'status_filter' => 'pending', 'ajax' => 1]))
+            ->assertOk()
+            ->assertSee('Unverified Checkout Client')
+            ->assertDontSee('Verified Downpayment Client')
+            ->assertDontSee('Fully Paid Client');
+
+        $this->get(route('appointments.index', ['date' => $date, 'status_filter' => 'confirmed', 'ajax' => 1]))
+            ->assertOk()
+            ->assertSee('Fully Paid Client')
+            ->assertDontSee('Verified Downpayment Client')
+            ->assertDontSee('Unverified Checkout Client');
+
+        $export = $this->get(route('appointments.export', [
+            'scope' => 'date',
+            'specific_date' => $date,
+            'status_scope' => 'current',
+            'status_filter' => 'balance-due',
+        ]));
+        $export->assertOk();
+        $csv = $export->streamedContent();
+        $this->assertStringContainsString('Verified Downpayment Client', $csv);
+        $this->assertStringNotContainsString('Fully Paid Client', $csv);
+    }
+
     public function test_staff_paymongo_return_confirms_payment_only_after_gateway_verification(): void
     {
         $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
