@@ -187,33 +187,34 @@
     </section>
 
     @if (!empty($packages) || ($membershipPlans ?? collect())->isNotEmpty())
-        <section class="package-membership" id="packages">
+        <section class="package-membership" id="packages" aria-labelledby="{{ !empty($packages) ? 'packages-heading' : 'membership-plan-'.$membershipPlans->first()->id.'-title' }}">
             <div class="container">
                 @if (!empty($packages))
                     <div class="catalog-section-heading reveal">
                         <p class="section-eyebrow">VALUE BUNDLES</p>
-                        <h2>THERA Packages</h2>
+                        <h2 id="packages-heading">THERA Packages</h2>
                         <p>Choose a bundled treatment while keeping every individual service available above.</p>
                     </div>
                     <div class="package-grid">
                         @foreach ($packages as $package)
-                            <article class="package-card reveal delay-{{ min($loop->iteration, 3) }}">
+                            <article class="package-card reveal delay-{{ min($loop->iteration, 3) }}" aria-labelledby="package-{{ $loop->iteration }}-title">
                                 <div class="package-card-topline">
+                                    <span class="package-type">THERA package</span>
                                     <span class="package-duration">{{ $package['duration'] }}</span>
-                                    <span class="package-type">Package</span>
                                 </div>
-                                <h3>{{ $package['name'] }}</h3>
+                                <h3 id="package-{{ $loop->iteration }}-title">{{ $package['name'] }}</h3>
+                                <span class="package-detail-label">Included treatments</span>
                                 <p class="package-inclusions">{{ $package['inclusions'] }}</p>
                                 <p class="package-description">{{ $package['desc'] }}</p>
                                 <div class="package-pricing">
                                     @if (!empty($package['member_price']))
-                                        <span><small>Member</small>{{ $package['member_price'] }}</span>
-                                        <span><small>Regular</small>{{ $package['price'] }}</span>
+                                        <span class="package-price-option is-member"><small>Member rate</small><strong>{{ $package['member_price'] }}</strong></span>
+                                        <span class="package-price-option"><small>Regular rate</small><strong>{{ $package['price'] }}</strong></span>
                                     @else
-                                        <span><small>Package price</small>{{ $package['price'] }}</span>
+                                        <span class="package-price-option is-single"><small>Package price</small><strong>{{ $package['price'] }}</strong></span>
                                     @endif
                                 </div>
-                                <a href="{{ route('booking.index', ['service' => $package['name']]) }}" class="btn package-book">Book package</a>
+                                <a href="{{ route('booking.index', ['service' => $package['name']]) }}" class="btn package-book" aria-label="Book {{ $package['name'] }}">Book package</a>
                             </article>
                         @endforeach
                     </div>
@@ -224,20 +225,25 @@
                         @foreach ($membershipPlans as $plan)
                             <div class="membership-copy">
                                 <p class="section-eyebrow">MEMBERSHIP</p>
-                                <h2>{{ $plan->name }}</h2>
+                                <h2 id="membership-plan-{{ $plan->id }}-title">{{ $plan->name }}</h2>
                                 <p>{{ $plan->description }}</p>
                                 @if (!empty($plan->benefits))
-                                    <ul>
+                                    <ul class="membership-benefits">
                                         @foreach ($plan->benefits as $benefit)
                                             <li>{{ $benefit }}</li>
                                         @endforeach
                                     </ul>
                                 @endif
                             </div>
-                            <div class="membership-price">
-                                <small>Membership fee</small>
-                                <strong>PHP {{ number_format((float) $plan->price_amount, 2) }}</strong>
-                                <span>{{ (int) ($plan->validity_days ?? 365) }} days · Manual renewal</span>
+                            <div class="membership-price" aria-labelledby="membership-plan-{{ $plan->id }}-title">
+                                <div class="membership-fee">
+                                    <small>Membership fee</small>
+                                    <strong>PHP {{ number_format((float) $plan->price_amount, 2) }}</strong>
+                                </div>
+                                <div class="membership-terms" aria-label="Membership terms">
+                                    <span>{{ (int) ($plan->validity_days ?? 365) }} days validity</span>
+                                    <span>Manual renewal</span>
+                                </div>
                                 @if (($activeMembership ?? null)?->membership_plan_id === $plan->id)
                                     <span class="membership-status">Active until {{ $activeMembership->expires_at->format('M j, Y') }}</span>
                                 @elseif (($pendingMembership ?? null)?->membership_plan_id === $plan->id)

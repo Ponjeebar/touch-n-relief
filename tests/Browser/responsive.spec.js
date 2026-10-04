@@ -106,6 +106,47 @@ for (const viewport of viewports) {
     }
 }
 
+test('package and membership section stays readable on mobile and desktop', async ({ page }) => {
+    await login(page, accounts.customer);
+
+    for (const setup of [
+        { name: 'mobile-390-dark', viewport: { width: 390, height: 844 }, theme: 'dark' },
+        { name: 'desktop-light', viewport: { width: 1366, height: 768 }, theme: 'light' },
+    ]) {
+        await page.setViewportSize(setup.viewport);
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        await page.goto(`/?ui_audit=packages-${setup.name}#packages`, { waitUntil: 'domcontentloaded' });
+        await page.evaluate((theme) => {
+            localStorage.setItem('tnr-theme-preference-version', 'light-default-v1');
+            localStorage.setItem('tnr-theme', theme);
+            if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.removeAttribute('data-theme');
+        }, setup.theme);
+        await dismissOptionalTour(page);
+
+        await expect.poll(() => page.locator('html').evaluate((element) => element.getAttribute('data-theme') || 'light')).toBe(setup.theme);
+
+        const section = page.locator('#packages');
+        await section.scrollIntoViewIfNeeded();
+        const packageCount = await section.locator('.package-card').count();
+        expect(packageCount).toBeGreaterThan(0);
+        await expect(section.getByText('Included treatments')).toHaveCount(packageCount);
+        expect(await section.getByText('Member rate').count()).toBeGreaterThan(0);
+        await expect(section.locator('.membership-terms')).toContainText('days validity');
+        await expect(section.locator('.membership-price .btn')).toBeVisible();
+
+        const widths = await section.evaluate((element) => ({
+            section: element.scrollWidth,
+            viewport: document.documentElement.clientWidth,
+        }));
+        expect(widths.section).toBeLessThanOrEqual(widths.viewport + 2);
+
+        const directory = join('storage', 'app', 'browser-audit', 'package-membership');
+        mkdirSync(directory, { recursive: true });
+        await section.screenshot({ path: join(directory, `${setup.name}.png`) });
+    }
+});
+
 test('profile dialog traps keyboard focus and restores it when closed', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await setTheme(page, 'dark');

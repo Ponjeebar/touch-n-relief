@@ -24,6 +24,11 @@ class PackageMembershipCatalogTest extends TestCase
             ->assertSee('THERA Packages')
             ->assertSee('THERA #1')
             ->assertSee('Buenos Touché Membership')
+            ->assertSee('Included treatments')
+            ->assertSee('Member rate')
+            ->assertSee('Regular rate')
+            ->assertSee('days validity')
+            ->assertSee('aria-labelledby="packages-heading"', false)
             ->assertSee('PHP 499.00');
     }
 
