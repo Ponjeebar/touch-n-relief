@@ -30,6 +30,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Prepare isolated test environment
+        run: cp .env.example .env
+
       - name: Run PHP tests
         env:
           APP_ENV: testing
