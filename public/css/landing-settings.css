@@ -520,3 +520,87 @@ html[data-theme="dark"] .ls-preview-head {
 html[data-theme="dark"] .ls-preview-head h3 {
     color: var(--text);
 }
+
+/* Operational settings use compact rows so values stay beside their rules. */
+.system-settings-wrap {
+    max-width: 1240px;
+    width: 100%;
+    margin-inline: auto;
+}
+.system-settings-wrap .ls-tip {
+    background: var(--surface, #fff);
+    border-radius: 8px;
+    border-left: 3px solid #04724d;
+}
+.system-settings-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+    background: var(--surface, #fff);
+    border: 1px solid var(--line, #dde7ea);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.system-settings-wrap .ls-section {
+    display: grid;
+    grid-template-columns: minmax(190px, 0.7fr) minmax(0, 2fr);
+    gap: 28px;
+    border: 0;
+    border-bottom: 1px solid var(--line, #dde7ea);
+    border-radius: 0;
+    padding: 24px;
+    box-shadow: none;
+    background: transparent;
+}
+.system-settings-wrap .ls-section:last-child { border-bottom: 0; }
+.system-settings-wrap .ls-section-head {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.system-settings-wrap .ls-section-icon { display: none; }
+.system-settings-wrap .ls-section-title { font-size: 15px; color: var(--text, #1f2b33); }
+.system-settings-wrap .ls-section-desc { font-size: 12px; line-height: 1.6; }
+.system-settings-fields { gap: 0; }
+.system-settings-fields .ls-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 200px;
+    align-items: start;
+    gap: 8px 24px;
+    padding-block: 15px;
+    border-bottom: 1px solid var(--line, #dde7ea);
+}
+.system-settings-fields .ls-field:first-child { padding-top: 0; }
+.system-settings-fields .ls-field:last-child { padding-bottom: 0; border-bottom: 0; }
+.system-settings-fields .ls-field label { font-size: 13px; color: var(--text, #22313a); margin-bottom: 4px; }
+.system-settings-fields .ls-field-help { margin: 0; line-height: 1.6; }
+.system-settings-fields .field-error { grid-column: 1 / -1; }
+.system-settings-wrap .system-number-input { border-radius: 7px; }
+.system-settings-wrap .system-number-input input { font-weight: 600; padding: 10px; }
+.system-settings-wrap .system-number-input span { font-size: 11px; padding-inline: 8px; }
+.system-settings-wrap .ls-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); border-radius: 8px; box-shadow: none; padding: 16px 20px; gap: 16px; }
+.system-settings-wrap .ls-btn-primary { background: #04724d; box-shadow: none; }
+[data-theme="dark"] .system-settings-wrap .system-settings-grid,
+[data-theme="dark"] .system-settings-wrap .ls-tip,
+[data-theme="dark"] .system-settings-wrap .ls-actions { background: #182c30; border-color: #365055; }
+[data-theme="dark"] .system-settings-wrap .ls-section,
+[data-theme="dark"] .system-settings-wrap .ls-field { border-color: #365055; }
+[data-theme="dark"] .system-settings-wrap .ls-section-title,
+[data-theme="dark"] .system-settings-wrap .ls-field label,
+[data-theme="dark"] .system-settings-wrap .ls-tip-copy strong { color: #edf5f4; }
+[data-theme="dark"] .system-settings-wrap .ls-field-help,
+[data-theme="dark"] .system-settings-wrap .ls-section-desc,
+[data-theme="dark"] .system-settings-wrap .ls-tip-copy p,
+[data-theme="dark"] .system-settings-wrap .system-settings-note { color: #b7cbcd; }
+[data-theme="dark"] .system-settings-wrap .system-number-input { background: #102226; border-color: #526c70; }
+[data-theme="dark"] .system-settings-wrap .system-number-input input { color: #edf5f4; }
+[data-theme="dark"] .system-settings-wrap .system-number-input span { color: #b7cbcd; border-color: #526c70; }
+@media (max-width: 1100px) {
+    .system-settings-wrap .ls-section { grid-template-columns: 1fr; gap: 20px; }
+}
+@media (max-width: 600px) {
+    .system-settings-wrap .ls-section { padding: 18px 16px; }
+    .system-settings-fields .ls-field { grid-template-columns: 1fr; gap: 10px; }
+    .system-settings-wrap .system-number-input { width: 100%; }
+    .system-settings-wrap .ls-actions { grid-template-columns: 1fr; padding: 16px; }
+    .system-settings-wrap .ls-btn { width: 100%; }
+}

@@ -55,8 +55,8 @@
                     <div class="ls-tip">
                         <span class="ls-tip-icon" aria-hidden="true"><i class="bi bi-sliders"></i></span>
                         <div class="ls-tip-copy">
-                            <strong>Operational rules</strong>
-                            <p>Saved values are used by the actual customer booking, payment hold, attendance, account restriction, and backup workflows. Changes apply when each workflow is checked again.</p>
+                            <strong>Changes apply after saving</strong>
+                            <p>These rules also apply to existing appointments when booking eligibility, payment expiration, or attendance is checked.</p>
                         </div>
                     </div>
 

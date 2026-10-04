@@ -1,5 +1,8 @@
 <div class="ls-field">
-    <label for="{{ $name }}">{{ $label }}</label>
+    <div class="system-field-copy">
+        <label for="{{ $name }}">{{ $label }}</label>
+        <p class="ls-field-help" id="{{ $name }}_help">{{ $help }}</p>
+    </div>
     <div class="system-number-input">
         <input
             id="{{ $name }}"
@@ -11,9 +14,10 @@
             max="{{ $max }}"
             step="1"
             inputmode="numeric"
+            aria-describedby="{{ $name }}_help{{ $errors->has($name) ? ' '.$name.'_error' : '' }}"
+            @if($errors->has($name)) aria-invalid="true" @endif
         >
         <span>{{ $unit }}</span>
     </div>
-    <p class="ls-field-help">{{ $help }}</p>
-    @error($name)<span class="field-error">{{ $message }}</span>@enderror
+    @error($name)<span class="field-error" id="{{ $name }}_error">{{ $message }}</span>@enderror
 </div>
