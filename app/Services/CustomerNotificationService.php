@@ -158,7 +158,7 @@ class CustomerNotificationService
             (string) $booking->service_name,
             $this->formatSchedule($booking),
             $noShowCount,
-            NoShowService::ACCOUNT_RESTRICTION_THRESHOLD,
+            app(SiteSettingsService::class)->noShowRestrictionThreshold(),
         );
         if ($banned) {
             $message .= ' Your account is now restricted. Please contact the spa team for help.';
@@ -193,7 +193,7 @@ class CustomerNotificationService
                 (string) $booking->service_name,
                 $this->formatSchedule($booking),
                 $noShowCount,
-                NoShowService::ACCOUNT_RESTRICTION_THRESHOLD,
+                app(SiteSettingsService::class)->noShowRestrictionThreshold(),
             ),
             details: $this->noShowDetails($booking, $noShowCount),
             dedupKey: 'booking:'.$booking->id.':no-show-reversed:'.now()->timestamp,

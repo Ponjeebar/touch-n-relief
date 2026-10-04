@@ -15,7 +15,6 @@ use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\BackupRecoveryService;
 use App\Services\BookingSlotService;
-use App\Services\NoShowService;
 use App\Services\NotificationFeedService;
 use App\Services\PaymentLedgerService;
 use App\Services\ReportingPdfChartService;
@@ -1165,7 +1164,7 @@ class DashboardController extends Controller
             'paymentMethods' => $hasPaymentFields ? PaymentMethodCatalog::staffMethods() : [],
             'downpaymentRate' => PaymentMethodCatalog::DOWNPAYMENT_RATE,
             'downpaymentPercentage' => PaymentMethodCatalog::downpaymentPercentage(),
-            'noShowLimit' => NoShowService::ACCOUNT_RESTRICTION_THRESHOLD,
+            'noShowLimit' => app(SiteSettingsService::class)->noShowRestrictionThreshold(),
             'hasPaymentFields' => $hasPaymentFields,
         ]);
     }

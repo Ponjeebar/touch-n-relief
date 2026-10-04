@@ -30,6 +30,24 @@ class SiteSettingsService
 
     public const KEY_CANCELLATION_CUTOFF_HOURS = 'booking_cancellation_cutoff_hours';
 
+    public const KEY_PAYMENT_HOLD_MINUTES = 'booking_payment_hold_minutes';
+
+    public const KEY_CUSTOMER_MINIMUM_LEAD_MINUTES = 'booking_customer_minimum_lead_minutes';
+
+    public const KEY_LATE_GRACE_MINUTES = 'appointment_late_grace_minutes';
+
+    public const KEY_NO_SHOW_REVIEW_MINUTES = 'appointment_no_show_review_minutes';
+
+    public const KEY_NO_SHOW_RESTRICTION_THRESHOLD = 'appointment_no_show_restriction_threshold';
+
+    public const KEY_EXPIRED_HOLD_LIMIT = 'booking_expired_hold_limit';
+
+    public const KEY_EXPIRED_HOLD_LOOKBACK_HOURS = 'booking_expired_hold_lookback_hours';
+
+    public const KEY_EXPIRED_HOLD_COOLDOWN_MINUTES = 'booking_expired_hold_cooldown_minutes';
+
+    public const KEY_BACKUP_RETENTION_DAYS = 'backup_retention_days';
+
     public function cancellationCutoffHours(): int
     {
         return max(0, min(8760, (int) SiteSetting::valueFor(self::KEY_CANCELLATION_CUTOFF_HOURS, '24')));
@@ -38,6 +56,124 @@ class SiteSettingsService
     public function updateCancellationCutoffHours(int $hours): void
     {
         SiteSetting::put(self::KEY_CANCELLATION_CUTOFF_HOURS, (string) max(0, min(8760, $hours)));
+    }
+
+    /** @return array<string, int> */
+    public function systemRules(): array
+    {
+        $paymentHold = $this->paymentHoldMinutes();
+
+        return [
+            'cancellation_cutoff_hours' => $this->cancellationCutoffHours(),
+            'payment_hold_minutes' => $paymentHold,
+            'customer_minimum_lead_minutes' => $this->customerMinimumLeadMinutes(),
+            'late_grace_minutes' => $this->lateGraceMinutes(),
+            'no_show_review_minutes' => $this->noShowReviewMinutes(),
+            'no_show_restriction_threshold' => $this->noShowRestrictionThreshold(),
+            'expired_hold_limit' => $this->expiredHoldLimit(),
+            'expired_hold_lookback_hours' => $this->expiredHoldLookbackHours(),
+            'expired_hold_cooldown_minutes' => $this->expiredHoldCooldownMinutes(),
+            'backup_retention_days' => $this->backupRetentionDays(),
+        ];
+    }
+
+    /** @param array<string, int> $rules */
+    public function updateSystemRules(array $rules): void
+    {
+        $keys = [
+            'cancellation_cutoff_hours' => self::KEY_CANCELLATION_CUTOFF_HOURS,
+            'payment_hold_minutes' => self::KEY_PAYMENT_HOLD_MINUTES,
+            'customer_minimum_lead_minutes' => self::KEY_CUSTOMER_MINIMUM_LEAD_MINUTES,
+            'late_grace_minutes' => self::KEY_LATE_GRACE_MINUTES,
+            'no_show_review_minutes' => self::KEY_NO_SHOW_REVIEW_MINUTES,
+            'no_show_restriction_threshold' => self::KEY_NO_SHOW_RESTRICTION_THRESHOLD,
+            'expired_hold_limit' => self::KEY_EXPIRED_HOLD_LIMIT,
+            'expired_hold_lookback_hours' => self::KEY_EXPIRED_HOLD_LOOKBACK_HOURS,
+            'expired_hold_cooldown_minutes' => self::KEY_EXPIRED_HOLD_COOLDOWN_MINUTES,
+            'backup_retention_days' => self::KEY_BACKUP_RETENTION_DAYS,
+        ];
+
+        foreach ($keys as $input => $key) {
+            SiteSetting::put($key, (string) $rules[$input]);
+        }
+    }
+
+    public function paymentHoldMinutes(): int
+    {
+        return $this->integerSetting(self::KEY_PAYMENT_HOLD_MINUTES, 15, 5, 30);
+    }
+
+    public function customerMinimumLeadMinutes(): int
+    {
+        return max(
+            $this->integerSetting(
+                self::KEY_CUSTOMER_MINIMUM_LEAD_MINUTES,
+                (int) config('touchnrelief.booking.customer_minimum_lead_minutes', 30),
+                6,
+                1440,
+            ),
+            $this->paymentHoldMinutes() + 1,
+        );
+    }
+
+    public function lateGraceMinutes(): int
+    {
+        return $this->integerSetting(self::KEY_LATE_GRACE_MINUTES, 10, 1, 60);
+    }
+
+    public function noShowReviewMinutes(): int
+    {
+        return $this->integerSetting(self::KEY_NO_SHOW_REVIEW_MINUTES, 5, 1, 60);
+    }
+
+    public function noShowRestrictionThreshold(): int
+    {
+        return $this->integerSetting(self::KEY_NO_SHOW_RESTRICTION_THRESHOLD, 3, 1, 10);
+    }
+
+    public function expiredHoldLimit(): int
+    {
+        return $this->integerSetting(
+            self::KEY_EXPIRED_HOLD_LIMIT,
+            (int) config('touchnrelief.booking.expired_hold_limit', 3),
+            1,
+            10,
+        );
+    }
+
+    public function expiredHoldLookbackHours(): int
+    {
+        return $this->integerSetting(
+            self::KEY_EXPIRED_HOLD_LOOKBACK_HOURS,
+            (int) config('touchnrelief.booking.expired_hold_lookback_hours', 24),
+            1,
+            168,
+        );
+    }
+
+    public function expiredHoldCooldownMinutes(): int
+    {
+        return $this->integerSetting(
+            self::KEY_EXPIRED_HOLD_COOLDOWN_MINUTES,
+            (int) config('touchnrelief.booking.expired_hold_cooldown_minutes', 60),
+            15,
+            1440,
+        );
+    }
+
+    public function backupRetentionDays(): int
+    {
+        return $this->integerSetting(
+            self::KEY_BACKUP_RETENTION_DAYS,
+            (int) config('services.google_drive_backup.retention_days', 14),
+            1,
+            365,
+        );
+    }
+
+    private function integerSetting(string $key, int $default, int $minimum, int $maximum): int
+    {
+        return max($minimum, min($maximum, (int) SiteSetting::valueFor($key, (string) $default)));
     }
 
     /**
@@ -153,6 +289,24 @@ class SiteSettingsService
 
         if (SiteSetting::valueFor(self::KEY_CANCELLATION_CUTOFF_HOURS) === null) {
             SiteSetting::put(self::KEY_CANCELLATION_CUTOFF_HOURS, '24');
+        }
+
+        $defaults = [
+            self::KEY_PAYMENT_HOLD_MINUTES => 15,
+            self::KEY_CUSTOMER_MINIMUM_LEAD_MINUTES => (int) config('touchnrelief.booking.customer_minimum_lead_minutes', 30),
+            self::KEY_LATE_GRACE_MINUTES => 10,
+            self::KEY_NO_SHOW_REVIEW_MINUTES => 5,
+            self::KEY_NO_SHOW_RESTRICTION_THRESHOLD => 3,
+            self::KEY_EXPIRED_HOLD_LIMIT => (int) config('touchnrelief.booking.expired_hold_limit', 3),
+            self::KEY_EXPIRED_HOLD_LOOKBACK_HOURS => (int) config('touchnrelief.booking.expired_hold_lookback_hours', 24),
+            self::KEY_EXPIRED_HOLD_COOLDOWN_MINUTES => (int) config('touchnrelief.booking.expired_hold_cooldown_minutes', 60),
+            self::KEY_BACKUP_RETENTION_DAYS => (int) config('services.google_drive_backup.retention_days', 14),
+        ];
+
+        foreach ($defaults as $key => $value) {
+            if (SiteSetting::valueFor($key) === null) {
+                SiteSetting::put($key, (string) $value);
+            }
         }
     }
 

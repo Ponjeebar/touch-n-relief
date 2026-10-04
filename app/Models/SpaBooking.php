@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\SiteSettingsService;
 use App\Services\SpaServiceCatalog;
 use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
@@ -164,7 +165,7 @@ class SpaBooking extends Model
             return null;
         }
 
-        return $this->created_at->copy()->addMinutes(self::PAYMENT_HOLD_MINUTES);
+        return $this->created_at->copy()->addMinutes(self::paymentHoldMinutes());
     }
 
     public function hasActivePaymentHold(): bool
@@ -208,7 +209,7 @@ class SpaBooking extends Model
      */
     public function scopeBlocksAvailability($query)
     {
-        $holdCutoff = now()->subMinutes(self::PAYMENT_HOLD_MINUTES);
+        $holdCutoff = now()->subMinutes(self::paymentHoldMinutes());
 
         return $query
             ->whereNull('cancelled_at')
@@ -257,5 +258,10 @@ class SpaBooking extends Model
     public function refunds(): HasMany
     {
         return $this->hasMany(BookingRefund::class);
+    }
+
+    public static function paymentHoldMinutes(): int
+    {
+        return app(SiteSettingsService::class)->paymentHoldMinutes();
     }
 }

@@ -3,13 +3,14 @@
     $admin = auth()->user()->isAdmin();
     $receptionist = auth()->user()->isReceptionist();
     $homeActive = ($admin || $receptionist) && ($active === 'dashboard' || $active === 'receptionist');
-    $cmsActive = in_array($active, ['services', 'therapist-manage', 'landing-settings'], true);
+    $cmsActive = in_array($active, ['services', 'therapist-manage', 'landing-settings', 'system-settings'], true);
     $operationsActive = in_array($active, ['ongoing', 'completed', 'appointments', 'therapist-monitoring', 'client-records'], true);
     $usersActive = in_array($active, ['users', 'users-receptionists', 'users-customers'], true);
-    $moreActive = in_array($active, ['completed', 'therapist-monitoring', 'users', 'users-receptionists', 'users-customers', 'reporting', 'services', 'therapist-manage', 'landing-settings'], true);
+    $moreActive = in_array($active, ['completed', 'therapist-monitoring', 'users', 'users-receptionists', 'users-customers', 'reporting', 'services', 'therapist-manage', 'landing-settings', 'system-settings'], true);
 @endphp
 <div class="staff-mobile-header-actions" data-staff-mobile-header-actions></div>
 <ul class="nav-list" id="staff-mobile-navigation">
+    <li class="nav-section-label">Overview</li>
     @if ($admin || $receptionist)
         <li>
             <a
@@ -22,6 +23,7 @@
             </a>
         </li>
     @endif
+    <li class="nav-section-label">Daily work</li>
     @if ($admin)
     <li class="nav-group">
         <details class="nav-group-details" @if ($operationsActive) open @endif>
@@ -97,6 +99,7 @@
     </li>
     @endif
     @if ($admin)
+    <li class="nav-section-label">Administration</li>
     <li class="nav-group">
         <details class="nav-group-details" @if ($usersActive) open @endif>
             <summary class="nav-link nav-group-toggle {{ $usersActive ? 'active' : '' }}">
@@ -137,6 +140,7 @@
     </li>
     @endif
     @if ($admin)
+    <li class="nav-section-label">Content and settings</li>
     <li class="nav-group">
         <details class="nav-group-details" @if ($cmsActive) open @endif>
             <summary class="nav-link nav-group-toggle {{ $cmsActive ? 'active' : '' }}">
@@ -161,6 +165,12 @@
                     <a href="{{ route('landing-settings.edit') }}" class="nav-link nav-sublink {{ $active === 'landing-settings' ? 'active' : '' }}">
                         <span class="nav-icon"><i class="bi bi-window"></i></span>
                         <span class="nav-text">Landing Page</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('system-settings.edit') }}" class="nav-link nav-sublink {{ $active === 'system-settings' ? 'active' : '' }}">
+                        <span class="nav-icon"><i class="bi bi-sliders"></i></span>
+                        <span class="nav-text">System Settings</span>
                     </a>
                 </li>
             </ul>
@@ -205,6 +215,9 @@
                 </a>
                 <a href="{{ route('landing-settings.edit') }}" @if($active === 'landing-settings') aria-current="page" @endif>
                     <i class="bi bi-window" aria-hidden="true"></i><span>Landing Page</span>
+                </a>
+                <a href="{{ route('system-settings.edit') }}" @if($active === 'system-settings') aria-current="page" @endif>
+                    <i class="bi bi-sliders" aria-hidden="true"></i><span>System Settings</span>
                 </a>
             @endif
             <button type="button" data-staff-chat-open>

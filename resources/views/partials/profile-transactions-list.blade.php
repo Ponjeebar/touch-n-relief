@@ -235,7 +235,7 @@
                     <div class="txn-payment-hold" data-payment-hold>
                         <p class="txn-payment-hold-title">
                             Schedule reserved for
-                            <strong data-payment-hold-countdown aria-hidden="true">15:00</strong>
+                            <strong data-payment-hold-countdown aria-hidden="true">{{ sprintf('%02d:00', \App\Models\SpaBooking::paymentHoldMinutes()) }}</strong>
                         </p>
                         <p data-payment-hold-message>
                             Complete payment before the timer ends. The schedule will then be released for other customers.

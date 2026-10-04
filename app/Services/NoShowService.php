@@ -19,12 +19,19 @@ class NoShowService
     public function __construct(
         private readonly BookingCancellationService $cancellations,
         private readonly CustomerNotificationService $customerNotifications,
+        private readonly SiteSettingsService $settings,
     ) {}
 
-    public function canRecord(SpaBooking $booking, int $minutesLate = SpaSessionService::START_GRACE_MINUTES, ?Carbon $now = null): bool
+    public function automaticNoShowMinutes(): int
+    {
+        return $this->settings->lateGraceMinutes() + $this->settings->noShowReviewMinutes();
+    }
+
+    public function canRecord(SpaBooking $booking, ?int $minutesLate = null, ?Carbon $now = null): bool
     {
         $appointmentAt = $this->cancellations->appointmentAt($booking);
         $now ??= now();
+        $minutesLate ??= $this->settings->lateGraceMinutes();
 
         return $booking->cancelled_at === null
             && $booking->completed_at === null
@@ -38,8 +45,9 @@ class NoShowService
     /**
      * @return array{count: int, banned: bool, booking: SpaBooking}|null
      */
-    public function record(SpaBooking $booking, int $minutesLate = SpaSessionService::START_GRACE_MINUTES): ?array
+    public function record(SpaBooking $booking, ?int $minutesLate = null): ?array
     {
+        $minutesLate ??= $this->settings->lateGraceMinutes();
         $result = DB::transaction(function () use ($booking, $minutesLate): ?array {
             $customer = User::query()->lockForUpdate()->find($booking->user_id);
             $lockedBooking = SpaBooking::query()->with('user')->lockForUpdate()->find($booking->id);
@@ -58,7 +66,7 @@ class NoShowService
                 ->count();
 
             $banned = false;
-            if ($noShowCount >= self::ACCOUNT_RESTRICTION_THRESHOLD && $customer->isUser() && ! $customer->isWalkIn()) {
+            if ($noShowCount >= $this->settings->noShowRestrictionThreshold() && $customer->isUser() && ! $customer->isWalkIn()) {
                 $customer->forceFill(['banned_at' => $customer->banned_at ?? now()])->save();
                 $banned = true;
             }
@@ -80,6 +88,7 @@ class NoShowService
     public function processOverdue(): int
     {
         $processed = 0;
+        $automaticNoShowMinutes = $this->automaticNoShowMinutes();
 
         SpaBooking::query()
             ->visibleToStaff()
@@ -94,13 +103,13 @@ class NoShowService
             })
             ->whereDate('booking_date', '<=', now()->toDateString())
             ->orderBy('id')
-            ->chunkById(100, function ($bookings) use (&$processed): void {
+            ->chunkById(100, function ($bookings) use (&$processed, $automaticNoShowMinutes): void {
                 foreach ($bookings as $booking) {
-                    if (! $booking instanceof SpaBooking || ! $this->canRecord($booking, self::AUTOMATIC_NO_SHOW_MINUTES)) {
+                    if (! $booking instanceof SpaBooking || ! $this->canRecord($booking, $automaticNoShowMinutes)) {
                         continue;
                     }
 
-                    $result = $this->record($booking, self::AUTOMATIC_NO_SHOW_MINUTES);
+                    $result = $this->record($booking, $automaticNoShowMinutes);
                     if ($result === null) {
                         continue;
                     }
@@ -118,7 +127,7 @@ class NoShowService
                             'no_show_count' => $result['count'],
                             'customer_banned' => $result['banned'],
                             'automatic' => true,
-                            'minutes_late' => self::AUTOMATIC_NO_SHOW_MINUTES,
+                            'minutes_late' => $automaticNoShowMinutes,
                         ],
                         'created_at' => now(),
                     ]);

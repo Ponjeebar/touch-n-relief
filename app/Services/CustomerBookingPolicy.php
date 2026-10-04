@@ -10,9 +10,13 @@ use Illuminate\Validation\ValidationException;
 
 class CustomerBookingPolicy
 {
+    public function __construct(
+        private readonly SiteSettingsService $settings,
+    ) {}
+
     public function minimumLeadMinutes(): int
     {
-        return max((int) config('touchnrelief.booking.customer_minimum_lead_minutes', 30), SpaBooking::PAYMENT_HOLD_MINUTES + 1);
+        return $this->settings->customerMinimumLeadMinutes();
     }
 
     public function assertMayCreatePaymentHold(User $user): void
@@ -35,17 +39,18 @@ class CustomerBookingPolicy
     {
         return $this->unpaidOnlineBookings($user)
             ->where('payment_status', PaymentMethodCatalog::STATUS_PENDING)
-            ->where('created_at', '>', now()->subMinutes(SpaBooking::PAYMENT_HOLD_MINUTES))
+            ->where('created_at', '>', now()->subMinutes($this->settings->paymentHoldMinutes()))
             ->latest('created_at')
             ->first();
     }
 
     public function cooldownUntil(User $user): ?CarbonInterface
     {
-        $lookbackHours = max((int) config('touchnrelief.booking.expired_hold_lookback_hours', 24), 1);
-        $expiredHoldLimit = max((int) config('touchnrelief.booking.expired_hold_limit', 3), 1);
-        $cooldownMinutes = max((int) config('touchnrelief.booking.expired_hold_cooldown_minutes', 60), 1);
-        $expiredCutoff = now()->subMinutes(SpaBooking::PAYMENT_HOLD_MINUTES);
+        $lookbackHours = $this->settings->expiredHoldLookbackHours();
+        $expiredHoldLimit = $this->settings->expiredHoldLimit();
+        $cooldownMinutes = $this->settings->expiredHoldCooldownMinutes();
+        $paymentHoldMinutes = $this->settings->paymentHoldMinutes();
+        $expiredCutoff = now()->subMinutes($paymentHoldMinutes);
 
         $expiredHolds = $this->unpaidOnlineBookings($user)
             ->where('payment_status', PaymentMethodCatalog::STATUS_PENDING)
@@ -60,7 +65,7 @@ class CustomerBookingPolicy
 
         return $expiredHolds->first()->created_at
             ->copy()
-            ->addMinutes(SpaBooking::PAYMENT_HOLD_MINUTES + $cooldownMinutes);
+            ->addMinutes($paymentHoldMinutes + $cooldownMinutes);
     }
 
     private function unpaidOnlineBookings(User $user)

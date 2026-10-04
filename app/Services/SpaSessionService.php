@@ -379,7 +379,7 @@ class SpaSessionService
             && $this->resolveStatus($booking, $now) === SpaBooking::STATUS_CONFIRMED
             && $window !== null
             && $now->gte($window['start'])
-            && $now->lt($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES));
+            && $now->lt($window['start']->copy()->addMinutes($this->startGraceMinutes()));
     }
 
     public function canConfirmPaymentAndStart(SpaBooking $booking, ?Carbon $now = null): bool
@@ -391,7 +391,7 @@ class SpaSessionService
             && $this->resolveStatus($booking, $now) === SpaBooking::STATUS_CONFIRMED
             && $window !== null
             && $now->gte($window['start'])
-            && $now->lt($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES));
+            && $now->lt($window['start']->copy()->addMinutes($this->startGraceMinutes()));
     }
 
     public function isBalanceCollectionClosed(SpaBooking $booking, ?Carbon $now = null): bool
@@ -413,7 +413,7 @@ class SpaSessionService
         $window = $this->window($booking);
 
         return $window === null
-            || ($now ?? now())->gte($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES));
+            || ($now ?? now())->gte($window['start']->copy()->addMinutes($this->startGraceMinutes()));
     }
 
     public function startEligibilityMessage(SpaBooking $booking, ?Carbon $now = null): string
@@ -426,8 +426,9 @@ class SpaSessionService
         if ($now->lt($window['start'])) {
             return 'This session can be started at '.$window['start']->format('g:i A').'.';
         }
-        if ($now->gte($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES))) {
-            return 'The 10-minute start window has passed. Staff must confirm whether this appointment is a no-show.';
+        $graceMinutes = $this->startGraceMinutes();
+        if ($now->gte($window['start']->copy()->addMinutes($graceMinutes))) {
+            return 'The '.$graceMinutes.'-minute start window has passed. Staff must confirm whether this appointment is a no-show.';
         }
 
         return 'This appointment cannot be started.';
@@ -608,13 +609,16 @@ class SpaSessionService
         $window = $this->window($booking);
         $start = $window['start'] ?? Carbon::parse($booking->booking_date->format('Y-m-d').' 09:00 AM');
         $end = $window['end'] ?? $start->copy()->addMinutes(max((int) ($booking->duration_minutes ?? 60), 1));
-        $automaticNoShowAt = $start->copy()->addMinutes(NoShowService::AUTOMATIC_NO_SHOW_MINUTES);
+        $settings = app(SiteSettingsService::class);
+        $automaticNoShowAt = $start->copy()->addMinutes(
+            $settings->lateGraceMinutes() + $settings->noShowReviewMinutes(),
+        );
         $canMarkNoShow = in_array($booking->session_status, [null, SpaBooking::STATUS_CONFIRMED], true)
             && $booking->cancelled_at === null
             && $booking->completed_at === null
             && $booking->session_started_at === null
             && $booking->no_show_reversed_at === null
-            && $now->gte($start->copy()->addMinutes(self::START_GRACE_MINUTES));
+            && $now->gte($start->copy()->addMinutes($this->startGraceMinutes()));
         $status = $canMarkNoShow ? 'Late' : $this->appointmentStatus($booking, $now);
 
         return [
@@ -631,7 +635,7 @@ class SpaSessionService
             'time' => $start->format('h:i A').' - '.$end->format('h:i A'),
             'starts_at' => $start,
             'start_at_iso' => $start->toIso8601String(),
-            'start_cutoff_at_iso' => $start->copy()->addMinutes(self::START_GRACE_MINUTES)->toIso8601String(),
+            'start_cutoff_at_iso' => $start->copy()->addMinutes($this->startGraceMinutes())->toIso8601String(),
             'automatic_no_show_at_iso' => $automaticNoShowAt->toIso8601String(),
             'automatic_no_show_at' => $automaticNoShowAt->format('h:i A'),
             'status' => $status,
@@ -642,10 +646,15 @@ class SpaSessionService
             'can_mark_no_show' => $canMarkNoShow,
             'no_show_count' => $customerNoShowCount,
             'next_no_show_count' => $customerNoShowCount + 1,
-            'will_ban_on_no_show' => $customerNoShowCount + 1 >= NoShowService::ACCOUNT_RESTRICTION_THRESHOLD,
+            'will_ban_on_no_show' => $customerNoShowCount + 1 >= app(SiteSettingsService::class)->noShowRestrictionThreshold(),
             'client_user_id' => (int) $booking->user_id,
             ...$this->paymentMeta($booking),
         ];
+    }
+
+    private function startGraceMinutes(): int
+    {
+        return app(SiteSettingsService::class)->lateGraceMinutes();
     }
 
     /**

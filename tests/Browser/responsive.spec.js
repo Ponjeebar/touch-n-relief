@@ -30,7 +30,7 @@ const accounts = {
     admin: {
         login: 'admin@browser.test',
         landing: '/dashboard',
-        paths: ['/dashboard', '/reporting', '/activity-log', '/users', '/landing-settings', '/services'],
+        paths: ['/dashboard', '/reporting', '/activity-log', '/users', '/landing-settings', '/system-settings', '/services'],
     },
 };
 
@@ -74,6 +74,14 @@ async function assertPageFits(page, path, theme, viewport, role, consoleErrors) 
     expect(layout.bodyWidth, `${path} has horizontal body overflow`).toBeLessThanOrEqual(layout.viewportWidth + 2);
     expect(layout.theme).toBe(theme);
     expect(consoleErrors, `${path} emitted browser console errors`).toEqual([]);
+
+    if (role === 'admin' && path === '/system-settings' && viewport.width >= 1024) {
+        await page.locator('.sidebar').hover();
+        await expect(page.getByText('Overview', { exact: true })).toBeVisible();
+        await expect(page.getByText('Daily work', { exact: true })).toBeVisible();
+        await expect(page.getByText('Administration', { exact: true })).toBeVisible();
+        await expect(page.getByText('Content and settings', { exact: true })).toBeVisible();
+    }
 
     const captureReviewSet = (viewport.name === 'mobile-390' && theme === 'dark')
         || (viewport.name === 'desktop' && theme === 'light');

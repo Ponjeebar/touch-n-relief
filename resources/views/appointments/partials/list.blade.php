@@ -105,7 +105,7 @@
                             data-remaining-balance="{{ $appointment['remaining_balance'] ?? '₱0.00' }}"
                             data-remaining-balance-raw="{{ $appointment['remaining_balance_raw'] ?? 0 }}"
                             data-paymongo-verified="{{ ! empty($appointment['is_paymongo_verified']) ? '1' : '0' }}"
-                            title="{{ ! empty($appointment['can_start']) ? 'Confirm payment and start session' : 'Available only from the scheduled time until 10 minutes after' }}"
+                            title="{{ ! empty($appointment['can_start']) ? 'Confirm payment and start session' : 'Available only during the configured start window' }}"
                             aria-label="Confirm payment and start appointment for {{ $appointment['client'] }}"
                         >
                             <i class="bi bi-play-fill" aria-hidden="true"></i>
@@ -255,7 +255,7 @@
                 button.disabled = !available;
                 button.title = available
                     ? 'Start session'
-                    : (now < start ? 'Available at the scheduled time' : 'The 10-minute start window has passed');
+                    : (now < start ? 'Available at the scheduled time' : 'The configured start window has passed');
             });
         };
 

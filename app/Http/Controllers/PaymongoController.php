@@ -79,7 +79,7 @@ class PaymongoController extends Controller
         $statusMessage = $isPaid
             ? 'Your booking is confirmed with '.$spaBooking->therapist_name.' for '.$spaBooking->service_name.' on '.$dateFormatted.' at '.$spaBooking->time_slot.'. Payment: PayMongo · '.$typeLabel.' · ₱'.number_format($paymentAmount, 2).'.'
             : ($spaBooking->cancelled_at !== null
-                ? 'Your payment arrived after the 15-minute hold expired and the time was already taken. The appointment was cancelled and the refund is being processed.'
+                ? 'Your payment arrived after the '.SpaBooking::paymentHoldMinutes().'-minute hold expired and the time was already taken. The appointment was cancelled and the refund is being processed.'
                 : 'Your booking is reserved. Complete payment on PayMongo to confirm your appointment.');
 
         if ($isPaid) {
@@ -242,7 +242,7 @@ class PaymongoController extends Controller
 
                         return $spaBooking->payment_status === PaymentMethodCatalog::STATUS_PAID
                             ? back()->with('status', 'Your payment is confirmed.')
-                            : back()->withErrors(['payment' => 'The 15-minute payment hold expired and the selected time was taken. Your refund is being processed.']);
+                            : back()->withErrors(['payment' => 'The '.SpaBooking::paymentHoldMinutes().'-minute payment hold expired and the selected time was taken. Your refund is being processed.']);
                     }
                 } catch (\Throwable $exception) {
                     Log::info('Expired customer payment hold could not be verified.', [
@@ -253,7 +253,7 @@ class PaymongoController extends Controller
             }
 
             return back()->withErrors([
-                'payment' => 'The 15-minute payment hold has expired. Please choose an available appointment time again.',
+                'payment' => 'The '.SpaBooking::paymentHoldMinutes().'-minute payment hold has expired. Please choose an available appointment time again.',
             ]);
         }
 
@@ -694,7 +694,7 @@ class PaymongoController extends Controller
             if ($hasConflict) {
                 $paidValues['cancelled_at'] = now();
                 $paidValues['session_status'] = SpaBooking::STATUS_CANCELLED;
-                $paidValues['cancellation_reason'] = 'Automatically cancelled because payment arrived after the 15-minute hold expired and the selected time was no longer available.';
+                $paidValues['cancellation_reason'] = 'Automatically cancelled because payment arrived after the '.SpaBooking::paymentHoldMinutes().'-minute hold expired and the selected time was no longer available.';
             }
 
             $locked->forceFill($paidValues)->save();

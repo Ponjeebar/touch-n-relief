@@ -73,7 +73,7 @@ class GoogleDriveBackupService
 
     private function removeExpiredBackups(string $accessToken, string $folderId): int
     {
-        $retentionDays = max((int) config('services.google_drive_backup.retention_days', 14), 1);
+        $retentionDays = app(SiteSettingsService::class)->backupRetentionDays();
         $cutoff = CarbonImmutable::now()->subDays($retentionDays);
         $query = sprintf(
             "'%s' in parents and trashed = false and appProperties has { key='touchnrelief_backup' and value='true' }",

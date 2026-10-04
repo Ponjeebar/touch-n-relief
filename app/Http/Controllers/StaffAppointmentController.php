@@ -17,6 +17,7 @@ use App\Services\CustomerNotificationService;
 use App\Services\NoShowService;
 use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
+use App\Services\SiteSettingsService;
 use App\Services\SpaServiceCatalog;
 use App\Services\SpaSessionService;
 use App\Services\TherapistAvailabilityService;
@@ -773,7 +774,8 @@ class StaffAppointmentController extends Controller
             request: $request,
         );
 
-        $message = 'Appointment marked as no-show ('.$result['count'].' of '.NoShowService::ACCOUNT_RESTRICTION_THRESHOLD.').';
+        $noShowLimit = app(SiteSettingsService::class)->noShowRestrictionThreshold();
+        $message = 'Appointment marked as no-show ('.$result['count'].' of '.$noShowLimit.').';
         if ($result['banned']) {
             $message .= ' The customer account is now banned.';
         }
@@ -811,7 +813,8 @@ class StaffAppointmentController extends Controller
                 ->where('user_id', $booking->user_id)
                 ->where('session_status', SpaBooking::STATUS_NO_SHOW)
                 ->count();
-            $unbanned = $customer->banned_at !== null && $noShowCount < NoShowService::ACCOUNT_RESTRICTION_THRESHOLD;
+            $unbanned = $customer->banned_at !== null
+                && $noShowCount < app(SiteSettingsService::class)->noShowRestrictionThreshold();
             if ($unbanned) {
                 $customer->forceFill(['banned_at' => null])->save();
             }
@@ -838,7 +841,8 @@ class StaffAppointmentController extends Controller
             request: $request,
         );
 
-        $message = 'No-show corrected. The customer now has '.$result['count'].' of '.NoShowService::ACCOUNT_RESTRICTION_THRESHOLD.' no-shows.';
+        $message = 'No-show corrected. The customer now has '.$result['count'].' of '
+            .app(SiteSettingsService::class)->noShowRestrictionThreshold().' no-shows.';
         if ($result['unbanned']) {
             $message .= ' The account restriction was removed.';
         }

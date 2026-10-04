@@ -15,6 +15,7 @@ use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\StaffAppointmentController;
 use App\Http\Controllers\StaffNotificationController;
 use App\Http\Controllers\StorageMediaController;
+use App\Http\Controllers\SystemSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/media/{path}', [StorageMediaController::class, 'show'])
@@ -150,4 +151,6 @@ Route::middleware(['auth', 'current.staff.session', 'admin', 'staff.activity'])-
     Route::delete('/dashboard/receptionists/{receptionist}', [DashboardController::class, 'destroyReceptionist'])->name('dashboard.receptionists.destroy');
     Route::get('/landing-settings', [LandingSettingsController::class, 'edit'])->name('landing-settings.edit');
     Route::put('/landing-settings', [LandingSettingsController::class, 'update'])->name('landing-settings.update');
+    Route::get('/system-settings', [SystemSettingsController::class, 'edit'])->name('system-settings.edit');
+    Route::put('/system-settings', [SystemSettingsController::class, 'update'])->name('system-settings.update');
 });

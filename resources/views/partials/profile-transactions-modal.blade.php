@@ -26,7 +26,10 @@
             <p class="txn-modal-sub">Your appointments, payment status, and completed spa sessions — most recent activity shown first.</p>
             <p class="txn-modal-note">
                 <i class="bi bi-info-circle" aria-hidden="true"></i>
-                <span class="txn-modal-note-text"><strong>Late note:</strong> after the 10-minute grace period, staff have 5 minutes to review attendance. If they do not update the appointment, it is automatically recorded as a no-show at 15 minutes late.</span>
+                @php
+                    $attendanceRules = app(\App\Services\SiteSettingsService::class);
+                @endphp
+                <span class="txn-modal-note-text"><strong>Late note:</strong> after the {{ $attendanceRules->lateGraceMinutes() }}-minute grace period, staff have {{ $attendanceRules->noShowReviewMinutes() }} minutes to review attendance. If they do not update the appointment, it is automatically recorded as a no-show at {{ $attendanceRules->lateGraceMinutes() + $attendanceRules->noShowReviewMinutes() }} minutes late.</span>
             </p>
             @include('partials.profile-transactions-list')
         </div>

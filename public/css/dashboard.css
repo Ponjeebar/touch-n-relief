@@ -280,6 +280,25 @@ body {
     line-height: 1.25;
 }
 
+.nav-section-label {
+    margin: 12px 10px 4px;
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 0.67rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1.35;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.nav-list > .nav-section-label:first-child {
+    margin-top: 0;
+}
+
+.sidebar:not(:hover):not(:focus-within) .nav-section-label {
+    display: none;
+}
+
 .nav-icon {
     width: 22px;
     min-width: 22px;
@@ -2549,6 +2568,10 @@ body.modal-open {
 
     .sidebar .nav-group-details[open] .nav-sublist {
         display: grid;
+    }
+
+    .sidebar .nav-section-label {
+        display: none;
     }
 
     .sidebar .nav-chevron {
