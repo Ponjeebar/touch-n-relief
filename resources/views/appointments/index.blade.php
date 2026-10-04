@@ -436,10 +436,10 @@
                     <div class="profile-field reschedule-full add-immediate-field add-immediate-summary hidden-section" aria-live="polite">
                         <strong id="add-immediate-window">Select a service to calculate the expected end time.</strong>
                         <span>The therapist must remain available for this entire period.</span>
-                        <label class="add-immediate-confirmation">
-                            <input type="checkbox" name="immediate_confirmed" value="1" @checked(old('immediate_confirmed')) disabled>
-                            I confirm the customer is present and full payment will be collected at the counter now.
-                        </label>
+                        <input type="hidden" name="immediate_confirmed" value="{{ old('immediate_confirmed') ? '1' : '' }}" disabled>
+                        <input type="hidden" name="counter_amount_tendered" value="{{ old('counter_amount_tendered') }}" disabled>
+                        <input type="hidden" name="counter_payment_reference" value="{{ old('counter_payment_reference') }}" disabled>
+                        <span>Payment and arrival are confirmed in the next step.</span>
                     </div>
 
                     <div class="profile-field reschedule-full">
@@ -633,47 +633,49 @@
     </div>
     @endif
 
-    <div class="profile-modal hidden-section" id="collect-balance-modal" role="dialog" aria-modal="true" aria-labelledby="collect-balance-modal-title">
-        <div class="profile-modal-backdrop" data-close-balance="true"></div>
+    <div class="profile-modal hidden-section" id="payment-start-modal" role="dialog" aria-modal="true" aria-labelledby="payment-start-modal-title">
+        <div class="profile-modal-backdrop" data-close-payment-start="true"></div>
         <div class="profile-modal-content balance-modal-content">
-            <button class="profile-modal-close" type="button" data-close-balance="true" aria-label="Close">&times;</button>
-            <h3 class="profile-modal-title" id="collect-balance-modal-title">Collect Remaining Balance</h3>
-            <p class="reschedule-subtitle">Record the in-store payment before starting the session.</p>
+            <button class="profile-modal-close" type="button" data-close-payment-start="true" aria-label="Close payment confirmation">&times;</button>
+            <h3 class="profile-modal-title" id="payment-start-modal-title">Confirm Payment and Start</h3>
+            <p class="reschedule-subtitle" id="payment-start-subtitle">Confirm the customer is present before starting the session.</p>
 
-            @if ($errors->balance->any())
-                <div class="add-appointment-errors" role="alert">
-                    @foreach ($errors->balance->all() as $error)
-                        <p>{{ $error }}</p>
-                    @endforeach
-                </div>
-            @endif
-
-            <form method="POST" id="collect-balance-form" action="#">
+            <form method="POST" id="payment-start-form" action="#">
                 @csrf
                 @method('PATCH')
-                <input type="hidden" name="balance_payment_method" value="cash_counter">
 
                 <div class="balance-summary">
-                    <div><span>Client</span><strong id="balance-client">—</strong></div>
-                    <div><span>Service</span><strong id="balance-service">—</strong></div>
-                    <div><span>Already paid</span><strong id="balance-paid">—</strong></div>
-                    <div class="balance-summary-due"><span>Amount to collect</span><strong id="balance-due">—</strong></div>
+                    <div><span>Client</span><strong id="payment-start-client">—</strong></div>
+                    <div><span>Service</span><strong id="payment-start-service">—</strong></div>
+                    <div><span>Total service price</span><strong id="payment-start-total">—</strong></div>
+                    <div><span>Previously paid</span><strong id="payment-start-paid">—</strong></div>
+                    <div class="balance-summary-due"><span>Balance due</span><strong id="payment-start-due">—</strong></div>
                 </div>
 
-                <div class="profile-field">
-                    <label>Payment method</label>
-                    <input type="text" value="Cash at counter" readonly>
-                </div>
-                <div class="profile-field">
-                    <label for="balance-payment-reference">Reference or receipt number (optional)</label>
-                    <input id="balance-payment-reference" name="balance_payment_reference" type="text" maxlength="255" value="{{ old('balance_payment_reference') }}" placeholder="Enter receipt number">
+                <div id="payment-start-cash-fields">
+                    <div class="profile-field">
+                        <label for="payment-start-tendered">Amount tendered</label>
+                        <input id="payment-start-tendered" name="amount_tendered" type="number" min="0" max="99999999.99" step="0.01" inputmode="decimal" autocomplete="off">
+                    </div>
+                    <div class="profile-field">
+                        <label>Change due</label>
+                        <output id="payment-start-change" for="payment-start-tendered">₱0.00</output>
+                    </div>
+                    <div class="profile-field">
+                        <label for="payment-start-reference">Official receipt or reference number (optional)</label>
+                        <input id="payment-start-reference" name="payment_reference" type="text" maxlength="255" autocomplete="off" placeholder="Enter receipt number">
+                    </div>
                 </div>
 
-                <p class="balance-confirm-note"><i class="bi bi-shield-check" aria-hidden="true"></i> Confirm only after receiving the exact amount shown above.</p>
+                <p class="balance-confirm-note" id="payment-start-verification"></p>
+                <label class="add-immediate-confirmation">
+                    <input id="payment-start-confirmed" name="arrival_confirmed" type="checkbox" value="1" required>
+                    <span id="payment-start-confirmation-label">I confirm the customer has arrived.</span>
+                </label>
 
                 <div class="profile-modal-actions">
-                    <button type="button" class="user-action" data-close-balance="true">Cancel</button>
-                    <button type="submit" class="user-action add">Confirm full payment</button>
+                    <button type="button" class="user-action" data-close-payment-start="true">Cancel</button>
+                    <button type="submit" class="user-action add" id="payment-start-submit">Start session</button>
                 </div>
             </form>
         </div>
@@ -814,9 +816,12 @@
         const addImmediateStartTime = document.getElementById('add-immediate-start-time');
         const addImmediateWindow = document.getElementById('add-immediate-window');
         const addImmediateConfirmation = document.querySelector('input[name="immediate_confirmed"]');
+        const addCounterAmountTendered = document.querySelector('input[name="counter_amount_tendered"]');
+        const addCounterPaymentReference = document.querySelector('input[name="counter_payment_reference"]');
         const shouldOpenAddAppointment = @json($openAddAppointment ?? false);
         const initialClientType = @json(old('client_type'));
         const addServicePriceMap = @json($servicePriceMap ?? []);
+        const addMemberServicePriceMap = @json($memberServicePriceMap ?? []);
         const addServiceDurationMap = @json($serviceDurationMap ?? []);
         const addHasPaymentFields = @json($hasPaymentFields ?? false);
         let addAvailabilityTimer = null;
@@ -843,6 +848,7 @@
         let selectedAddPaymentType = addPaymentTypeInput instanceof HTMLInputElement ? (addPaymentTypeInput.value || 'downpayment') : 'downpayment';
         let selectedAddPaymentMethod = addPaymentMethodInput instanceof HTMLInputElement ? (addPaymentMethodInput.value || '') : '';
         let addFullPaymentRequiredSlots = new Set();
+        let selectedClientHasMembership = false;
 
         function isImmediateWalkInMode() {
             return selectedAddBookingMode === 'immediate';
@@ -888,8 +894,9 @@
             }
             if (addImmediateConfirmation instanceof HTMLInputElement) {
                 addImmediateConfirmation.disabled = !immediate;
-                addImmediateConfirmation.required = immediate;
             }
+            if (addCounterAmountTendered instanceof HTMLInputElement) addCounterAmountTendered.disabled = !immediate;
+            if (addCounterPaymentReference instanceof HTMLInputElement) addCounterPaymentReference.disabled = !immediate;
 
             if (immediate) {
                 selectedAddPaymentType = 'full';
@@ -1041,6 +1048,7 @@
         }
 
         function clearRegisteredClientSelection() {
+            selectedClientHasMembership = false;
             if (addClientUserIdInput instanceof HTMLInputElement) addClientUserIdInput.value = '';
             if (addRegisteredNameHidden instanceof HTMLInputElement) addRegisteredNameHidden.value = '';
             if (addRegisteredEmail instanceof HTMLInputElement) addRegisteredEmail.value = '';
@@ -1077,6 +1085,7 @@
             if (!isWalkIn && !preserveFields) {
                 clearRegisteredClientSelection();
             } else if (isWalkIn && addClientUserIdInput instanceof HTMLInputElement) {
+                selectedClientHasMembership = false;
                 addClientUserIdInput.value = '';
             }
 
@@ -1143,6 +1152,7 @@
                 button.dataset.name = client.name ?? '';
                 button.dataset.email = client.email ?? '';
                 button.dataset.phone = client.phone ?? '';
+                button.dataset.hasActiveMembership = client.has_active_membership ? '1' : '0';
                 const clientName = document.createElement('strong');
                 clientName.textContent = client.name ?? '';
                 const clientDetails = document.createElement('span');
@@ -1188,6 +1198,7 @@
             const name = button.dataset.name ?? '';
             const email = button.dataset.email ?? '';
             const phone = button.dataset.phone ?? '';
+            selectedClientHasMembership = button.dataset.hasActiveMembership === '1';
 
             if (addRegisteredName instanceof HTMLInputElement) addRegisteredName.value = name;
             addRegisteredName?.classList.add('is-client-selected');
@@ -1451,6 +1462,7 @@
             if (option instanceof HTMLElement) selectRegisteredClient(option);
         });
 
+        let immediatePaymentConfirmed = false;
         addAppointmentForm?.addEventListener('submit', (event) => {
             if (!isImmediateWalkInMode() && !addHiddenSlot?.value) {
                 event.preventDefault();
@@ -1480,14 +1492,22 @@
             }
 
             if (isImmediateWalkInMode()) {
-                const startValue = addImmediateStartTime instanceof HTMLInputElement ? addImmediateStartTime.value : '';
-                const start = startValue ? new Date(`2000-01-01T${startValue}:00`) : null;
-                const startLabel = start && !Number.isNaN(start.getTime()) ? formatAddTime(start) : startValue;
-                if (!window.confirm(`Start this walk-in now at ${startLabel}? Full counter payment will be recorded and the therapist session will begin immediately.`)) {
+                if (!immediatePaymentConfirmed) {
                     event.preventDefault();
+                    window.openImmediatePaymentConfirmation?.();
+                    return;
                 }
+                immediatePaymentConfirmed = false;
             }
         });
+
+        window.completeImmediatePaymentConfirmation = (amountTendered, reference) => {
+            if (addImmediateConfirmation instanceof HTMLInputElement) addImmediateConfirmation.value = '1';
+            if (addCounterAmountTendered instanceof HTMLInputElement) addCounterAmountTendered.value = amountTendered;
+            if (addCounterPaymentReference instanceof HTMLInputElement) addCounterPaymentReference.value = reference;
+            immediatePaymentConfirmed = true;
+            addAppointmentForm?.requestSubmit();
+        };
 
         if (shouldOpenAddAppointment && (initialClientType === 'walk_in' || initialClientType === 'registered')) {
             openAddAppointmentModal(initialClientType, true);
@@ -2822,43 +2842,137 @@
     </script>
     <script>
         (() => {
-            const modal = document.getElementById('collect-balance-modal');
-            const form = document.getElementById('collect-balance-form');
-            const client = document.getElementById('balance-client');
-            const service = document.getElementById('balance-service');
-            const paid = document.getElementById('balance-paid');
-            const due = document.getElementById('balance-due');
+            const modal = document.getElementById('payment-start-modal');
+            const form = document.getElementById('payment-start-form');
+            const client = document.getElementById('payment-start-client');
+            const service = document.getElementById('payment-start-service');
+            const total = document.getElementById('payment-start-total');
+            const paid = document.getElementById('payment-start-paid');
+            const due = document.getElementById('payment-start-due');
+            const cashFields = document.getElementById('payment-start-cash-fields');
+            const tendered = document.getElementById('payment-start-tendered');
+            const change = document.getElementById('payment-start-change');
+            const reference = document.getElementById('payment-start-reference');
+            const confirmed = document.getElementById('payment-start-confirmed');
+            const confirmationLabel = document.getElementById('payment-start-confirmation-label');
+            const verification = document.getElementById('payment-start-verification');
+            const submit = document.getElementById('payment-start-submit');
+            let returnFocus = null;
+            let balanceDue = 0;
+            let immediateMode = false;
 
             if (!(modal instanceof HTMLElement) || !(form instanceof HTMLFormElement)) return;
+
+            const money = (amount) => `₱${Number(amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const updateChange = () => {
+                if (!(tendered instanceof HTMLInputElement) || !(change instanceof HTMLOutputElement)) return;
+                change.value = money(Math.max(Number(tendered.value || 0) - balanceDue, 0));
+            };
 
             const close = () => {
                 modal.classList.add('hidden-section');
                 document.body.classList.remove('modal-open');
+                form.reset();
+                if (returnFocus instanceof HTMLElement) returnFocus.focus();
+                returnFocus = null;
+            };
+
+            const open = ({ trigger = null, action = '#', clientName = '—', serviceName = '—', totalAmount = 0, paidAmount = 0, remaining = 0, paymongoVerified = false, immediate = false } = {}) => {
+                returnFocus = trigger;
+                immediateMode = immediate;
+                balanceDue = Number(remaining || 0);
+                form.action = action;
+                if (client) client.textContent = clientName;
+                if (service) service.textContent = serviceName;
+                if (total) total.textContent = money(totalAmount);
+                if (paid) paid.textContent = money(paidAmount);
+                if (due) due.textContent = money(balanceDue);
+                cashFields?.classList.toggle('hidden-section', balanceDue < 0.01);
+                if (tendered instanceof HTMLInputElement) {
+                    tendered.required = balanceDue >= 0.01;
+                    tendered.value = balanceDue >= 0.01 ? balanceDue.toFixed(2) : '';
+                }
+                if (reference instanceof HTMLInputElement) reference.value = '';
+                if (confirmed instanceof HTMLInputElement) confirmed.checked = false;
+                if (confirmationLabel) confirmationLabel.textContent = balanceDue >= 0.01
+                    ? `I confirm that exactly ${money(balanceDue)} was received and the customer has arrived.`
+                    : 'I confirm the customer has arrived.';
+                if (verification) verification.textContent = balanceDue >= 0.01
+                    ? 'Only the balance due is recorded as sales. Any change returned is excluded.'
+                    : (paymongoVerified ? 'PayMongo payment is verified. No balance is due.' : 'This counter appointment is fully paid. No additional payment will be recorded.');
+                if (submit instanceof HTMLButtonElement) {
+                    submit.disabled = false;
+                    submit.textContent = immediate ? 'Confirm payment and start' : 'Start session';
+                }
+                updateChange();
+                modal.classList.remove('hidden-section');
+                document.body.classList.add('modal-open');
+                window.setTimeout(() => (balanceDue >= 0.01 ? tendered : confirmed)?.focus(), 0);
+            };
+
+            window.openImmediatePaymentConfirmation = () => {
+                const serviceName = document.getElementById('add-service')?.value || '—';
+                const clientName = document.getElementById('add-client-type')?.value === 'registered'
+                    ? document.getElementById('add-registered-name')?.value
+                    : document.getElementById('add-walk-in-name')?.value;
+                const priceMap = selectedClientHasMembership ? addMemberServicePriceMap : addServicePriceMap;
+                const servicePrice = Number(priceMap?.[serviceName] || 0);
+                open({ clientName, serviceName, totalAmount: servicePrice, remaining: servicePrice, immediate: true });
             };
 
             document.addEventListener('click', (event) => {
                 const target = event.target;
                 if (!(target instanceof Element)) return;
 
-                const openButton = target.closest('[data-open-balance="true"]');
+                const openButton = target.closest('[data-open-payment-start="true"]');
                 if (openButton instanceof HTMLElement) {
                     event.preventDefault();
-                    form.action = openButton.dataset.balanceUrl || '#';
-                    if (client) client.textContent = openButton.dataset.client || '—';
-                    if (service) service.textContent = openButton.dataset.service || '—';
-                    if (paid) paid.textContent = openButton.dataset.paidAmount || '—';
-                    if (due) due.textContent = openButton.dataset.remainingBalance || '—';
-                    modal.classList.remove('hidden-section');
-                    document.body.classList.add('modal-open');
-                    window.setTimeout(() => document.getElementById('balance-payment-reference')?.focus(), 0);
+                    open({
+                        trigger: openButton,
+                        action: openButton.dataset.startUrl || '#',
+                        clientName: openButton.dataset.client,
+                        serviceName: openButton.dataset.service,
+                        totalAmount: openButton.dataset.serviceAmountRaw,
+                        paidAmount: openButton.dataset.paidAmountRaw,
+                        remaining: openButton.dataset.remainingBalanceRaw,
+                        paymongoVerified: openButton.dataset.paymongoVerified === '1',
+                    });
                     return;
                 }
 
-                if (target.closest('[data-close-balance="true"]')) close();
+                if (target.closest('[data-close-payment-start="true"]')) close();
+            });
+
+            tendered?.addEventListener('input', updateChange);
+            form.addEventListener('submit', (event) => {
+                if (immediateMode) {
+                    event.preventDefault();
+                    if (!form.reportValidity()) return;
+                    window.completeImmediatePaymentConfirmation?.(tendered?.value || '', reference?.value || '');
+                    close();
+                    return;
+                }
+                if (submit instanceof HTMLButtonElement) {
+                    submit.disabled = true;
+                    submit.textContent = 'Starting…';
+                }
             });
 
             document.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape' && !modal.classList.contains('hidden-section')) close();
+                if (event.key !== 'Tab' || modal.classList.contains('hidden-section')) return;
+                const focusable = Array.from(modal.querySelectorAll('button:not([disabled]), input:not([disabled]):not([type="hidden"]), [tabindex]:not([tabindex="-1"])'))
+                    .filter((element) => element instanceof HTMLElement && element.offsetParent !== null);
+                if (focusable.length === 0) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
             });
         })();
     </script>

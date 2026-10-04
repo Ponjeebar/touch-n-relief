@@ -9,8 +9,12 @@ use Carbon\CarbonInterface;
 
 class PaymentLedgerService
 {
-    public function recordInitialPayment(SpaBooking $booking, ?CarbonInterface $occurredAt = null, bool $estimated = false): void
-    {
+    public function recordInitialPayment(
+        SpaBooking $booking,
+        ?CarbonInterface $occurredAt = null,
+        bool $estimated = false,
+        ?int $recordedBy = null,
+    ): void {
         $amount = round((float) ($booking->payment_amount ?? 0), 2);
         if (! in_array($booking->payment_status, [PaymentMethodCatalog::STATUS_PAID, PaymentMethodCatalog::STATUS_REFUNDED], true) || $amount <= 0) {
             return;
@@ -24,6 +28,7 @@ class PaymentLedgerService
                 'reference' => $booking->payment_transaction_id,
                 'occurred_at' => $occurredAt ?? now(),
                 'is_estimated' => $estimated,
+                'recorded_by' => $recordedBy,
             ],
         );
     }

@@ -951,6 +951,43 @@ html[data-theme="dark"] .no-show-ban-warning {
     font-weight: 600;
 }
 
+#payment-start-change {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid rgba(20, 45, 56, 0.16);
+    border-radius: 10px;
+    background: #f7faf9;
+    color: #17313d;
+    font-weight: 800;
+}
+
+html[data-theme="dark"] .balance-summary > div,
+html[data-theme="dark"] #payment-start-change {
+    border-color: #476168;
+    background: #20383e;
+    color: #edf7f4;
+}
+
+html[data-theme="dark"] .balance-summary span,
+html[data-theme="dark"] .balance-confirm-note {
+    color: #b8cdca;
+}
+
+html[data-theme="dark"] .balance-summary strong {
+    color: #edf7f4;
+}
+
+html[data-theme="dark"] .balance-summary .balance-summary-due {
+    border-color: #55b58e;
+    background: #173f34;
+}
+
+html[data-theme="dark"] .balance-summary-due strong {
+    color: #8ee0bd;
+}
+
 @media (max-width: 520px) {
     .balance-summary {
         grid-template-columns: 1fr;

@@ -199,6 +199,8 @@ class StaffAppointmentController extends Controller
             'time_slot' => [$isImmediate ? 'nullable' : 'required', 'string', 'max:30', Rule::when(! $isImmediate, Rule::in($allSlots))],
             'immediate_start_time' => [$isImmediate ? 'required' : 'nullable', 'date_format:H:i'],
             'immediate_confirmed' => [$isImmediate ? 'accepted' : 'nullable'],
+            'counter_amount_tendered' => [$isImmediate ? 'required' : 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'counter_payment_reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:500'],
         ];
 
@@ -357,6 +359,11 @@ class StaffAppointmentController extends Controller
                 $serviceAmount = $hasActiveMembership && $serviceRow?->member_price_amount !== null
                     ? (float) $serviceRow->member_price_amount
                     : ($serviceRow?->price_amount !== null ? (float) $serviceRow->price_amount : 0.0);
+                if ($isImmediate && round((float) ($validated['counter_amount_tendered'] ?? 0), 2) < round($serviceAmount, 2)) {
+                    throw ValidationException::withMessages([
+                        'counter_amount_tendered' => 'Amount tendered must cover the full service price of ₱'.number_format($serviceAmount, 2).'.',
+                    ]);
+                }
                 $paymentAmount = $hasPaymentFields
                     ? PaymentMethodCatalog::calculateAmount($serviceAmount, (string) ($validated['payment_type'] ?? PaymentMethodCatalog::TYPE_DOWNPAYMENT))
                     : 0.0;
@@ -378,7 +385,10 @@ class StaffAppointmentController extends Controller
                     $isCashCounter = PaymentMethodCatalog::isCashCounter($paymentMethod);
                     $transactionId = '';
                     if ($isCashCounter) {
-                        $transactionId = 'COT-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+                        $transactionId = trim((string) ($validated['counter_payment_reference'] ?? ''));
+                        $transactionId = $transactionId !== ''
+                            ? $transactionId
+                            : 'COT-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
                     }
 
                     $bookingAttributes['payment_method'] = $paymentMethod;
@@ -399,7 +409,7 @@ class StaffAppointmentController extends Controller
                 }
 
                 $booking = SpaBooking::query()->create($bookingAttributes);
-                $this->paymentLedger->recordInitialPayment($booking);
+                $this->paymentLedger->recordInitialPayment($booking, recordedBy: $staff->id);
                 if ($isImmediate) {
                     $this->sessions->start($booking);
                 }
@@ -423,6 +433,9 @@ class StaffAppointmentController extends Controller
                         'user_id' => $client->id,
                         'booking_mode' => $isImmediate ? 'immediate_walk_in' : 'scheduled',
                         'actual_start_at' => $booking->session_started_at?->toIso8601String(),
+                        'amount_tendered' => $isImmediate ? round((float) $validated['counter_amount_tendered'], 2) : null,
+                        'change_due' => $isImmediate ? round((float) $validated['counter_amount_tendered'] - $serviceAmount, 2) : null,
+                        'payment_reference' => $isImmediate ? $booking->payment_transaction_id : null,
                     ],
                     user: $staff,
                     subject: $booking,
@@ -443,6 +456,7 @@ class StaffAppointmentController extends Controller
                             'therapist' => $therapist,
                             'actual_start_at' => $booking->session_started_at?->toIso8601String(),
                             'expected_end_at' => $booking->session_started_at?->copy()->addMinutes($durationMinutes)->toIso8601String(),
+                            'started_by' => $staff->id,
                         ],
                         subject: $booking,
                         user: $staff,
@@ -1057,6 +1071,7 @@ class StaffAppointmentController extends Controller
                 'phone' => (string) ($user->contact_number ?? ''),
                 'birthday' => $user->birthday?->format('Y-m-d') ?? '',
                 'sex' => (string) ($user->sex ?? ''),
+                'has_active_membership' => Schema::hasTable('membership_purchases') && $user->activeMembership() !== null,
             ];
         }
 
@@ -1099,6 +1114,7 @@ class StaffAppointmentController extends Controller
                         'phone' => (string) ($customer->number ?: ($linkedUser->contact_number ?? '')),
                         'birthday' => $customer->birthday?->format('Y-m-d') ?? ($linkedUser->birthday?->format('Y-m-d') ?? ''),
                         'sex' => (string) ($linkedUser->sex ?? ''),
+                        'has_active_membership' => Schema::hasTable('membership_purchases') && $linkedUser->activeMembership() !== null,
                     ];
                 } catch (ValidationException) {
                     continue;

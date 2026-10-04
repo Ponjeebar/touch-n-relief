@@ -378,6 +378,18 @@ class SpaSessionService
             && $now->lt($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES));
     }
 
+    public function canConfirmPaymentAndStart(SpaBooking $booking, ?Carbon $now = null): bool
+    {
+        $window = $this->window($booking);
+        $now ??= now();
+
+        return $booking->payment_status === PaymentMethodCatalog::STATUS_PAID
+            && $this->resolveStatus($booking, $now) === SpaBooking::STATUS_CONFIRMED
+            && $window !== null
+            && $now->gte($window['start'])
+            && $now->lt($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES));
+    }
+
     public function startEligibilityMessage(SpaBooking $booking, ?Carbon $now = null): string
     {
         $now ??= now();
@@ -598,7 +610,7 @@ class SpaSessionService
             'automatic_no_show_at' => $automaticNoShowAt->format('h:i A'),
             'status' => $status,
             'notes' => trim((string) ($booking->notes ?? '')) !== '' ? trim((string) $booking->notes) : 'No notes provided.',
-            'can_start' => $this->canStart($booking, $now),
+            'can_start' => $this->canConfirmPaymentAndStart($booking, $now),
             'can_reschedule' => app(BookingRescheduleService::class)->canStaffReschedule($booking),
             'can_cancel' => app(BookingCancellationService::class)->canStaffCancel($booking),
             'can_mark_no_show' => $canMarkNoShow,
@@ -735,7 +747,14 @@ class SpaSessionService
             'payment_amount' => $paymentAmount > 0 ? '₱'.number_format($paymentAmount, 2) : '—',
             'payment_amount_raw' => $paymentAmount,
             'service_amount' => $serviceAmount > 0 ? '₱'.number_format($serviceAmount, 2) : '—',
+            'service_amount_raw' => $serviceAmount,
             'payment_status' => (string) ($booking->payment_status ?? ''),
+            'is_paymongo_verified' => $booking->payment_status === PaymentMethodCatalog::STATUS_PAID
+                && PaymentMethodCatalog::isPaymongoOnlineBooking(
+                    $booking->payment_method,
+                    $booking->paymongo_checkout_session_id,
+                    $booking->payment_transaction_id,
+                ),
             'can_retry_paymongo' => $booking->booking_source === SpaBooking::SOURCE_WALK_IN
                 && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO
                 && $booking->payment_status === PaymentMethodCatalog::STATUS_PENDING,

@@ -84,31 +84,30 @@
 
             @if ($isActiveBooking || $isCompleted || $isCancelled || $isInSession || $isNoShow)
                 <div class="appt-actions" role="group" aria-label="Actions for {{ $appointment['client'] }}">
-                    @if ($isActiveBooking && $bookingId && ! empty($appointment['can_start']))
-                        <form method="POST" action="{{ route('appointments.start', $bookingId) }}" class="appt-start-form">
-                            @csrf
-                            @method('PATCH')
-                            <button class="appt-icon-btn start" type="submit" title="Start" aria-label="Start appointment for {{ $appointment['client'] }}">
-                                <i class="bi bi-play-fill" aria-hidden="true"></i>
-                            </button>
-                        </form>
-                    @elseif ($isActiveBooking && $bookingId && ! empty($appointment['is_fully_paid']))
-                        <form method="POST" action="{{ route('appointments.start', $bookingId) }}" class="appt-start-form">
-                            @csrf
-                            @method('PATCH')
-                            <button
-                                class="appt-icon-btn start"
-                                type="submit"
-                                disabled
-                                data-scheduled-start-button="true"
-                                data-start-at="{{ $appointment['start_at_iso'] ?? '' }}"
-                                data-start-cutoff-at="{{ $appointment['start_cutoff_at_iso'] ?? '' }}"
-                                title="Available only from the scheduled time until 10 minutes after"
-                                aria-label="Start appointment for {{ $appointment['client'] }} at its scheduled time"
-                            >
-                                <i class="bi bi-play-fill" aria-hidden="true"></i>
-                            </button>
-                        </form>
+                    @if ($isActiveBooking && $bookingId && ($appointment['payment_status'] ?? '') === \App\Support\PaymentMethodCatalog::STATUS_PAID)
+                        <button
+                            class="appt-icon-btn start"
+                            type="button"
+                            @disabled(empty($appointment['can_start']))
+                            data-scheduled-start-button="true"
+                            data-open-payment-start="true"
+                            data-start-url="{{ route('appointments.start', $bookingId) }}"
+                            data-start-at="{{ $appointment['start_at_iso'] ?? '' }}"
+                            data-start-cutoff-at="{{ $appointment['start_cutoff_at_iso'] ?? '' }}"
+                            data-client="{{ $appointment['client'] }}"
+                            data-service="{{ $appointment['service'] }}"
+                            data-service-amount="{{ $appointment['service_amount'] ?? '₱0.00' }}"
+                            data-service-amount-raw="{{ $appointment['service_amount_raw'] ?? 0 }}"
+                            data-paid-amount="{{ $appointment['paid_amount'] ?? '₱0.00' }}"
+                            data-paid-amount-raw="{{ $appointment['paid_amount_raw'] ?? 0 }}"
+                            data-remaining-balance="{{ $appointment['remaining_balance'] ?? '₱0.00' }}"
+                            data-remaining-balance-raw="{{ $appointment['remaining_balance_raw'] ?? 0 }}"
+                            data-paymongo-verified="{{ ! empty($appointment['is_paymongo_verified']) ? '1' : '0' }}"
+                            title="{{ ! empty($appointment['can_start']) ? 'Confirm payment and start session' : 'Available only from the scheduled time until 10 minutes after' }}"
+                            aria-label="Confirm payment and start appointment for {{ $appointment['client'] }}"
+                        >
+                            <i class="bi bi-play-fill" aria-hidden="true"></i>
+                        </button>
                     @elseif (($isActiveBooking || $isCompleted || $isInSession) && $bookingId && ! empty($appointment['can_collect_balance']))
                         <button
                             class="appt-icon-btn collect-balance"

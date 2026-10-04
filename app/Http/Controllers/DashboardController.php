@@ -15,8 +15,8 @@ use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\BackupRecoveryService;
 use App\Services\BookingSlotService;
-use App\Services\NotificationFeedService;
 use App\Services\NoShowService;
+use App\Services\NotificationFeedService;
 use App\Services\PaymentLedgerService;
 use App\Services\ReportingPdfChartService;
 use App\Services\ReportingSpreadsheetService;
@@ -578,49 +578,168 @@ class DashboardController extends Controller
             ->with('status', 'Session marked as completed.');
     }
 
-    public function startSession(Request $request, SpaBooking $spaBooking, SpaSessionService $sessions): RedirectResponse
-    {
+    public function startSession(
+        Request $request,
+        SpaBooking $spaBooking,
+        SpaSessionService $sessions,
+        PaymentLedgerService $paymentLedger,
+    ): RedirectResponse {
+        $validated = $request->validateWithBag('session_start', [
+            'arrival_confirmed' => ['accepted'],
+            'amount_tendered' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'payment_reference' => ['nullable', 'string', 'max:255'],
+        ]);
+
         $sessions->releaseAvailabilityBlocks();
-        $spaBooking->refresh();
 
-        if (! $spaBooking->isFullyPaid()) {
+        try {
+            $result = DB::transaction(function () use ($request, $spaBooking, $sessions, $paymentLedger, $validated): array {
+                $booking = SpaBooking::query()->with('user')->lockForUpdate()->findOrFail($spaBooking->id);
+
+                if ($booking->session_started_at !== null || $booking->session_status === SpaBooking::STATUS_IN_SESSION) {
+                    throw ValidationException::withMessages(['arrival_confirmed' => 'This session is already in progress.']);
+                }
+
+                if ($booking->isCancelled() || in_array($booking->session_status, [SpaBooking::STATUS_CANCELLED, SpaBooking::STATUS_COMPLETED, SpaBooking::STATUS_NO_SHOW], true) || $booking->completed_at !== null) {
+                    throw ValidationException::withMessages(['arrival_confirmed' => 'This appointment is no longer eligible to start.']);
+                }
+
+                if ($booking->payment_status !== PaymentMethodCatalog::STATUS_PAID) {
+                    throw ValidationException::withMessages(['arrival_confirmed' => 'The PayMongo or initial payment must be verified before this session can start.']);
+                }
+
+                $therapist = Therapist::query()->where('name', $booking->therapist_name)->lockForUpdate()->first();
+                if (! $therapist instanceof Therapist || ! $therapist->is_active) {
+                    throw ValidationException::withMessages(['arrival_confirmed' => 'The assigned therapist is unavailable. Reassign or reschedule this appointment.']);
+                }
+                app(TherapistAvailabilityService::class)->assertBookableOnDate(
+                    (string) $booking->therapist_name,
+                    (string) $booking->booking_date?->format('Y-m-d'),
+                    'arrival_confirmed',
+                );
+
+                $targetWindow = $sessions->window($booking);
+                $hasActiveConflict = SpaBooking::query()
+                    ->whereKeyNot($booking->id)
+                    ->where('therapist_name', $booking->therapist_name)
+                    ->where('session_status', SpaBooking::STATUS_IN_SESSION)
+                    ->whereNull('cancelled_at')
+                    ->whereNull('completed_at')
+                    ->lockForUpdate()
+                    ->get()
+                    ->contains(function (SpaBooking $active) use ($sessions, $targetWindow): bool {
+                        $activeStart = $active->session_started_at ?? $sessions->window($active)['start'] ?? null;
+                        $activeEnd = $sessions->sessionEndAt($active);
+
+                        return $targetWindow !== null && $activeStart !== null && $activeEnd !== null
+                            && $activeStart->lt($targetWindow['end'])
+                            && $activeEnd->gt($targetWindow['start']);
+                    });
+                if ($hasActiveConflict) {
+                    throw ValidationException::withMessages(['arrival_confirmed' => 'The assigned therapist is currently serving another overlapping session.']);
+                }
+
+                if (! $sessions->canConfirmPaymentAndStart($booking)) {
+                    throw ValidationException::withMessages(['arrival_confirmed' => $sessions->startEligibilityMessage($booking)]);
+                }
+
+                $remaining = $booking->remainingBalance();
+                $tendered = round((float) ($validated['amount_tendered'] ?? 0), 2);
+                $balanceCollected = false;
+                if ($remaining >= 0.01) {
+                    if ($tendered < $remaining) {
+                        throw ValidationException::withMessages([
+                            'amount_tendered' => 'Amount tendered must cover the exact remaining balance of ₱'.number_format($remaining, 2).'.',
+                        ]);
+                    }
+
+                    $booking->forceFill([
+                        'balance_amount' => $remaining,
+                        'balance_payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+                        'balance_payment_reference' => trim((string) ($validated['payment_reference'] ?? '')) ?: null,
+                        'balance_collected_by' => $request->user()?->id,
+                        'balance_paid_at' => now(),
+                    ])->save();
+                    $paymentLedger->recordBalancePayment($booking);
+                    $balanceCollected = true;
+
+                    ActivityLogger::log(
+                        'payment.balance_collected',
+                        sprintf('Collected ₱%s remaining balance for %s', number_format($remaining, 2), (string) $booking->service_name),
+                        [
+                            'booking_id' => $booking->id,
+                            'amount' => $remaining,
+                            'amount_tendered' => $tendered,
+                            'change_due' => round($tendered - $remaining, 2),
+                            'method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+                            'reference' => $booking->balance_payment_reference,
+                        ],
+                        subject: $booking,
+                        request: $request,
+                    );
+                }
+
+                $booking->refresh();
+                $sessions->start($booking);
+
+                ActivityLogger::log(
+                    'session.started',
+                    sprintf('Started session for %s (%s)', (string) ($booking->user?->name ?: ($booking->client_name ?: 'client')), (string) $booking->service_name),
+                    [
+                        'booking_id' => $booking->id,
+                        'therapist' => $booking->therapist_name,
+                        'started_by' => $request->user()?->id,
+                    ],
+                    subject: $booking,
+                    request: $request,
+                );
+
+                return [
+                    'booking' => $booking->fresh(),
+                    'balance_collected' => $balanceCollected,
+                ];
+            });
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?: 'The appointment changed before it could be started. Review it and try again.';
+
             return redirect()
                 ->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
-                ->with('error', 'Collect the remaining balance before starting this session.');
+                ->withErrors($exception->errors(), 'session_start')
+                ->withInput(SensitiveInput::safeForFlash($request))
+                ->with('error', $message);
         }
 
-        if (! $sessions->canStart($spaBooking)) {
-            if ($spaBooking->session_started_at !== null && $spaBooking->completed_at === null) {
-                return redirect()
-                    ->route('ongoing-sessions.index')
-                    ->with('status', 'This session is already in progress.');
-            }
-
-            return redirect()
-                ->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
-                ->with('error', $sessions->startEligibilityMessage($spaBooking));
-        }
-
-        $sessions->start($spaBooking);
-
-        ActivityLogger::log(
-            'session.started',
-            sprintf(
-                'Started session for %s (%s)',
-                (string) ($spaBooking->user?->name ?: ($spaBooking->client_name ?: 'client')),
-                (string) $spaBooking->service_name,
-            ),
-            [
-                'booking_id' => $spaBooking->id,
-                'therapist' => $spaBooking->therapist_name,
-            ],
-            subject: $spaBooking,
-            request: $request,
-        );
-
-        return redirect()
+        $redirect = redirect()
             ->route('ongoing-sessions.index')
             ->with('status', 'Session started. You can monitor it below.');
+
+        if ($result['balance_collected']) {
+            $redirect->with('payment_receipt', $this->balanceReceiptPayload($result['booking']));
+        }
+
+        return $redirect;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function balanceReceiptPayload(SpaBooking $booking): array
+    {
+        return [
+            'receipt_no' => 'RCP-BAL-'.str_pad((string) $booking->id, 5, '0', STR_PAD_LEFT),
+            'client_name' => (string) ($booking->user?->name ?: ($booking->client_name ?: 'Client')),
+            'therapist' => (string) ($booking->therapist_name ?: '—'),
+            'service' => (string) ($booking->service_name ?: '—'),
+            'date' => $booking->booking_date?->format('M j, Y') ?? '—',
+            'time' => (string) ($booking->time_slot ?: '—'),
+            'payment_method' => PaymentMethodCatalog::labelFor($booking->balance_payment_method),
+            'payment_type' => 'Balance payment',
+            'payment_amount' => number_format((float) $booking->balance_amount, 2),
+            'payment_status' => 'Paid',
+            'reference' => (string) ($booking->balance_payment_reference ?: '—'),
+            'issued_at' => $booking->balance_paid_at?->format('M j, Y g:i A') ?? now()->format('M j, Y g:i A'),
+        ];
     }
 
     public function collectBalance(Request $request, SpaBooking $spaBooking, PaymentLedgerService $paymentLedger): RedirectResponse
@@ -959,10 +1078,15 @@ class DashboardController extends Controller
         $activeServices = SpaService::query()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['name', 'price_amount', 'duration_minutes']);
+            ->get(['name', 'price_amount', 'member_price_amount', 'duration_minutes']);
         $serviceOptions = $activeServices->pluck('name');
         $servicePriceMap = $activeServices->mapWithKeys(function (SpaService $service): array {
             return [(string) $service->name => (float) ($service->price_amount ?? 0)];
+        })->all();
+        $memberServicePriceMap = $activeServices->mapWithKeys(function (SpaService $service): array {
+            return [(string) $service->name => $service->member_price_amount !== null
+                ? (float) $service->member_price_amount
+                : (float) ($service->price_amount ?? 0)];
         })->all();
         $serviceDurationMap = $activeServices->mapWithKeys(function (SpaService $service): array {
             return [(string) $service->name => max((int) ($service->duration_minutes ?? 60), 1)];
@@ -1016,6 +1140,7 @@ class DashboardController extends Controller
             'today' => now()->toDateString(),
             'openAddAppointment' => session('open_add_appointment', false),
             'servicePriceMap' => $servicePriceMap,
+            'memberServicePriceMap' => $memberServicePriceMap,
             'serviceDurationMap' => $serviceDurationMap,
             'paymentMethods' => $hasPaymentFields ? PaymentMethodCatalog::staffMethods() : [],
             'downpaymentRate' => PaymentMethodCatalog::DOWNPAYMENT_RATE,

@@ -118,6 +118,17 @@ class BrowserTestSeeder extends Seeder
                 'therapist_name' => 'Carlos Mendoza',
                 'session_status' => SpaBooking::STATUS_CONFIRMED,
             ],
+            [
+                'booking_date' => now()->toDateString(),
+                'time_slot' => now()->format('g:i A'),
+                'service_name' => 'Aromatherapy',
+                'therapist_name' => 'Juan dela Cruz',
+                'session_status' => SpaBooking::STATUS_CONFIRMED,
+                'amount' => 100,
+                'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+                'payment_amount' => 50,
+                'payment_transaction_id' => 'pay_e2e_partial_start',
+            ],
         ];
 
         foreach ($bookings as $details) {

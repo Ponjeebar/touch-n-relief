@@ -194,6 +194,7 @@ test('completed appointment rebooking stays usable on mobile and desktop', async
 
     for (const setup of [
         { viewport: { width: 390, height: 844 }, theme: 'dark' },
+        { viewport: { width: 768, height: 1024 }, theme: 'light' },
         { viewport: { width: 1366, height: 768 }, theme: 'light' },
     ]) {
         await page.setViewportSize(setup.viewport);
@@ -304,12 +305,25 @@ test('staff immediate walk-in shows the calculated session and enforced payment 
 
         await expect(page.locator('#add-immediate-start-time')).toBeVisible();
         await expect(page.locator('#add-immediate-window')).toContainText('minutes');
-        await expect(page.locator('input[name="immediate_confirmed"]')).toBeVisible();
+        await expect(page.locator('input[name="immediate_confirmed"]')).toBeAttached();
+        await expect(page.locator('input[name="immediate_confirmed"]')).toBeEnabled();
         await expect(page.locator('[data-add-payment-type="downpayment"]')).toBeDisabled();
         await expect(page.locator('[data-add-payment-type="full"]')).toHaveClass(/is-active/);
         await expect(page.locator('[data-add-payment-method="paymongo"]')).toBeDisabled();
         await expect(page.locator('[data-add-payment-method="cash_counter"]')).toHaveClass(/is-active/);
         await expect(page.locator('#add-appointment-save-btn')).toHaveText('Start walk-in now');
+
+        await page.evaluate(() => window.openImmediatePaymentConfirmation());
+        const paymentDialog = page.locator('#payment-start-modal');
+        await expect(paymentDialog).toBeVisible();
+        await expect(paymentDialog.locator('#payment-start-due')).not.toHaveText('₱0.00');
+        await paymentDialog.locator('#payment-start-tendered').fill('1000');
+        await expect(paymentDialog.locator('#payment-start-change')).not.toHaveText('₱0.00');
+        const paymentModalFits = await paymentDialog.locator('.balance-modal-content').evaluate((element) => (
+            element.scrollWidth <= element.clientWidth + 2
+        ));
+        expect(paymentModalFits).toBe(true);
+        await paymentDialog.locator('[data-close-payment-start="true"]').last().click();
 
         const modalFits = await page.locator('.add-appointment-modal-content').evaluate((element) => (
             element.scrollWidth <= element.clientWidth + 2
@@ -318,6 +332,36 @@ test('staff immediate walk-in shows the calculated session and enforced payment 
 
         await page.locator('#close-add-appointment-modal').click();
     }
+});
+
+test('scheduled start confirms exact balance, traps focus, and restores the trigger', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setTheme(page, 'dark');
+    await login(page, accounts.receptionist);
+    await page.goto('/appointments', { waitUntil: 'domcontentloaded' });
+    await dismissOptionalTour(page);
+
+    const trigger = page.locator('[data-open-payment-start="true"][data-service="Aromatherapy"]');
+    await expect(trigger).toBeEnabled();
+    await trigger.click();
+
+    const dialog = page.locator('#payment-start-modal');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('#payment-start-total')).toHaveText('₱100.00');
+    await expect(dialog.locator('#payment-start-paid')).toHaveText('₱50.00');
+    await expect(dialog.locator('#payment-start-due')).toHaveText('₱50.00');
+    await expect(dialog.locator('#payment-start-verification')).toContainText('Only the balance due is recorded as sales');
+    await dialog.locator('#payment-start-tendered').fill('100');
+    await expect(dialog.locator('#payment-start-change')).toHaveText('₱50.00');
+
+    const last = dialog.locator('button:not([disabled]), input:not([disabled]):not([type="hidden"])').last();
+    await last.focus();
+    await page.keyboard.press('Tab');
+    await expect.poll(() => dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
 });
 
 test('staff no-show confirmation stays usable on mobile, tablet, and desktop', async ({ page }) => {

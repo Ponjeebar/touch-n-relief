@@ -11,6 +11,7 @@ use App\Models\SpaService;
 use App\Models\User;
 use App\Services\BookingRefundService;
 use App\Services\BookingSlotService;
+use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
 use App\Services\SpaSessionService;
 use App\Services\TherapistAvailabilityService;
@@ -260,13 +261,15 @@ class StaffAppointmentPaymentTest extends TestCase
             ->assertOk()->assertSee(route('appointments.paymongo.retry', $booking), false);
     }
 
-    public function test_downpayment_booking_must_be_fully_paid_before_session_can_start(): void
+    public function test_session_start_requires_payment_and_arrival_confirmation(): void
     {
+        Carbon::setTestNow('2026-10-05 10:05:00');
         $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
         $client = User::factory()->create(['role' => User::ROLE_USER]);
         $booking = SpaBooking::create([
             'user_id' => $client->id,
             'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
             'booking_date' => now()->toDateString(),
             'time_slot' => '10:00 AM',
             'amount' => 100,
@@ -275,21 +278,33 @@ class StaffAppointmentPaymentTest extends TestCase
             'payment_amount' => 50,
             'payment_status' => PaymentMethodCatalog::STATUS_PAID,
         ]);
+        PaymentLedgerEntry::query()->create([
+            'spa_booking_id' => $booking->id,
+            'entry_type' => PaymentLedgerEntry::TYPE_INITIAL_PAYMENT,
+            'amount' => 50,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'reference' => 'pay-downpayment',
+            'occurred_at' => now(),
+        ]);
 
-        $this->actingAs($staff)->patch(route('appointments.start', $booking))
-            ->assertRedirect(route('appointments.index', ['date' => $booking->booking_date->format('Y-m-d')]))
-            ->assertSessionHas('error', 'Collect the remaining balance before starting this session.');
+        Carbon::setTestNow($booking->booking_date->copy()->setTime(10, 5));
+        $this->actingAs($staff)->from(route('appointments.index'))->patch(route('appointments.start', $booking))
+            ->assertRedirect(route('appointments.index'))
+            ->assertSessionHasErrors('arrival_confirmed', errorBag: 'session_start');
 
         $this->assertNull($booking->fresh()->session_started_at);
+        Carbon::setTestNow();
     }
 
-    public function test_staff_can_collect_exact_balance_then_start_session(): void
+    public function test_staff_collects_exact_balance_and_starts_session_atomically(): void
     {
+        Carbon::setTestNow('2026-10-05 10:05:00');
         $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
         $client = User::factory()->create(['role' => User::ROLE_USER]);
         $booking = SpaBooking::create([
             'user_id' => $client->id,
             'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
             'booking_date' => now()->toDateString(),
             'time_slot' => '10:00 AM',
             'amount' => 100,
@@ -298,32 +313,57 @@ class StaffAppointmentPaymentTest extends TestCase
             'payment_amount' => 50,
             'payment_status' => PaymentMethodCatalog::STATUS_PAID,
         ]);
+        PaymentLedgerEntry::query()->create([
+            'spa_booking_id' => $booking->id,
+            'entry_type' => PaymentLedgerEntry::TYPE_INITIAL_PAYMENT,
+            'amount' => 50,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'reference' => 'pay-atomic',
+            'occurred_at' => now(),
+        ]);
 
-        $this->actingAs($staff)->patch(route('appointments.collect-balance', $booking), [
-            'balance_payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
-            'balance_payment_reference' => 'OR-1001',
-        ])->assertRedirect(route('appointments.index', ['date' => $booking->booking_date->format('Y-m-d')]))
-            ->assertSessionHas('status');
+        Carbon::setTestNow($booking->booking_date->copy()->setTime(10, 5));
+        $this->actingAs($staff)->patch(route('appointments.start', $booking), [
+            'arrival_confirmed' => '1',
+            'amount_tendered' => '100.00',
+            'payment_reference' => 'OR-1001',
+        ])->assertRedirect(route('ongoing-sessions.index'))
+            ->assertSessionHas('payment_receipt', fn (array $receipt): bool => $receipt['payment_amount'] === '50.00'
+                && $receipt['reference'] === 'OR-1001'
+                && $receipt['payment_type'] === 'Balance payment');
 
         $booking->refresh();
         $this->assertSame(50.0, (float) $booking->balance_amount);
         $this->assertSame($staff->id, $booking->balance_collected_by);
         $this->assertSame('OR-1001', $booking->balance_payment_reference);
-        $this->assertTrue($booking->isFullyPaid());
-
-        Carbon::setTestNow($booking->booking_date->copy()->setTime(10, 5));
-        $this->patch(route('appointments.start', $booking))->assertRedirect(route('ongoing-sessions.index'));
-        $this->assertNotNull($booking->fresh()->session_started_at);
+        $this->assertNotNull($booking->session_started_at);
+        $this->assertDatabaseHas('payment_ledger_entries', [
+            'spa_booking_id' => $booking->id,
+            'entry_type' => PaymentLedgerEntry::TYPE_BALANCE_PAYMENT,
+            'amount' => 50,
+            'recorded_by' => $staff->id,
+        ]);
+        $this->assertSame(1, PaymentLedgerEntry::query()->where('spa_booking_id', $booking->id)->where('entry_type', PaymentLedgerEntry::TYPE_BALANCE_PAYMENT)->count());
+        $paymentLog = ActivityLog::query()->where('action', 'payment.balance_collected')->where('subject_id', $booking->id)->firstOrFail();
+        $this->assertSame(50.0, (float) $paymentLog->properties['change_due']);
+        $this->assertSame(50.0, (float) $paymentLog->properties['amount']);
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_ADMIN]))
+            ->getJson(route('reporting.data', ['period' => 'daily', 'period_value' => $booking->booking_date->format('Y-m-d')]))
+            ->assertOk()
+            ->assertJsonPath('grossCollections', 100)
+            ->assertJsonPath('outstandingBalanceTotal', 0);
         Carbon::setTestNow();
     }
 
     public function test_booking_with_no_confirmed_payment_cannot_start_or_auto_complete(): void
     {
+        Carbon::setTestNow('2026-10-05 10:05:00');
         $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
         $client = User::factory()->create(['role' => User::ROLE_USER]);
         $booking = SpaBooking::create([
             'user_id' => $client->id,
             'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
             'booking_date' => now()->toDateString(),
             'time_slot' => '10:00 AM',
             'duration_minutes' => 60,
@@ -334,9 +374,9 @@ class StaffAppointmentPaymentTest extends TestCase
             'payment_status' => PaymentMethodCatalog::STATUS_PENDING,
         ]);
 
-        $this->actingAs($staff)->patch(route('appointments.start', $booking))
-            ->assertRedirect(route('appointments.index', ['date' => $booking->booking_date->format('Y-m-d')]))
-            ->assertSessionHas('error', 'Collect the remaining balance before starting this session.');
+        Carbon::setTestNow($booking->booking_date->copy()->setTime(10, 5));
+        $this->actingAs($staff)->patch(route('appointments.start', $booking), ['arrival_confirmed' => '1'])
+            ->assertSessionHasErrors('arrival_confirmed', errorBag: 'session_start');
 
         // Simulate a record created before payment enforcement existed.
         $booking->forceFill([
@@ -347,6 +387,130 @@ class StaffAppointmentPaymentTest extends TestCase
         $this->assertFalse(app(SpaSessionService::class)->autoCompleteIfExpired($booking->fresh(), now()));
         $this->assertNull($booking->fresh()->completed_at);
         $this->assertSame(SpaBooking::STATUS_IN_SESSION, $booking->fresh()->session_status);
+    }
+
+    public function test_insufficient_tender_is_rejected_without_recording_or_starting(): void
+    {
+        Carbon::setTestNow('2026-10-05 10:05:00');
+        $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::query()->create([
+            'user_id' => $client->id,
+            'client_name' => $client->name,
+            'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
+            'booking_date' => '2026-10-05',
+            'time_slot' => '10:00 AM',
+            'amount' => 100,
+            'payment_amount' => 50,
+            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+            'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+        ]);
+
+        $this->actingAs($staff)->patch(route('appointments.start', $booking), [
+            'arrival_confirmed' => '1',
+            'amount_tendered' => '49.99',
+        ])->assertSessionHasErrors('amount_tendered', errorBag: 'session_start');
+
+        $booking->refresh();
+        $this->assertNull($booking->balance_paid_at);
+        $this->assertNull($booking->session_started_at);
+        $this->assertDatabaseMissing('payment_ledger_entries', [
+            'spa_booking_id' => $booking->id,
+            'entry_type' => PaymentLedgerEntry::TYPE_BALANCE_PAYMENT,
+        ]);
+        Carbon::setTestNow();
+    }
+
+    public function test_fully_paid_paymongo_start_creates_no_duplicate_payment_and_duplicate_submit_is_safe(): void
+    {
+        Carbon::setTestNow('2026-10-05 10:05:00');
+        foreach ([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST] as $index => $role) {
+            $staff = User::factory()->create(['role' => $role]);
+            $client = User::factory()->create(['role' => User::ROLE_USER]);
+            $booking = SpaBooking::query()->create([
+                'user_id' => $client->id,
+                'client_name' => $client->name,
+                'service_name' => 'Swedish Massage',
+                'therapist_name' => $index === 0 ? 'Liza Reyes' : 'Juan dela Cruz',
+                'booking_date' => '2026-10-05',
+                'time_slot' => '10:00 AM',
+                'amount' => 100,
+                'payment_amount' => 100,
+                'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+                'payment_type' => PaymentMethodCatalog::TYPE_FULL,
+                'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            ]);
+            app(PaymentLedgerService::class)->recordInitialPayment($booking);
+            $this->assertTrue(app(SpaSessionService::class)->toAppointmentRow($booking->fresh())['is_paymongo_verified']);
+
+            $payload = ['arrival_confirmed' => '1'];
+            $this->actingAs($staff)->patch(route('appointments.start', $booking), $payload)
+                ->assertRedirect(route('ongoing-sessions.index'))
+                ->assertSessionMissing('payment_receipt');
+            $this->patch(route('appointments.start', $booking), $payload)
+                ->assertSessionHasErrors('arrival_confirmed', errorBag: 'session_start');
+
+            $this->assertNotNull($booking->fresh()->session_started_at);
+            $this->assertSame(1, PaymentLedgerEntry::query()->where('spa_booking_id', $booking->id)->count());
+            $this->assertSame(1, ActivityLog::query()->where('action', 'session.started')->where('subject_id', $booking->id)->count());
+        }
+        Carbon::setTestNow();
+    }
+
+    public function test_customer_cannot_confirm_payment_or_start_session(): void
+    {
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::query()->create([
+            'user_id' => $client->id,
+            'service_name' => 'Swedish Massage',
+            'therapist_name' => 'Liza Reyes',
+            'booking_date' => now()->toDateString(),
+            'time_slot' => now()->format('g:i A'),
+            'amount' => 100,
+            'payment_amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+        ]);
+
+        $this->actingAs($client)->patch(route('appointments.start', $booking), ['arrival_confirmed' => '1'])
+            ->assertForbidden();
+        $this->assertNull($booking->fresh()->session_started_at);
+    }
+
+    public function test_terminal_expired_and_unavailable_therapist_appointments_cannot_start(): void
+    {
+        Carbon::setTestNow('2026-10-05 10:05:00');
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $states = [
+            ['cancelled_at' => now(), 'session_status' => SpaBooking::STATUS_CANCELLED],
+            ['completed_at' => now(), 'session_status' => SpaBooking::STATUS_COMPLETED],
+            ['session_status' => SpaBooking::STATUS_NO_SHOW],
+            ['time_slot' => '9:00 AM', 'session_status' => SpaBooking::STATUS_CONFIRMED],
+            ['therapist_name' => 'Unknown Therapist', 'session_status' => SpaBooking::STATUS_CONFIRMED],
+        ];
+
+        foreach ($states as $index => $state) {
+            $booking = SpaBooking::query()->create(array_replace([
+                'user_id' => $client->id,
+                'client_name' => $client->name,
+                'service_name' => 'Swedish Massage',
+                'therapist_name' => 'Liza Reyes',
+                'booking_date' => '2026-10-05',
+                'time_slot' => '10:00 AM',
+                'amount' => 100,
+                'payment_amount' => 100,
+                'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+                'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            ], $state));
+
+            $this->actingAs($staff)->patch(route('appointments.start', $booking), ['arrival_confirmed' => '1'])
+                ->assertSessionHasErrors('arrival_confirmed', errorBag: 'session_start');
+            $this->assertNull($booking->fresh()->session_started_at, 'State '.$index.' was incorrectly started.');
+        }
+        Carbon::setTestNow();
     }
 
     public function test_staff_can_collect_an_outstanding_balance_on_a_legacy_completed_session(): void
@@ -514,6 +678,7 @@ class StaffAppointmentPaymentTest extends TestCase
                 'spa_booking_id' => $booking->id,
                 'entry_type' => PaymentLedgerEntry::TYPE_INITIAL_PAYMENT,
                 'amount' => $booking->amount,
+                'recorded_by' => $staff->id,
             ]);
             $this->assertDatabaseHas('activity_logs', [
                 'user_id' => $staff->id,
@@ -579,6 +744,24 @@ class StaffAppointmentPaymentTest extends TestCase
             ->assertSessionHasErrors('immediate_start_time', errorBag: 'appointment');
 
         $this->assertDatabaseCount('spa_bookings', 1);
+        Carbon::setTestNow();
+    }
+
+    public function test_immediate_walk_in_insufficient_tender_rolls_back_booking_payment_and_session(): void
+    {
+        Carbon::setTestNow('2026-10-05 20:37:30');
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $therapist = app(TherapistAvailabilityService::class)->bookableTherapistNamesForDate(now())[0];
+
+        $this->actingAs($staff)->post(route('appointments.store'), array_replace(
+            $this->immediateBookingInput($client, $therapist),
+            ['counter_amount_tendered' => '0.01'],
+        ))->assertSessionHasErrors('counter_amount_tendered', errorBag: 'appointment');
+
+        $this->assertDatabaseCount('spa_bookings', 0);
+        $this->assertDatabaseCount('payment_ledger_entries', 0);
+        $this->assertDatabaseMissing('activity_logs', ['action' => 'session.started']);
         Carbon::setTestNow();
     }
 
@@ -670,7 +853,8 @@ class StaffAppointmentPaymentTest extends TestCase
             ->assertOk()
             ->assertSee('Start walk-in now')
             ->assertSee('Actual start time')
-            ->assertSee('full payment will be collected at the counter now')
+            ->assertSee('Payment and arrival are confirmed in the next step.')
+            ->assertSee('Confirm Payment and Start')
             ->assertSee('addServiceDurationMap', false);
     }
 
@@ -707,6 +891,8 @@ class StaffAppointmentPaymentTest extends TestCase
                 'time_slot' => '',
                 'immediate_start_time' => now()->format('H:i'),
                 'immediate_confirmed' => '1',
+                'counter_amount_tendered' => '100000.00',
+                'counter_payment_reference' => 'OR-WALK-IN',
                 'therapist' => $therapist,
             ],
         );
