@@ -24,7 +24,7 @@
     <div class="container {{ $showRegister ? 'active' : '' }} {{ $showForgot ? 'sign-in-forgot-active' : '' }}" id="container">
         <div class="form-container sign-up" aria-hidden="{{ $showRegister ? 'false' : 'true' }}" @if (! $showRegister) inert @endif>
             <form method="POST" action="{{ route('register') }}" id="register-form" data-auth-register-form="true" aria-hidden="{{ $showRegister ? 'false' : 'true' }}" @if (! $showRegister) inert @endif>
-                @csrf
+                <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <h1 tabindex="-1">Create Account</h1>
                 @include('auth.partials.social-buttons', ['socialIntent' => 'signup'])
@@ -172,7 +172,7 @@
 
         <div class="form-container sign-in" aria-hidden="{{ $showRegister ? 'true' : 'false' }}" @if ($showRegister) inert @endif>
             <form method="POST" action="{{ route('login.attempt') }}" novalidate class="auth-login-panel" aria-hidden="{{ $showRegister || $showForgot ? 'true' : 'false' }}" @if ($showRegister || $showForgot) inert @endif>
-                @csrf
+                <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <h1 tabindex="-1">Sign In</h1>
                 @error('social')
                     <div class="auth-social-error" role="alert">
@@ -229,7 +229,7 @@
             </form>
 
             <form method="POST" action="{{ route('password.email') }}" class="auth-forgot-panel" aria-hidden="{{ ! $showRegister && $showForgot ? 'false' : 'true' }}" @if ($showRegister || ! $showForgot) inert @endif>
-                @csrf
+                <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <h1>Forgot Password</h1>
                 <p class="auth-forgot-copy">Enter your email and we will send a six digit verification code.</p>
                 <input type="hidden" name="_auth_mode" value="forgot">

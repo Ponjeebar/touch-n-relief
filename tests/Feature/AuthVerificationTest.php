@@ -109,6 +109,18 @@ class AuthVerificationTest extends TestCase
         $this->assertMatchesRegularExpression('/class="form-container sign-in"[^>]*aria-hidden="true"[^>]*\binert\b/', $registerHtml);
     }
 
+    public function test_authentication_csrf_fields_do_not_use_hidden_input_autocomplete(): void
+    {
+        $response = $this->get(route('login'))->assertOk();
+        $content = $response->getContent();
+
+        $this->assertGreaterThanOrEqual(3, substr_count($content, 'name="_token"'));
+        $this->assertDoesNotMatchRegularExpression(
+            '/<input\b(?=[^>]*name="_token")(?=[^>]*autocomplete=)[^>]*>/i',
+            $content,
+        );
+    }
+
     public function test_authentication_header_does_not_show_redundant_home_navigation(): void
     {
         $this->get(route('login'))
