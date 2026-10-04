@@ -612,38 +612,101 @@ class StaffAppointmentPaymentTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_staff_can_collect_an_outstanding_balance_on_a_legacy_completed_session(): void
+    public function test_staff_cannot_collect_an_outstanding_balance_from_terminal_appointments(): void
     {
-        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        Carbon::setTestNow('2026-10-05 10:15:00');
         $client = User::factory()->create(['role' => User::ROLE_USER]);
-        $booking = SpaBooking::create([
-            'user_id' => $client->id,
-            'service_name' => 'Swedish Massage',
-            'booking_date' => now()->subDay()->toDateString(),
-            'time_slot' => '10:00 AM',
-            'amount' => 100,
-            'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
-            'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
-            'payment_amount' => 50,
-            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
-            'session_started_at' => now()->subDay(),
-            'completed_at' => now()->subDay()->addHour(),
-            'session_status' => SpaBooking::STATUS_COMPLETED,
-        ]);
 
-        $row = app(SpaSessionService::class)->toUserTransactionRow($booking->fresh());
-        $this->assertSame('Payment incomplete', $row['status']);
-        $this->assertTrue($row['can_collect_balance']);
+        foreach ([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST] as $role) {
+            $states = [
+                ['session_status' => SpaBooking::STATUS_CANCELLED, 'cancelled_at' => now()],
+                ['session_status' => SpaBooking::STATUS_COMPLETED, 'completed_at' => now()],
+                ['session_status' => SpaBooking::STATUS_NO_SHOW],
+                ['session_status' => SpaBooking::STATUS_CONFIRMED, 'time_slot' => '09:00 AM'],
+            ];
 
-        $this->actingAs($staff)->patch(route('appointments.collect-balance', $booking), [
-            'balance_payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
-            'balance_payment_reference' => 'OR-LEGACY-1',
-        ])->assertSessionHas('status');
+            foreach ($states as $index => $state) {
+                $staff = User::factory()->create(['role' => $role]);
+                $booking = SpaBooking::create(array_replace([
+                    'user_id' => $client->id,
+                    'service_name' => 'Swedish Massage',
+                    'booking_date' => now()->toDateString(),
+                    'time_slot' => '10:00 AM',
+                    'amount' => 100,
+                    'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+                    'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+                    'payment_amount' => 50,
+                    'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+                ], $state));
 
-        $booking->refresh();
-        $this->assertTrue($booking->isFullyPaid());
-        $this->assertSame(50.0, (float) $booking->balance_amount);
-        $this->assertSame('OR-LEGACY-1', $booking->balance_payment_reference);
+                $row = app(SpaSessionService::class)->toUserTransactionRow($booking->fresh());
+                $this->assertFalse($row['can_collect_balance'], $role.' could see collection for terminal state '.$index);
+
+                $this->actingAs($staff)->patch(route('appointments.collect-balance', $booking), [
+                    'balance_payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+                    'balance_payment_reference' => 'OR-TERMINAL-1',
+                ])->assertSessionHasErrors('balance_payment_method', null, 'balance');
+
+                $booking->refresh();
+                $this->assertNull($booking->balance_paid_at);
+                $this->assertNull($booking->balance_amount);
+                $this->assertDatabaseMissing('payment_ledger_entries', [
+                    'spa_booking_id' => $booking->id,
+                    'entry_type' => PaymentLedgerEntry::TYPE_BALANCE_PAYMENT,
+                ]);
+                $this->assertDatabaseMissing('activity_logs', [
+                    'action' => 'payment.balance_collected',
+                    'subject_type' => SpaBooking::class,
+                    'subject_id' => $booking->id,
+                ]);
+            }
+        }
+        Carbon::setTestNow();
+    }
+
+    public function test_staff_collects_an_eligible_balance_once(): void
+    {
+        Carbon::setTestNow('2026-10-05 09:30:00');
+
+        foreach ([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST] as $role) {
+            $staff = User::factory()->create(['role' => $role]);
+            $client = User::factory()->create(['role' => User::ROLE_USER]);
+            $booking = SpaBooking::create([
+                'user_id' => $client->id,
+                'service_name' => 'Swedish Massage',
+                'booking_date' => now()->toDateString(),
+                'time_slot' => '10:00 AM',
+                'amount' => 100,
+                'payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO,
+                'payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT,
+                'payment_amount' => 50,
+                'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+                'session_status' => SpaBooking::STATUS_CONFIRMED,
+            ]);
+            $payload = [
+                'balance_payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+                'balance_payment_reference' => 'OR-'.$role,
+            ];
+
+            $this->actingAs($staff)->patch(route('appointments.collect-balance', $booking), $payload)
+                ->assertSessionHas('status');
+            $this->patch(route('appointments.collect-balance', $booking), $payload)
+                ->assertSessionHasErrors('balance_payment_method', null, 'balance');
+
+            $booking->refresh();
+            $this->assertTrue($booking->isFullyPaid());
+            $this->assertSame(50.0, (float) $booking->balance_amount);
+            $this->assertSame(1, PaymentLedgerEntry::query()
+                ->where('spa_booking_id', $booking->id)
+                ->where('entry_type', PaymentLedgerEntry::TYPE_BALANCE_PAYMENT)
+                ->count());
+            $this->assertSame(1, ActivityLog::query()
+                ->where('subject_id', $booking->id)
+                ->where('action', 'payment.balance_collected')
+                ->count());
+        }
+
+        Carbon::setTestNow();
     }
 
     public function test_unconfirmed_initial_payment_cannot_have_balance_collected(): void
@@ -739,6 +802,32 @@ class StaffAppointmentPaymentTest extends TestCase
 
         $this->assertFalse(app(SpaSessionService::class)->autoCompleteIfExpired($booking, now()));
         $this->assertNull($booking->fresh()->completed_at);
+    }
+
+    public function test_automatic_completion_cannot_duplicate_a_manually_completed_session(): void
+    {
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create([
+            'user_id' => $client->id,
+            'client_name' => $client->name,
+            'service_name' => 'Swedish Massage',
+            'booking_date' => now()->subDay()->toDateString(),
+            'time_slot' => '10:00 AM',
+            'duration_minutes' => 60,
+            'amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+            'payment_amount' => 100,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_started_at' => now()->subHours(2),
+            'session_status' => SpaBooking::STATUS_IN_SESSION,
+        ]);
+        $sessions = app(SpaSessionService::class);
+
+        $sessions->complete($booking);
+        $sessions->releaseAvailabilityBlocks();
+
+        $this->assertSame(SpaBooking::STATUS_COMPLETED, $booking->fresh()->session_status);
+        $this->assertSame(1, DB::table('transactions')->where('spa_booking_id', $booking->id)->count());
     }
 
     public function test_admin_and_receptionist_can_start_fully_paid_walk_ins_at_the_current_minute(): void

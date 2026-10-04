@@ -491,58 +491,12 @@ class PaymongoController extends Controller
         $paymentId = (string) ($attributes['payment_id'] ?? '');
         $amountCentavos = (int) ($attributes['amount'] ?? 0);
 
-        $booking = null;
-
-        if ($refundId !== '') {
-            $booking = SpaBooking::query()
-                ->where('refund_reference', $refundId)
-                ->first();
-        }
-
-        if (! $booking instanceof SpaBooking && $paymentId !== '') {
-            $booking = SpaBooking::query()
-                ->where('payment_transaction_id', $paymentId)
-                ->whereIn('refund_status', [
-                    BookingRefundService::STATUS_PENDING,
-                    BookingRefundService::STATUS_FAILED,
-                    BookingRefundService::STATUS_PROCESSED,
-                ])
-                ->latest('id')
-                ->first();
-        }
-
-        if (! $booking instanceof SpaBooking) {
-            return;
-        }
-
-        // PayMongo retries webhook deliveries. Never let an older update regress a completed refund.
-        if ($booking->refund_status === BookingRefundService::STATUS_PROCESSED
-            && $status !== BookingRefundService::STATUS_PROCESSED) {
-            return;
-        }
-
-        $refundAmount = $amountCentavos > 0
-            ? round($amountCentavos / 100, 2)
-            : (float) ($booking->refund_amount ?? $booking->payment_amount ?? 0);
-
-        $values = [
-            'refund_status' => $status,
-            'refund_amount' => $refundAmount,
-            'refund_reference' => $refundId !== '' ? $refundId : $booking->refund_reference,
-        ];
-
-        if ($status === BookingRefundService::STATUS_PROCESSED) {
-            $values['payment_status'] = PaymentMethodCatalog::STATUS_REFUNDED;
-            $values['refunded_at'] = $booking->refunded_at ?? now();
-            $values['refund_note'] = 'Refund sent back to the client\'s PayMongo payment method.';
-        } elseif ($status === BookingRefundService::STATUS_FAILED) {
-            $values['refund_note'] = 'PayMongo could not complete the refund. Please contact reception for assistance.';
-        } else {
-            $values['refund_note'] = 'PayMongo refund is processing. It will return to the client\'s payment method once complete.';
-        }
-
-        $booking->forceFill($values)->save();
-        $this->paymentLedger->recordRefund($booking->fresh());
+        $this->refunds->applyPaymongoUpdate(
+            $refundId,
+            $paymentId,
+            $amountCentavos > 0 ? round($amountCentavos / 100, 2) : 0.0,
+            $status,
+        );
     }
 
     /**

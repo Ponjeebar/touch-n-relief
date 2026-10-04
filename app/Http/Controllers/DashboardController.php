@@ -747,20 +747,24 @@ class DashboardController extends Controller
         ];
     }
 
-    public function collectBalance(Request $request, SpaBooking $spaBooking, PaymentLedgerService $paymentLedger): RedirectResponse
-    {
+    public function collectBalance(
+        Request $request,
+        SpaBooking $spaBooking,
+        PaymentLedgerService $paymentLedger,
+        SpaSessionService $sessions,
+    ): RedirectResponse {
         $validated = $request->validateWithBag('balance', [
             'balance_payment_method' => ['required', Rule::in([PaymentMethodCatalog::METHOD_CASH_COUNTER])],
             'balance_payment_reference' => ['nullable', 'string', 'max:255'],
         ]);
 
         try {
-            $collected = DB::transaction(function () use ($spaBooking, $validated, $request, $paymentLedger): SpaBooking {
+            $collected = DB::transaction(function () use ($spaBooking, $validated, $request, $paymentLedger, $sessions): SpaBooking {
                 $booking = SpaBooking::query()->lockForUpdate()->findOrFail($spaBooking->id);
 
-                if ($booking->isCancelled()) {
+                if ($sessions->isBalanceCollectionClosed($booking)) {
                     throw ValidationException::withMessages([
-                        'balance_payment_method' => 'A balance cannot be collected for a cancelled appointment.',
+                        'balance_payment_method' => 'This appointment is no longer eligible for balance collection.',
                     ]);
                 }
 

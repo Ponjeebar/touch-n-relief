@@ -585,7 +585,7 @@ class BookingController extends Controller
                 'booking_id' => $spaBooking->id,
                 'cancellation_reason' => $spaBooking->cancellation_reason,
                 'refund_status' => $spaBooking->refund_status,
-                'refund_status_label' => $refundService->labelFor($spaBooking->refund_status),
+                'refund_status_label' => $refundService->labelFor($spaBooking->refund_status, $spaBooking),
                 'refund_amount' => (float) ($spaBooking->refund_amount ?? 0) > 0
                     ? '₱'.number_format((float) $spaBooking->refund_amount, 2)
                     : '',

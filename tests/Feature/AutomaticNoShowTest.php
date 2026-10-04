@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\CustomerNotification;
 use App\Models\SpaBooking;
 use App\Models\User;
+use App\Services\NoShowService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -71,6 +72,22 @@ class AutomaticNoShowTest extends TestCase
             'spa_booking_id' => $overdue->id,
             'type' => CustomerNotification::TYPE_NO_SHOW,
         ]);
+    }
+
+    public function test_automatic_processing_cannot_duplicate_a_manually_recorded_no_show(): void
+    {
+        Carbon::setTestNow('2026-10-04 10:10:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->booking($customer, '2026-10-04', '10:00 AM');
+
+        $this->assertNotNull(app(NoShowService::class)->record($booking));
+        Carbon::setTestNow('2026-10-04 10:15:00');
+        $this->artisan('appointments:process-no-shows')
+            ->expectsOutput('Processed 0 automatic no-show appointment(s).')
+            ->assertSuccessful();
+
+        $this->assertSame(SpaBooking::STATUS_NO_SHOW, $booking->fresh()->session_status);
+        $this->assertDatabaseCount('customer_notifications', 1);
     }
 
     public function test_started_completed_cancelled_and_not_yet_due_appointments_are_not_changed(): void

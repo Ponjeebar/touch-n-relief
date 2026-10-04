@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BookingRefund;
 use App\Models\PaymentLedgerEntry;
 use App\Models\SpaBooking;
 use App\Support\PaymentMethodCatalog;
@@ -21,9 +22,11 @@ class PaymentLedgerService
         }
 
         PaymentLedgerEntry::query()->firstOrCreate(
-            ['spa_booking_id' => $booking->id, 'entry_type' => PaymentLedgerEntry::TYPE_INITIAL_PAYMENT],
+            ['idempotency_key' => 'booking:'.$booking->id.':'.PaymentLedgerEntry::TYPE_INITIAL_PAYMENT],
             [
+                'spa_booking_id' => $booking->id,
                 'amount' => $amount,
+                'entry_type' => PaymentLedgerEntry::TYPE_INITIAL_PAYMENT,
                 'payment_method' => $booking->payment_method,
                 'reference' => $booking->payment_transaction_id,
                 'occurred_at' => $occurredAt ?? now(),
@@ -41,9 +44,11 @@ class PaymentLedgerService
         }
 
         PaymentLedgerEntry::query()->firstOrCreate(
-            ['spa_booking_id' => $booking->id, 'entry_type' => PaymentLedgerEntry::TYPE_BALANCE_PAYMENT],
+            ['idempotency_key' => 'booking:'.$booking->id.':'.PaymentLedgerEntry::TYPE_BALANCE_PAYMENT],
             [
+                'spa_booking_id' => $booking->id,
                 'amount' => $amount,
+                'entry_type' => PaymentLedgerEntry::TYPE_BALANCE_PAYMENT,
                 'payment_method' => $booking->balance_payment_method,
                 'reference' => $booking->balance_payment_reference,
                 'occurred_at' => $booking->balance_paid_at,
@@ -53,21 +58,25 @@ class PaymentLedgerService
         );
     }
 
-    public function recordRefund(SpaBooking $booking): void
+    public function recordRefund(BookingRefund $refund): void
     {
-        $amount = round((float) ($booking->refund_amount ?? 0), 2);
-        if ($booking->refund_status !== BookingRefundService::STATUS_PROCESSED || $booking->refunded_at === null || $amount <= 0) {
+        $amount = round((float) $refund->amount, 2);
+        if ($refund->status !== BookingRefundService::STATUS_PROCESSED || $refund->processed_at === null || $amount <= 0) {
             return;
         }
 
         PaymentLedgerEntry::query()->firstOrCreate(
-            ['spa_booking_id' => $booking->id, 'entry_type' => PaymentLedgerEntry::TYPE_REFUND],
+            ['idempotency_key' => 'booking:'.$refund->spa_booking_id.':refund:'.$refund->id],
             [
+                'spa_booking_id' => $refund->spa_booking_id,
+                'booking_refund_id' => $refund->id,
+                'entry_type' => PaymentLedgerEntry::TYPE_REFUND,
                 'amount' => $amount,
-                'payment_method' => $booking->payment_method,
-                'reference' => $booking->refund_reference,
-                'occurred_at' => $booking->refunded_at,
+                'payment_method' => $refund->payment_method,
+                'reference' => $refund->reference,
+                'occurred_at' => $refund->processed_at,
                 'is_estimated' => false,
+                'recorded_by' => $refund->processed_by,
             ],
         );
     }

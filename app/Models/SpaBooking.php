@@ -123,7 +123,10 @@ class SpaBooking extends Model
 
     public function initialPaidAmount(): float
     {
-        return $this->payment_status === PaymentMethodCatalog::STATUS_PAID
+        return in_array($this->payment_status, [
+            PaymentMethodCatalog::STATUS_PAID,
+            PaymentMethodCatalog::STATUS_REFUNDED,
+        ], true)
             ? max((float) ($this->payment_amount ?? 0), 0)
             : 0.0;
     }
@@ -249,5 +252,10 @@ class SpaBooking extends Model
     public function paymentLedgerEntries(): HasMany
     {
         return $this->hasMany(PaymentLedgerEntry::class);
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(BookingRefund::class);
     }
 }

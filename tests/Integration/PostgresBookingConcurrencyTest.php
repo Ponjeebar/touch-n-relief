@@ -2,10 +2,12 @@
 
 namespace Tests\Integration;
 
+use App\Models\BookingRefund;
 use App\Models\PaymentLedgerEntry;
 use App\Models\SpaBooking;
 use App\Models\Therapist;
 use App\Models\User;
+use App\Services\BookingRefundService;
 use App\Support\PaymentMethodCatalog;
 use Database\Seeders\SiteSettingsSeeder;
 use Database\Seeders\SpaServiceSeeder;
@@ -157,6 +159,74 @@ class PostgresBookingConcurrencyTest extends TestCase
             $this->assertSame(['stale', 'started'], $results, collect($processes)->map(fn (Process $process): string => $process->getErrorOutput())->implode("\n"));
             $this->assertSame(1, PaymentLedgerEntry::query()->where('spa_booking_id', $booking->id)->where('entry_type', PaymentLedgerEntry::TYPE_BALANCE_PAYMENT)->count());
             $this->assertSame(1, DB::table('activity_logs')->where('subject_id', $booking->id)->where('action', 'session.started')->count());
+        } finally {
+            @unlink($barrier);
+        }
+    }
+
+    public function test_two_simultaneous_manual_refund_confirmations_create_one_refund_ledger_entry(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $staff = collect([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST])
+            ->map(fn (string $role): User => User::factory()->create(['role' => $role]));
+        $booking = SpaBooking::query()->create([
+            'user_id' => $customer->id,
+            'client_name' => $customer->name,
+            'service_name' => 'Foot Reflexology',
+            'booking_date' => now()->addDay()->toDateString(),
+            'time_slot' => '10:00 AM',
+            'amount' => 50,
+            'payment_amount' => 50,
+            'payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'cancelled_at' => now(),
+            'session_status' => SpaBooking::STATUS_CANCELLED,
+        ]);
+        BookingRefund::query()->create([
+            'spa_booking_id' => $booking->id,
+            'payment_component' => BookingRefund::COMPONENT_INITIAL,
+            'processing_channel' => BookingRefund::CHANNEL_MANUAL,
+            'payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+            'amount' => 50,
+            'status' => BookingRefundService::STATUS_PENDING,
+            'reference' => 'RF-PND-PG-CONCURRENT',
+            'requested_at' => now(),
+        ]);
+        $barrier = storage_path('framework/testing/refund-'.bin2hex(random_bytes(8)));
+        $environment = array_filter(array_merge($_SERVER, $_ENV, [
+            'APP_ENV' => 'testing',
+            'DB_CONNECTION' => 'pgsql',
+            'DB_HOST' => (string) config('database.connections.pgsql.host'),
+            'DB_PORT' => (string) config('database.connections.pgsql.port'),
+            'DB_DATABASE' => (string) config('database.connections.pgsql.database'),
+            'DB_USERNAME' => (string) config('database.connections.pgsql.username'),
+            'DB_PASSWORD' => (string) config('database.connections.pgsql.password'),
+        ]), static fn (mixed $value): bool => is_scalar($value));
+        $phpCommand = [PHP_BINARY];
+        if (PHP_OS_FAMILY === 'Windows') {
+            array_push($phpCommand, '-d', 'extension=pdo_pgsql');
+        }
+        $processes = $staff->map(fn (User $user): Process => new Process(array_merge($phpCommand, [
+            base_path('tests/Support/postgres-refund-worker.php'),
+            (string) $user->id,
+            (string) $booking->id,
+            $barrier,
+        ]), base_path(), $environment, null, 30))->all();
+
+        try {
+            foreach ($processes as $process) {
+                $process->start();
+            }
+            usleep(250000);
+            touch($barrier);
+            foreach ($processes as $process) {
+                $process->wait();
+            }
+
+            $results = collect($processes)->map(fn (Process $process): string => trim($process->getOutput()))->sort()->values()->all();
+            $this->assertSame(['processed', 'stale'], $results, collect($processes)->map(fn (Process $process): string => $process->getErrorOutput())->implode("\n"));
+            $this->assertSame(1, PaymentLedgerEntry::query()->where('spa_booking_id', $booking->id)
+                ->where('entry_type', PaymentLedgerEntry::TYPE_REFUND)->count());
         } finally {
             @unlink($barrier);
         }

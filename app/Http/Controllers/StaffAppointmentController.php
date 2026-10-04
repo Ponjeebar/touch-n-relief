@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BookingRefund;
 use App\Models\Customer;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
@@ -737,7 +738,7 @@ class StaffAppointmentController extends Controller
                 'message' => $message,
                 'booking_id' => $spaBooking->id,
                 'refund_status' => $spaBooking->refund_status,
-                'refund_status_label' => $this->refunds->labelFor($spaBooking->refund_status),
+                'refund_status_label' => $this->refunds->labelFor($spaBooking->refund_status, $spaBooking),
                 'refund_amount' => (float) ($spaBooking->refund_amount ?? 0) > 0
                     ? '₱'.number_format((float) $spaBooking->refund_amount, 2)
                     : '',
@@ -857,11 +858,19 @@ class StaffAppointmentController extends Controller
         $validated = $request->validate([
             'refund_note' => ['nullable', 'string', 'max:500'],
         ]);
+        $manualRefundAmount = (float) $spaBooking->refunds()
+            ->where('status', BookingRefundService::STATUS_PENDING)
+            ->where('processing_channel', BookingRefund::CHANNEL_MANUAL)
+            ->sum('amount');
+        if ($manualRefundAmount < 0.01) {
+            $manualRefundAmount = (float) ($spaBooking->refund_amount ?? 0);
+        }
 
         try {
             $spaBooking = $this->refunds->completeManualRefund(
                 $spaBooking,
                 $validated['refund_note'] ?? null,
+                $staff->id,
             );
         } catch (ValidationException $e) {
             if ($request->expectsJson()) {
@@ -878,12 +887,12 @@ class StaffAppointmentController extends Controller
             sprintf(
                 'Marked refund complete for %s (₱%s).',
                 $clientName,
-                number_format((float) $spaBooking->refund_amount, 2),
+                number_format($manualRefundAmount, 2),
             ),
             [
                 'booking_id' => $spaBooking->id,
                 'client_name' => $clientName,
-                'refund_amount' => (float) $spaBooking->refund_amount,
+                'refund_amount' => $manualRefundAmount,
                 'refund_reference' => $spaBooking->refund_reference,
             ],
             subject: $spaBooking,
@@ -891,14 +900,14 @@ class StaffAppointmentController extends Controller
             request: $request,
         );
 
-        $message = 'Refund of ₱'.number_format((float) $spaBooking->refund_amount, 2).' marked complete for '.$clientName.'.';
+        $message = 'Refund of ₱'.number_format($manualRefundAmount, 2).' marked complete for '.$clientName.'.';
 
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => $message,
                 'booking_id' => $spaBooking->id,
                 'refund_status' => $spaBooking->refund_status,
-                'refund_status_label' => $this->refunds->labelFor($spaBooking->refund_status),
+                'refund_status_label' => $this->refunds->labelFor($spaBooking->refund_status, $spaBooking),
                 'refund_amount' => '₱'.number_format((float) $spaBooking->refund_amount, 2),
                 'refund_reference' => (string) ($spaBooking->refund_reference ?? ''),
                 'refund_note' => (string) ($spaBooking->refund_note ?? ''),

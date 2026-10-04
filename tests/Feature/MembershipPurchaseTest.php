@@ -139,6 +139,32 @@ class MembershipPurchaseTest extends TestCase
         $this->assertSame('2027-10-30', $renewal->expires_at?->toDateString());
     }
 
+    public function test_replayed_membership_confirmation_does_not_extend_or_replace_the_verified_payment(): void
+    {
+        Carbon::setTestNow('2026-10-05 10:00:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $plan = MembershipPlan::query()->firstOrFail();
+        $purchase = MembershipPurchase::query()->create([
+            'user_id' => $customer->id,
+            'membership_plan_id' => $plan->id,
+            'plan_name' => $plan->name,
+            'validity_days' => 365,
+            'amount' => 499,
+        ]);
+        $service = app(MembershipPurchaseService::class);
+        $service->confirm($purchase, 'pay_membership_original', 'gcash', 'cs_membership_original');
+        $first = $purchase->fresh();
+
+        Carbon::setTestNow('2026-10-06 10:00:00');
+        $service->confirm($purchase, 'pay_membership_replay', 'card', 'cs_membership_replay');
+        $purchase->refresh();
+
+        $this->assertSame('pay_membership_original', $purchase->payment_transaction_id);
+        $this->assertSame('cs_membership_original', $purchase->paymongo_checkout_session_id);
+        $this->assertTrue($purchase->paid_at->equalTo($first->paid_at));
+        $this->assertTrue($purchase->expires_at->equalTo($first->expires_at));
+    }
+
     public function test_active_member_receives_server_supplied_package_price(): void
     {
         $customer = User::factory()->create(['role' => User::ROLE_USER]);

@@ -8,11 +8,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PaymentLedgerEntry extends Model
 {
     public const TYPE_INITIAL_PAYMENT = 'initial_payment';
+
     public const TYPE_BALANCE_PAYMENT = 'balance_payment';
+
     public const TYPE_REFUND = 'refund';
 
     protected $fillable = [
         'spa_booking_id',
+        'idempotency_key',
+        'booking_refund_id',
         'entry_type',
         'amount',
         'payment_method',
@@ -39,5 +43,10 @@ class PaymentLedgerEntry extends Model
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    public function refund(): BelongsTo
+    {
+        return $this->belongsTo(BookingRefund::class, 'booking_refund_id');
     }
 }

@@ -394,6 +394,28 @@ class SpaSessionService
             && $now->lt($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES));
     }
 
+    public function isBalanceCollectionClosed(SpaBooking $booking, ?Carbon $now = null): bool
+    {
+        if ($booking->isCancelled()
+            || $booking->completed_at !== null
+            || in_array($booking->session_status, [
+                SpaBooking::STATUS_CANCELLED,
+                SpaBooking::STATUS_COMPLETED,
+                SpaBooking::STATUS_NO_SHOW,
+            ], true)) {
+            return true;
+        }
+
+        if ($booking->session_started_at !== null) {
+            return false;
+        }
+
+        $window = $this->window($booking);
+
+        return $window === null
+            || ($now ?? now())->gte($window['start']->copy()->addMinutes(self::START_GRACE_MINUTES));
+    }
+
     public function startEligibilityMessage(SpaBooking $booking, ?Carbon $now = null): string
     {
         $now ??= now();
@@ -777,13 +799,13 @@ class SpaSessionService
                 : ($paidAmount > 0 ? 'Balance due' : 'Payment not received'),
             'can_collect_balance' => ! $isFullyPaid
                 && $booking->payment_status === PaymentMethodCatalog::STATUS_PAID
-                && $booking->cancelled_at === null
+                && ! $this->isBalanceCollectionClosed($booking)
                 && $booking->refund_status !== BookingRefundService::STATUS_PROCESSED,
             'balance_payment_method_label' => PaymentMethodCatalog::labelFor($booking->balance_payment_method),
             'balance_payment_reference' => (string) ($booking->balance_payment_reference ?? ''),
             'balance_paid_at' => $booking->balance_paid_at?->format('M j, Y g:i A') ?? '',
             'refund_status' => (string) ($booking->refund_status ?? ''),
-            'refund_status_label' => app(BookingRefundService::class)->labelFor($booking->refund_status),
+            'refund_status_label' => app(BookingRefundService::class)->labelFor($booking->refund_status, $booking),
             'refund_amount' => (float) ($booking->refund_amount ?? 0) > 0
                 ? '₱'.number_format((float) $booking->refund_amount, 2)
                 : '',
