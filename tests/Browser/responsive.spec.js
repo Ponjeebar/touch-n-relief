@@ -226,6 +226,62 @@ test('completed appointment rebooking stays usable on mobile and desktop', async
     }
 });
 
+test('changing the booking date resets service, therapist, and time selections', async ({ page }) => {
+    await login(page, accounts.customer);
+    await page.goto('/booking', { waitUntil: 'domcontentloaded' });
+    const bookingTourKey = await page.locator('#tnr-customer-tour-config').evaluate((config) => (
+        `tnr-system-tour:${config.dataset.customerTourUser}:${config.dataset.customerTourRole}:${config.dataset.customerTourPage}:v3`
+    ));
+    await page.evaluate((key) => localStorage.setItem(key, 'complete'), bookingTourKey);
+
+    for (const setup of [
+        { viewport: { width: 390, height: 844 }, theme: 'dark' },
+        { viewport: { width: 1366, height: 768 }, theme: 'light' },
+    ]) {
+        await page.setViewportSize(setup.viewport);
+        await page.evaluate((theme) => localStorage.setItem('tnr-theme', theme), setup.theme);
+        await page.goto('/booking', { waitUntil: 'domcontentloaded' });
+
+        const dateInput = page.locator('#booking_date');
+        const [firstDate, secondDate] = await dateInput.evaluate((input) => {
+            const start = new Date(`${input.min}T12:00:00`);
+            const nextMonday = new Date(start);
+            const daysUntilMonday = (8 - nextMonday.getDay()) % 7 || 7;
+            nextMonday.setDate(nextMonday.getDate() + daysUntilMonday);
+            const nextTuesday = new Date(nextMonday);
+            nextTuesday.setDate(nextTuesday.getDate() + 1);
+            const iso = (date) => date.toISOString().slice(0, 10);
+
+            return [iso(nextMonday), iso(nextTuesday)];
+        });
+
+        await dateInput.fill(firstDate);
+        await page.locator('.service-item').first().click();
+
+        const therapist = page.locator('.therapist-item:not(.is-unavailable)').filter({
+            has: page.locator('input[name="therapist"]:not([disabled])'),
+        }).first();
+        await expect(therapist).toBeVisible();
+        await therapist.click();
+        await expect(page.locator('#time-slots .time-slot')).not.toHaveCount(0);
+
+        const back = page.locator('#booking-mobile-back');
+        await back.click();
+        await back.click();
+        await back.click();
+        await expect(page.locator('#booking-grid')).toHaveAttribute('data-mobile-step', 'date');
+
+        await dateInput.fill(secondDate);
+
+        await expect(page.locator('input[name="service"]:checked')).toHaveCount(0);
+        await expect(page.locator('input[name="therapist"]:checked')).toHaveCount(0);
+        await expect(page.locator('#time_slot')).toHaveValue('');
+        await expect(page.locator('#time-slots')).toBeEmpty();
+        await expect(page.locator('#time-slots-hint')).toHaveText('Select a service to view available time slots.');
+        await expect(page.locator('#booking-grid')).toHaveAttribute('data-mobile-step', 'service');
+    }
+});
+
 test('staff no-show confirmation stays usable on mobile, tablet, and desktop', async ({ page }) => {
     await login(page, accounts.receptionist);
 

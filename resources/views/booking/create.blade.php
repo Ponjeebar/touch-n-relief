@@ -1381,8 +1381,12 @@
                 });
             });
 
-            function refreshForDateSelection(clearSelectedTime) {
+            function refreshForDateSelection(clearSelectedTime, clearDependentSelections) {
                 if (!dateInput) return;
+                if (clearDependentSelections) {
+                    clearServiceSelection();
+                    clearTherapistSelection();
+                }
                 if (clearSelectedTime && hiddenSlot) {
                     hiddenSlot.value = '';
                     oldSlot = '';
@@ -1390,6 +1394,7 @@
                 therapistScheduleDateKey = '';
                 resetAvailabilityCache();
                 syncBookingSteps();
+                renderSlots();
                 if (dateInput.value) {
                     showMobileStep('service', 'forward');
                 }
@@ -1404,9 +1409,10 @@
             });
 
             dateInput?.addEventListener('change', function () {
+                var dateChanged = dateInput.value !== lastDateValue;
                 lastDateValue = dateInput.value;
                 datePickerWasOpened = false;
-                refreshForDateSelection(true);
+                refreshForDateSelection(true, dateChanged);
             });
 
             dateInput?.addEventListener('blur', function () {
@@ -1414,12 +1420,12 @@
                 datePickerWasOpened = false;
                 var sameDateReselected = dateInput.value === lastDateValue;
                 lastDateValue = dateInput.value;
-                refreshForDateSelection(sameDateReselected);
+                refreshForDateSelection(sameDateReselected, !sameDateReselected);
             });
 
             window.addEventListener('pageshow', function (event) {
                 if (!event.persisted || !dateInput?.value) return;
-                refreshForDateSelection(true);
+                refreshForDateSelection(true, false);
             });
 
             form?.addEventListener('submit', function (e) {
