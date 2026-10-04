@@ -22,6 +22,7 @@ use App\Services\TherapistAvailabilityService;
 use App\Services\TherapistCatalog;
 use App\Services\WalkInClientService;
 use App\Support\PaymentMethodCatalog;
+use App\Support\SensitiveInput;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -156,7 +157,7 @@ class StaffAppointmentController extends Controller
         if (! Schema::hasTable('users') || ! Schema::hasTable('spa_bookings')) {
             return back()
                 ->withErrors(['client_name' => 'Appointments are unavailable until the database is set up.'], 'appointment')
-                ->withInput()
+                ->withInput(SensitiveInput::safeForFlash($request))
                 ->with('open_add_appointment', true);
         }
 
@@ -169,14 +170,14 @@ class StaffAppointmentController extends Controller
         if ($serviceNames === []) {
             return back()
                 ->withErrors(['service' => 'Add at least one active service before creating appointments.'], 'appointment')
-                ->withInput()
+                ->withInput(SensitiveInput::safeForFlash($request))
                 ->with('open_add_appointment', true);
         }
 
         if ($allSlots === []) {
             return back()
                 ->withErrors(['time_slot' => 'No booking time slots are configured yet.'], 'appointment')
-                ->withInput()
+                ->withInput(SensitiveInput::safeForFlash($request))
                 ->with('open_add_appointment', true);
         }
 
@@ -217,13 +218,13 @@ class StaffAppointmentController extends Controller
             && PaymentMethodCatalog::requiresFullPayment($validated['booking_date'], $validated['time_slot'])) {
             return back()
                 ->withErrors(['payment_type' => 'Appointments starting in less than 1 hour require full payment.'], 'appointment')
-                ->withInput()
+                ->withInput(SensitiveInput::safeForFlash($request))
                 ->with('open_add_appointment', true);
         }
 
         if ($hasPaymentFields && $validated['payment_method'] === PaymentMethodCatalog::METHOD_PAYMONGO && ! $this->paymongo->isConfigured()) {
             return back()->withErrors(['payment_method' => 'PayMongo checkout is unavailable. Choose payment at the counter or contact an administrator.'], 'appointment')
-                ->withInput()->with('open_add_appointment', true);
+                ->withInput(SensitiveInput::safeForFlash($request))->with('open_add_appointment', true);
         }
 
         if ($validated['client_type'] === 'walk_in' && trim((string) ($validated['client_phone'] ?? '')) === '') {
@@ -391,12 +392,12 @@ class StaffAppointmentController extends Controller
         } catch (ValidationException $e) {
             return back()
                 ->withErrors($e->errors(), 'appointment')
-                ->withInput()
+                ->withInput(SensitiveInput::safeForFlash($request))
                 ->with('open_add_appointment', true);
         } catch (QueryException) {
             return back()
                 ->withErrors(['time_slot' => 'Unable to save this appointment. Please try again.'], 'appointment')
-                ->withInput()
+                ->withInput(SensitiveInput::safeForFlash($request))
                 ->with('open_add_appointment', true);
         }
 

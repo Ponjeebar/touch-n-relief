@@ -17,6 +17,7 @@ use App\Services\SpaServiceCatalog;
 use App\Services\TherapistAvailabilityService;
 use App\Services\TherapistCatalog;
 use App\Support\PaymentMethodCatalog;
+use App\Support\SensitiveInput;
 use App\Support\TherapistGridLayout;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -162,14 +163,14 @@ class BookingController extends Controller
         if (! $this->paymongo->isConfigured()) {
             return back()
                 ->withErrors(['payment' => 'Online payment is not configured yet. Please contact the spa.'], 'booking')
-                ->withInput();
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
 
         $user = $request->user();
         if ($user instanceof User && $user->isBanned()) {
             return back()->withErrors([
                 'booking' => 'Your account is banned after three no-show appointments. Please contact the spa.',
-            ], 'booking')->withInput();
+            ], 'booking')->withInput(SensitiveInput::safeForFlash($request));
         }
 
         $catalog = $this->servicesFor($user instanceof User ? $user : null);
@@ -194,7 +195,7 @@ class BookingController extends Controller
             && PaymentMethodCatalog::requiresFullPayment($validated['booking_date'], $validated['time_slot'])) {
             return back()
                 ->withErrors(['payment_type' => 'Appointments starting in less than 1 hour require full payment.'], 'booking')
-                ->withInput();
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
 
         $serviceRow = collect($catalog)->firstWhere('name', $validated['service']);
@@ -206,7 +207,7 @@ class BookingController extends Controller
         if ($paymentAmount <= 0) {
             return back()
                 ->withErrors(['payment' => 'Unable to calculate payment amount for this service.'], 'booking')
-                ->withInput();
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
 
         try {
@@ -274,13 +275,13 @@ class BookingController extends Controller
         } catch (QueryException) {
             return back()
                 ->withErrors(['time_slot' => 'Unable to save this booking. Please try again.'], 'booking')
-                ->withInput();
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
 
         if (! $booking instanceof SpaBooking) {
             return back()
                 ->withErrors(['payment' => 'Unable to create your booking. Please try again.'], 'booking')
-                ->withInput();
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
 
         try {
@@ -331,7 +332,7 @@ class BookingController extends Controller
 
             return back()
                 ->withErrors(['payment' => 'Unable to start PayMongo checkout. Please try again.'], 'booking')
-                ->withInput();
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
     }
 
@@ -458,7 +459,7 @@ class BookingController extends Controller
                 throw $e;
             }
 
-            return back()->withErrors($e->errors())->withInput();
+            return back()->withErrors($e->errors())->withInput(SensitiveInput::safeForFlash($request));
         }
 
         $spaBooking->refresh();
@@ -524,7 +525,7 @@ class BookingController extends Controller
                 throw $e;
             }
 
-            return back()->withErrors($e->errors())->withInput();
+            return back()->withErrors($e->errors())->withInput(SensitiveInput::safeForFlash($request));
         }
 
         $spaBooking->refresh();
@@ -712,12 +713,12 @@ class BookingController extends Controller
                     'service' => $userConflict['service'],
                     'therapist' => $userConflict['therapist'],
                 ])
-                ->withInput();
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
 
         return back()
             ->withErrors($e->errors(), 'booking')
-            ->withInput();
+            ->withInput(SensitiveInput::safeForFlash($request));
     }
 
     /**

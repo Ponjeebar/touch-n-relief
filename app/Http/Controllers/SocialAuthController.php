@@ -6,6 +6,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\WalkInClientService;
+use App\Support\SensitiveInput;
 use App\Support\StrongPassword;
 use App\Support\WalkInSchema;
 use Illuminate\Http\RedirectResponse;
@@ -240,7 +241,7 @@ class SocialAuthController extends Controller
 
             return back()->withErrors([
                 'social' => 'We could not create your account. Please try again.',
-            ])->withInput();
+            ])->withInput(SensitiveInput::safeForFlash($request));
         }
 
         $request->session()->forget(self::PENDING_SESSION_KEY);

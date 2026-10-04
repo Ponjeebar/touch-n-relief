@@ -45,7 +45,7 @@ class SecurityAndAccountHardeningTest extends TestCase
 
         $this->actingAs($user)->put(route('profile.update'), [
             'name' => 'Updated Name',
-            'email' => 'updated@example.test',
+            'email' => $user->email,
             'username' => 'updated_name',
             'contact_number' => '09171234567',
             'current_password' => 'CurrentPassword9',
@@ -56,7 +56,7 @@ class SecurityAndAccountHardeningTest extends TestCase
         $user->refresh();
         $customer->refresh();
         $this->assertSame('Updated Name', $customer->full_name);
-        $this->assertSame('updated@example.test', $customer->email);
+        $this->assertSame('old@example.test', $customer->email);
         $this->assertSame('09171234567', $customer->number);
         $this->assertTrue(Hash::check('NewPassword9', $user->password));
         $this->assertTrue(Hash::check('NewPassword9', $customer->password));

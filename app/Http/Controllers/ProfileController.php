@@ -3,27 +3,35 @@
 namespace App\Http\Controllers;
 
 use App\Http\Middleware\EnsureCurrentStaffSession;
+use App\Models\AuthVerificationCode;
 use App\Models\Customer;
 use App\Models\Receptionist;
 use App\Models\User;
+use App\Notifications\ProfileEmailChangeRequestedNotification;
 use App\Rules\NotRecentlyUsedPassword;
 use App\Services\ActivityLogger;
+use App\Services\AuthVerificationCodeService;
 use App\Services\UserActivityService;
+use App\Support\SensitiveInput;
 use App\Support\StrongPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
     public function __construct(
         private readonly UserActivityService $activity,
+        private readonly AuthVerificationCodeService $verificationCodes,
     ) {}
 
     public function edit(Request $request): View|RedirectResponse
@@ -98,6 +106,7 @@ class ProfileController extends Controller
             'username' => ['required', 'string', 'min:3', 'max:30', Rule::unique('users', 'username')->ignore($user->id), 'alpha_dash:ascii'],
             'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'current_password' => ['nullable', 'string', 'required_with:password'],
+            'email_current_password' => ['nullable', 'string'],
             'password' => ['nullable', 'confirmed', StrongPassword::rule(), new NotRecentlyUsedPassword($user)],
             'sex' => ['nullable', Rule::in(User::sexOptions())],
             'therapist_gender_preference' => ['nullable', Rule::in([
@@ -117,12 +126,27 @@ class ProfileController extends Controller
             'contact_number.regex' => 'Phone number must be 11 digits starting with 09.',
         ]);
 
+        $requestedEmail = strtolower(trim((string) $validated['email']));
+        $emailChangeRequested = ! hash_equals($originalEmail, $requestedEmail);
+
+        if ($emailChangeRequested) {
+            $emailCurrentPassword = (string) ($validated['email_current_password'] ?? $validated['current_password'] ?? '');
+            if (! Hash::check($emailCurrentPassword, $user->getAuthPassword())) {
+                $errorKey = $request->filled('email_current_password') ? 'email_current_password' : 'current_password';
+
+                return back()
+                    ->withErrors([$errorKey => 'Current password is incorrect.'], 'profile')
+                    ->withInput(SensitiveInput::safeForFlash($request));
+            }
+        }
+
         if (! empty($validated['password'])) {
             if (! Hash::check((string) ($validated['current_password'] ?? ''), $user->getAuthPassword())) {
                 return back()
                     ->withErrors(['current_password' => 'Current password is incorrect.'], 'profile')
-                    ->withInput();
+                    ->withInput(SensitiveInput::safeForFlash($request));
             }
+
             $user->password = $validated['password'];
 
             if ($user->isAdmin() || $user->isReceptionist()) {
@@ -132,7 +156,7 @@ class ProfileController extends Controller
         }
 
         $user->name = $validated['name'];
-        $user->email = $validated['email'];
+        $user->email = $originalEmail;
         $user->contact_number = $validated['contact_number'] ?? null;
         if ($request->has('birthday')) {
             $user->birthday = $validated['birthday'] ?? null;
@@ -210,6 +234,47 @@ class ProfileController extends Controller
             $request->session()->put(EnsureCurrentStaffSession::SESSION_KEY, $newStaffSessionToken);
         }
 
+        if ($emailChangeRequested) {
+            $verification = null;
+
+            try {
+                $verification = $this->verificationCodes->issue(
+                    $requestedEmail,
+                    AuthVerificationCode::PURPOSE_EMAIL_CHANGE,
+                    [
+                        'user_id' => $user->getKey(),
+                        'original_email' => $originalEmail,
+                        'new_email' => $requestedEmail,
+                    ],
+                    (string) $user->name,
+                );
+
+                Notification::route('mail', $originalEmail)
+                    ->notify(new ProfileEmailChangeRequestedNotification($requestedEmail, (string) $user->name));
+            } catch (\Throwable $exception) {
+                $verification?->delete();
+                Log::warning('Profile email verification could not be sent.', [
+                    'user_id' => $user->getKey(),
+                    'message' => $exception->getMessage(),
+                ]);
+
+                return back()
+                    ->withErrors(['email' => 'Your other profile changes were saved, but we could not send an email verification code. Please try the email change again.'], 'profile')
+                    ->withInput(SensitiveInput::safeForFlash($request));
+            }
+
+            ActivityLogger::log(
+                'profile.email_change_requested',
+                'Requested an account email change',
+                ['old_email' => $originalEmail, 'new_email' => $requestedEmail],
+                subject: $user,
+                request: $request,
+            );
+
+            return redirect()->route('profile.email-change.show', $verification)
+                ->with('status', 'Your profile was saved. Enter the code sent to your new email address to finish changing it.');
+        }
+
         ActivityLogger::log(
             'profile.updated',
             'Updated account profile',
@@ -219,5 +284,159 @@ class ProfileController extends Controller
         );
 
         return back()->with('status', 'Profile updated successfully.');
+    }
+
+    public function showEmailChangeVerification(Request $request, AuthVerificationCode $verification): View
+    {
+        $this->authorizeEmailChangeVerification($request, $verification);
+
+        return view('auth.verify-code', [
+            'verification' => $verification,
+            'verificationSubmitUrl' => route('profile.email-change.verify', $verification),
+            'verificationResendUrl' => route('profile.email-change.resend', $verification),
+            'verificationBackUrl' => route($this->profileReturnRoute($request->user())),
+            'verificationBackLabel' => 'Back to profile',
+        ]);
+    }
+
+    public function verifyEmailChange(Request $request, AuthVerificationCode $verification): RedirectResponse
+    {
+        $this->authorizeEmailChangeVerification($request, $verification);
+
+        $validated = $request->validate([
+            'code' => ['required', 'digits:6'],
+        ]);
+        $verification = $this->verificationCodes->verify(
+            $verification->getKey(),
+            AuthVerificationCode::PURPOSE_EMAIL_CHANGE,
+            $validated['code'],
+        );
+        $payload = $verification->payload ?? [];
+        $originalEmail = strtolower(trim((string) ($payload['original_email'] ?? '')));
+        $newEmail = strtolower(trim((string) ($payload['new_email'] ?? '')));
+
+        if ($originalEmail === '' || $newEmail === '') {
+            $verification->delete();
+            throw ValidationException::withMessages(['code' => 'This email-change request is invalid. Start a new request from your profile.']);
+        }
+
+        $newStaffSessionToken = DB::transaction(function () use ($request, $verification, $originalEmail, $newEmail): ?string {
+            $user = User::query()->lockForUpdate()->findOrFail($request->user()->getKey());
+
+            if (! hash_equals($originalEmail, strtolower(trim((string) $user->email)))) {
+                $verification->delete();
+                throw ValidationException::withMessages(['code' => 'Your account email changed after this request. Start a new request from your profile.']);
+            }
+
+            $emailIsTaken = User::query()
+                ->whereKeyNot($user->getKey())
+                ->whereRaw('LOWER(email) = ?', [$newEmail])
+                ->exists();
+            if ($emailIsTaken) {
+                throw ValidationException::withMessages(['code' => 'That email address is already in use. Return to your profile and choose another email.']);
+            }
+
+            $linkedCustomer = $user->isUser()
+                ? Customer::query()->whereRaw('LOWER(email) = ?', [$originalEmail])->lockForUpdate()->first()
+                : null;
+            $linkedReceptionist = $user->isReceptionist()
+                ? Receptionist::query()
+                    ->where(function ($query) use ($originalEmail, $user): void {
+                        $query->whereRaw('LOWER(email) = ?', [$originalEmail])
+                            ->orWhereRaw('LOWER(username) = ?', [strtolower(trim((string) $user->username))]);
+                    })
+                    ->lockForUpdate()
+                    ->first()
+                : null;
+
+            $staffSessionToken = null;
+            if ($user->isAdmin() || $user->isReceptionist()) {
+                $staffSessionToken = Str::random(64);
+                $user->staff_session_token = $staffSessionToken;
+            }
+
+            $user->email = $newEmail;
+            $user->email_verified_at = now();
+            $user->save();
+
+            if ($linkedCustomer !== null) {
+                $linkedCustomer->email = $newEmail;
+                $linkedCustomer->save();
+            }
+
+            if ($linkedReceptionist !== null) {
+                $linkedReceptionist->email = $newEmail;
+                $linkedReceptionist->save();
+            }
+
+            $verification->delete();
+
+            return $staffSessionToken;
+        });
+
+        if ($newStaffSessionToken !== null) {
+            $request->session()->put(EnsureCurrentStaffSession::SESSION_KEY, $newStaffSessionToken);
+        }
+
+        $user = $request->user()->refresh();
+        Auth::setUser($user);
+        ActivityLogger::log(
+            'profile.email_changed',
+            'Verified and changed the account email',
+            ['old_email' => $originalEmail, 'new_email' => $newEmail],
+            subject: $user,
+            request: $request,
+        );
+
+        return redirect()->route($this->profileReturnRoute($user))
+            ->with('status', 'Your email address has been verified and updated.');
+    }
+
+    public function resendEmailChangeVerification(Request $request, AuthVerificationCode $verification): RedirectResponse
+    {
+        $this->authorizeEmailChangeVerification($request, $verification);
+
+        if ($verification->last_sent_at->addSeconds(AuthVerificationCodeService::RESEND_SECONDS)->isFuture()) {
+            return back()->withErrors(['code' => 'Please wait before requesting another code.']);
+        }
+
+        try {
+            $replacement = $this->verificationCodes->issue(
+                $verification->email,
+                AuthVerificationCode::PURPOSE_EMAIL_CHANGE,
+                $verification->payload ?? [],
+                (string) $request->user()->name,
+            );
+        } catch (\Throwable $exception) {
+            Log::warning('Profile email verification code could not be resent.', [
+                'user_id' => $request->user()->getKey(),
+                'message' => $exception->getMessage(),
+            ]);
+
+            return back()->withErrors(['code' => 'We could not send a new code right now. Please try again later.']);
+        }
+
+        return redirect()->route('profile.email-change.show', $replacement)
+            ->with('status', 'A new verification code has been sent.');
+    }
+
+    private function authorizeEmailChangeVerification(Request $request, AuthVerificationCode $verification): void
+    {
+        $payload = $verification->payload ?? [];
+
+        abort_unless(
+            $verification->purpose === AuthVerificationCode::PURPOSE_EMAIL_CHANGE
+                && (int) ($payload['user_id'] ?? 0) === (int) $request->user()->getKey(),
+            404,
+        );
+    }
+
+    private function profileReturnRoute(User $user): string
+    {
+        return match ($user->role) {
+            User::ROLE_ADMIN => 'dashboard',
+            User::ROLE_RECEPTIONIST => 'receptionist.dashboard',
+            default => 'profile.edit',
+        };
     }
 }

@@ -13,6 +13,8 @@ class AuthVerificationCode extends Model
 
     public const PURPOSE_PASSWORD_RESET = 'password_reset';
 
+    public const PURPOSE_EMAIL_CHANGE = 'email_change';
+
     protected $fillable = [
         'purpose',
         'email',

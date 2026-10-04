@@ -82,11 +82,19 @@ class AuthVerificationCodeService
             return;
         }
 
-        $isRegistration = $purpose === AuthVerificationCode::PURPOSE_REGISTRATION;
+        $subject = match ($purpose) {
+            AuthVerificationCode::PURPOSE_REGISTRATION => 'Verify your TouchNRelief registration',
+            AuthVerificationCode::PURPOSE_EMAIL_CHANGE => 'Verify your new TouchNRelief email address',
+            default => 'Your TouchNRelief password reset code',
+        };
         $data = [
             'name' => $recipientName,
             'code' => $code,
-            'purposeLabel' => $isRegistration ? 'complete your registration' : 'reset your password',
+            'purposeLabel' => match ($purpose) {
+                AuthVerificationCode::PURPOSE_REGISTRATION => 'complete your registration',
+                AuthVerificationCode::PURPOSE_EMAIL_CHANGE => 'confirm your new email address',
+                default => 'reset your password',
+            },
             'expiresIn' => self::EXPIRY_MINUTES,
             'logoSrc' => null,
         ];
@@ -98,7 +106,7 @@ class AuthVerificationCodeService
             ->post('https://api.resend.com/emails', [
                 'from' => $fromName !== '' ? $fromName.' <'.$fromAddress.'>' : $fromAddress,
                 'to' => [$email],
-                'subject' => $isRegistration ? 'Verify your TouchNRelief registration' : 'Your TouchNRelief password reset code',
+                'subject' => $subject,
                 'html' => view('emails.auth-verification-code', $data)->render(),
                 'text' => view('emails.auth-verification-code-text', $data)->render(),
             ]);

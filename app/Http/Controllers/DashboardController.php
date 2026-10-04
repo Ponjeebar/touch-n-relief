@@ -27,6 +27,7 @@ use App\Services\TherapistAvailabilityService;
 use App\Services\TherapistCatalog;
 use App\Services\WalkInClientService;
 use App\Support\PaymentMethodCatalog;
+use App\Support\SensitiveInput;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -671,7 +672,7 @@ class DashboardController extends Controller
             return redirect()
                 ->route('appointments.index', ['date' => $spaBooking->booking_date?->format('Y-m-d')])
                 ->withErrors($exception->errors(), 'balance')
-                ->withInput();
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
 
         ActivityLogger::log(

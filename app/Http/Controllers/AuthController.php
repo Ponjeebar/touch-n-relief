@@ -11,6 +11,7 @@ use App\Services\ActivityLogger;
 use App\Services\AuthVerificationCodeService;
 use App\Services\WalkInClientService;
 use App\Support\MailDeliveryConfiguration;
+use App\Support\SensitiveInput;
 use App\Support\StrongPassword;
 use App\Support\WalkInSchema;
 use Illuminate\Auth\Events\PasswordReset;
@@ -261,7 +262,7 @@ class AuthController extends Controller
         if (! Schema::hasTable('users')) {
             return back()
                 ->withErrors(['email' => 'Registration is unavailable right now. Please try again later.'], 'register')
-                ->withInput();
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
 
         $minimumBirthday = now()->subYears(15)->toDateString();
@@ -326,7 +327,7 @@ class AuthController extends Controller
 
             return back()->withErrors([
                 'email' => 'We could not send the verification code right now. Please try again later.',
-            ], 'register')->withInput();
+            ], 'register')->withInput(SensitiveInput::safeForFlash($request));
         }
 
         return redirect()->route('verification.show', [
@@ -437,7 +438,7 @@ class AuthController extends Controller
         } catch (QueryException) {
             return back()
                 ->withErrors(['email' => 'Unable to complete registration. Please try again.'], 'register')
-                ->withInput();
+                ->withInput(SensitiveInput::safeForFlash($request));
         }
 
         $user->forceFill(['email_verified_at' => now()])->save();

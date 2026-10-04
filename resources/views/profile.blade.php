@@ -822,6 +822,10 @@
                                 <input id="email" type="email" name="email" value="{{ old('email', $user->email) }}" required>
                             </div>
                             <div class="profile-field">
+                                <label for="email_current_password">Current password to change email</label>
+                                <input id="email_current_password" type="password" name="email_current_password" autocomplete="current-password" placeholder="Required only when changing email">
+                            </div>
+                            <div class="profile-field">
                                 <label for="contact_number">Contact number</label>
                                 <input id="contact_number" name="contact_number" value="{{ old('contact_number', $user->contact_number) }}" maxlength="11" pattern="^09\d{9}$" title="Use 09XXXXXXXXX (11 digits)." inputmode="numeric">
                             </div>
@@ -859,7 +863,7 @@
                                 <div class="profile-field profile-field-span2">
                                     <label for="current_password">Current password</label>
                                     <div class="profile-password-wrap">
-                                        <input id="current_password" type="password" name="current_password" autocomplete="current-password" placeholder="Only if changing password">
+                                        <input id="current_password" type="password" name="current_password" autocomplete="current-password" placeholder="Required when changing password">
                                         <button type="button" class="profile-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
                                             <i class="bi bi-eye" aria-hidden="true"></i>
                                         </button>
@@ -1075,6 +1079,8 @@
                 var el = document.getElementById(id);
                 if (el) el.readOnly = !isEditing;
             });
+            var emailPassword = document.getElementById('email_current_password');
+            if (emailPassword) emailPassword.disabled = !isEditing;
             if (birthdayInput) birthdayInput.readOnly = !isEditing;
         }
 
@@ -1157,6 +1163,7 @@
                 if (document.getElementById('name')) document.getElementById('name').value = basicInfoSnapshot.name;
                 if (document.getElementById('username')) document.getElementById('username').value = basicInfoSnapshot.username;
                 if (document.getElementById('email')) document.getElementById('email').value = basicInfoSnapshot.email;
+                if (document.getElementById('email_current_password')) document.getElementById('email_current_password').value = '';
                 if (document.getElementById('contact_number')) document.getElementById('contact_number').value = basicInfoSnapshot.contact_number;
                 if (birthdayInput) birthdayInput.value = basicInfoSnapshot.birthday;
                 updateAgeFromBirthday();

@@ -13,7 +13,7 @@
     @include('partials.landing-nav', ['navMode' => 'auth'])
     <main class="container auth-reset-card auth-code-card" id="container">
         <div class="form-container sign-in">
-            <form method="POST" action="{{ route('verification.verify', $verification) }}">
+            <form method="POST" action="{{ $verificationSubmitUrl ?? route('verification.verify', $verification) }}">
                 @csrf
                 <input type="hidden" name="purpose" value="{{ $verification->purpose }}">
                 <div class="auth-reset-heading">
@@ -30,8 +30,8 @@
                 @error('code')<p class="field-msg">{{ $message }}</p>@enderror
                 <button type="submit">Verify code</button>
                 <div class="auth-code-actions">
-                    <button type="submit" class="link auth-forgot-back" formaction="{{ route('verification.resend', $verification) }}">Send a new code</button>
-                    <a class="link" href="{{ route('login') }}">Back to Sign In</a>
+                    <button type="submit" class="link auth-forgot-back" formaction="{{ $verificationResendUrl ?? route('verification.resend', $verification) }}">Send a new code</button>
+                    <a class="link" href="{{ $verificationBackUrl ?? route('login') }}">{{ $verificationBackLabel ?? 'Back to Sign In' }}</a>
                 </div>
             </form>
         </div>

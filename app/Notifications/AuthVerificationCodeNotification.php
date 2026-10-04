@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\AuthVerificationCode;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -23,17 +24,25 @@ class AuthVerificationCodeNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $isRegistration = $this->purpose === 'registration';
+        $subject = match ($this->purpose) {
+            AuthVerificationCode::PURPOSE_REGISTRATION => 'Verify your TouchNRelief registration',
+            AuthVerificationCode::PURPOSE_EMAIL_CHANGE => 'Verify your new TouchNRelief email address',
+            default => 'Your TouchNRelief password reset code',
+        };
         $data = [
             'name' => $this->recipientName,
             'code' => $this->code,
-            'purposeLabel' => $isRegistration ? 'complete your registration' : 'reset your password',
+            'purposeLabel' => match ($this->purpose) {
+                AuthVerificationCode::PURPOSE_REGISTRATION => 'complete your registration',
+                AuthVerificationCode::PURPOSE_EMAIL_CHANGE => 'confirm your new email address',
+                default => 'reset your password',
+            },
             'expiresIn' => 10,
             'logoSrc' => 'cid:touch-n-relief-logo',
         ];
 
         return (new MailMessage)
-            ->subject($isRegistration ? 'Verify your TouchNRelief registration' : 'Your TouchNRelief password reset code')
+            ->subject($subject)
             ->view('emails.auth-verification-code', $data)
             ->text('emails.auth-verification-code-text', $data)
             ->withSymfonyMessage(static function ($message): void {

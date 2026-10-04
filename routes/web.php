@@ -59,6 +59,9 @@ Route::middleware(['auth', 'current.staff.session', 'staff.activity'])->group(fu
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
+    Route::get('/profile/email-change/{verification}', [ProfileController::class, 'showEmailChangeVerification'])->name('profile.email-change.show');
+    Route::post('/profile/email-change/{verification}', [ProfileController::class, 'verifyEmailChange'])->middleware('throttle:10,1')->name('profile.email-change.verify');
+    Route::post('/profile/email-change/{verification}/resend', [ProfileController::class, 'resendEmailChangeVerification'])->middleware('throttle:3,10')->name('profile.email-change.resend');
 
     Route::middleware('customer')->group(function () {
         Route::get('/booking', [BookingController::class, 'create'])->name('booking.index');
