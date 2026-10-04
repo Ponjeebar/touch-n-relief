@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
 use App\Models\MembershipPlan;
 use App\Models\MembershipPurchase;
+use App\Models\PaymentLedgerEntry;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\User;
@@ -11,9 +13,11 @@ use App\Services\BookingRefundService;
 use App\Services\BookingSlotService;
 use App\Services\PaymongoService;
 use App\Services\SpaSessionService;
+use App\Services\TherapistAvailabilityService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -474,6 +478,202 @@ class StaffAppointmentPaymentTest extends TestCase
         $this->assertNull($booking->fresh()->completed_at);
     }
 
+    public function test_admin_and_receptionist_can_start_fully_paid_walk_ins_at_the_current_minute(): void
+    {
+        Carbon::setTestNow('2026-10-05 20:37:30');
+        $therapists = app(TherapistAvailabilityService::class)
+            ->bookableTherapistNamesForDate(now());
+        $this->assertGreaterThanOrEqual(2, count($therapists));
+        $expectedGross = 0.0;
+        $admin = null;
+
+        foreach ([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST] as $index => $role) {
+            $staff = User::factory()->create(['role' => $role]);
+            $client = User::factory()->create(['role' => User::ROLE_USER]);
+            $admin ??= $role === User::ROLE_ADMIN ? $staff : null;
+
+            $response = $this->actingAs($staff)->post(
+                route('appointments.store'),
+                $this->immediateBookingInput($client, $therapists[$index]),
+            );
+
+            $response->assertSessionHasNoErrors()
+                ->assertRedirect(route('appointments.index', ['date' => '2026-10-05']))
+                ->assertSessionHas('status');
+
+            $booking = SpaBooking::query()->where('user_id', $client->id)->firstOrFail();
+            $this->assertSame('8:37 PM', $booking->time_slot);
+            $this->assertSame(SpaBooking::SOURCE_WALK_IN, $booking->booking_source);
+            $this->assertSame(SpaBooking::STATUS_IN_SESSION, $booking->session_status);
+            $this->assertSame('2026-10-05 20:37:30', $booking->session_started_at?->format('Y-m-d H:i:s'));
+            $this->assertSame(PaymentMethodCatalog::METHOD_CASH_COUNTER, $booking->payment_method);
+            $this->assertSame(PaymentMethodCatalog::TYPE_FULL, $booking->payment_type);
+            $this->assertSame(PaymentMethodCatalog::STATUS_PAID, $booking->payment_status);
+            $this->assertTrue($booking->isFullyPaid());
+            $this->assertDatabaseHas('payment_ledger_entries', [
+                'spa_booking_id' => $booking->id,
+                'entry_type' => PaymentLedgerEntry::TYPE_INITIAL_PAYMENT,
+                'amount' => $booking->amount,
+            ]);
+            $this->assertDatabaseHas('activity_logs', [
+                'user_id' => $staff->id,
+                'action' => 'appointment.created',
+                'subject_id' => $booking->id,
+            ]);
+            $this->assertDatabaseHas('activity_logs', [
+                'user_id' => $staff->id,
+                'action' => 'session.started',
+                'subject_id' => $booking->id,
+            ]);
+            $sessionLog = ActivityLog::query()
+                ->where('user_id', $staff->id)
+                ->where('action', 'session.started')
+                ->where('subject_id', $booking->id)
+                ->firstOrFail();
+            $this->assertSame($booking->session_started_at?->toIso8601String(), $sessionLog->properties['actual_start_at']);
+            $this->assertSame(
+                $booking->session_started_at?->copy()->addMinutes((int) $booking->duration_minutes)->toIso8601String(),
+                $sessionLog->properties['expected_end_at'],
+            );
+            $expectedGross += (float) $booking->amount;
+        }
+
+        $this->actingAs($admin)->getJson(route('reporting.data', [
+            'period' => 'daily',
+            'period_value' => '2026-10-05',
+        ]))->assertOk()->assertJsonPath('grossCollections', (int) $expectedGross);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_immediate_walk_in_rejects_overlaps_for_the_full_service_window(): void
+    {
+        Carbon::setTestNow('2026-10-05 20:37:30');
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $otherClient = User::factory()->create(['role' => User::ROLE_USER]);
+        $therapist = app(TherapistAvailabilityService::class)->bookableTherapistNamesForDate(now())[0];
+        $service = SpaService::query()->where('is_active', true)->firstOrFail();
+
+        SpaBooking::query()->create([
+            'user_id' => $otherClient->id,
+            'client_name' => $otherClient->name,
+            'booking_source' => SpaBooking::SOURCE_WALK_IN,
+            'service_name' => $service->name,
+            'therapist_name' => $therapist,
+            'booking_date' => '2026-10-05',
+            'time_slot' => '8:30 PM',
+            'duration_minutes' => 60,
+            'amount' => 100,
+            'payment_amount' => 100,
+            'payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+            'payment_type' => PaymentMethodCatalog::TYPE_FULL,
+            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+            'session_status' => SpaBooking::STATUS_CONFIRMED,
+        ]);
+
+        $this->actingAs($staff)->from(route('appointments.index'))->post(
+            route('appointments.store'),
+            $this->immediateBookingInput($client, $therapist, (string) $service->name),
+        )->assertRedirect(route('appointments.index'))
+            ->assertSessionHasErrors('immediate_start_time', errorBag: 'appointment');
+
+        $this->assertDatabaseCount('spa_bookings', 1);
+        Carbon::setTestNow();
+    }
+
+    public function test_immediate_walk_in_rejects_stale_future_and_unconfirmed_times(): void
+    {
+        Carbon::setTestNow('2026-10-05 20:37:30');
+        $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $therapist = app(TherapistAvailabilityService::class)->bookableTherapistNamesForDate(now())[0];
+
+        foreach ([
+            ['immediate_start_time' => '20:31'],
+            ['immediate_start_time' => '20:38'],
+            ['immediate_confirmed' => null],
+        ] as $override) {
+            $this->actingAs($staff)->post(
+                route('appointments.store'),
+                array_replace($this->immediateBookingInput($client, $therapist), $override),
+            )->assertSessionHasErrors(
+                array_key_exists('immediate_confirmed', $override) ? 'immediate_confirmed' : 'immediate_start_time',
+                errorBag: 'appointment',
+            );
+        }
+
+        $this->assertDatabaseCount('spa_bookings', 0);
+        Carbon::setTestNow();
+    }
+
+    public function test_immediate_walk_in_respects_disabled_service_periods(): void
+    {
+        Carbon::setTestNow('2026-10-05 20:37:30');
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $therapist = app(TherapistAvailabilityService::class)->bookableTherapistNamesForDate(now())[0];
+        $service = SpaService::query()->where('is_active', true)->firstOrFail();
+        $slotId = DB::table('time_slots')->where('label', '8:30 PM')->value('id');
+        $this->assertNotNull($slotId);
+
+        DB::table('service_slot_date_overrides')->updateOrInsert(
+            [
+                'service_name' => $service->name,
+                'slot_date' => '2026-10-05',
+                'time_slot_id' => $slotId,
+            ],
+            [
+                'is_enabled' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+
+        $this->actingAs($staff)->post(
+            route('appointments.store'),
+            $this->immediateBookingInput($client, $therapist, (string) $service->name),
+        )->assertSessionHasErrors('immediate_start_time', errorBag: 'appointment');
+
+        $this->assertDatabaseCount('spa_bookings', 0);
+        Carbon::setTestNow();
+    }
+
+    public function test_immediate_walk_in_requires_full_counter_payment_and_staff_access(): void
+    {
+        Carbon::setTestNow('2026-10-05 20:37:30');
+        $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $therapist = app(TherapistAvailabilityService::class)->bookableTherapistNamesForDate(now())[0];
+        $input = $this->immediateBookingInput($client, $therapist);
+
+        $this->actingAs($staff)->post(
+            route('appointments.store'),
+            array_replace($input, ['payment_method' => PaymentMethodCatalog::METHOD_PAYMONGO]),
+        )->assertSessionHasErrors('payment_method', errorBag: 'appointment');
+
+        $this->actingAs($staff)->post(
+            route('appointments.store'),
+            array_replace($input, ['payment_type' => PaymentMethodCatalog::TYPE_DOWNPAYMENT]),
+        )->assertSessionHasErrors('payment_method', errorBag: 'appointment');
+
+        $this->actingAs($client)->post(route('appointments.store'), $input)->assertForbidden();
+        $this->assertDatabaseCount('spa_bookings', 0);
+        Carbon::setTestNow();
+    }
+
+    public function test_staff_appointment_form_explains_immediate_walk_in_controls(): void
+    {
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+
+        $this->actingAs($staff)->get(route('appointments.index'))
+            ->assertOk()
+            ->assertSee('Start walk-in now')
+            ->assertSee('Actual start time')
+            ->assertSee('full payment will be collected at the counter now')
+            ->assertSee('addServiceDurationMap', false);
+    }
+
     private function bookingInput(User $client, string $method, string $type, ?string $serviceName = null): array
     {
         $service = SpaService::query()
@@ -495,5 +695,20 @@ class StaffAppointmentPaymentTest extends TestCase
             'payment_method' => $method,
             'payment_type' => $type,
         ];
+    }
+
+    private function immediateBookingInput(User $client, string $therapist, ?string $serviceName = null): array
+    {
+        return array_replace(
+            $this->bookingInput($client, PaymentMethodCatalog::METHOD_CASH_COUNTER, PaymentMethodCatalog::TYPE_FULL, $serviceName),
+            [
+                'booking_mode' => 'immediate',
+                'booking_date' => '',
+                'time_slot' => '',
+                'immediate_start_time' => now()->format('H:i'),
+                'immediate_confirmed' => '1',
+                'therapist' => $therapist,
+            ],
+        );
     }
 }

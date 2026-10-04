@@ -285,6 +285,41 @@ test('returning to the date step resets choices and allows the same date again',
     }
 });
 
+test('staff immediate walk-in shows the calculated session and enforced payment controls', async ({ page }) => {
+    await login(page, accounts.receptionist);
+
+    for (const setup of [
+        { viewport: { width: 390, height: 844 }, theme: 'dark' },
+        { viewport: { width: 1366, height: 768 }, theme: 'light' },
+    ]) {
+        await page.setViewportSize(setup.viewport);
+        await page.evaluate((theme) => localStorage.setItem('tnr-theme', theme), setup.theme);
+        await page.goto('/appointments', { waitUntil: 'domcontentloaded' });
+        await dismissOptionalTour(page);
+
+        await page.locator('[data-mobile-add-appointment]:visible, .clients-add-appointment-btn:visible').first().click();
+        await page.locator('[data-pick-client-type="registered"]').click();
+        await page.locator('[data-add-booking-mode="immediate"]').click();
+        await page.locator('#add-service').selectOption({ index: 1 });
+
+        await expect(page.locator('#add-immediate-start-time')).toBeVisible();
+        await expect(page.locator('#add-immediate-window')).toContainText('minutes');
+        await expect(page.locator('input[name="immediate_confirmed"]')).toBeVisible();
+        await expect(page.locator('[data-add-payment-type="downpayment"]')).toBeDisabled();
+        await expect(page.locator('[data-add-payment-type="full"]')).toHaveClass(/is-active/);
+        await expect(page.locator('[data-add-payment-method="paymongo"]')).toBeDisabled();
+        await expect(page.locator('[data-add-payment-method="cash_counter"]')).toHaveClass(/is-active/);
+        await expect(page.locator('#add-appointment-save-btn')).toHaveText('Start walk-in now');
+
+        const modalFits = await page.locator('.add-appointment-modal-content').evaluate((element) => (
+            element.scrollWidth <= element.clientWidth + 2
+        ));
+        expect(modalFits).toBe(true);
+
+        await page.locator('#close-add-appointment-modal').click();
+    }
+});
+
 test('staff no-show confirmation stays usable on mobile, tablet, and desktop', async ({ page }) => {
     await login(page, accounts.receptionist);
 

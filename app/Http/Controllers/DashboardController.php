@@ -959,10 +959,13 @@ class DashboardController extends Controller
         $activeServices = SpaService::query()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['name', 'price_amount']);
+            ->get(['name', 'price_amount', 'duration_minutes']);
         $serviceOptions = $activeServices->pluck('name');
         $servicePriceMap = $activeServices->mapWithKeys(function (SpaService $service): array {
             return [(string) $service->name => (float) ($service->price_amount ?? 0)];
+        })->all();
+        $serviceDurationMap = $activeServices->mapWithKeys(function (SpaService $service): array {
+            return [(string) $service->name => max((int) ($service->duration_minutes ?? 60), 1)];
         })->all();
         $therapistOptions = Therapist::query()
             ->where('is_active', true)
@@ -1013,6 +1016,7 @@ class DashboardController extends Controller
             'today' => now()->toDateString(),
             'openAddAppointment' => session('open_add_appointment', false),
             'servicePriceMap' => $servicePriceMap,
+            'serviceDurationMap' => $serviceDurationMap,
             'paymentMethods' => $hasPaymentFields ? PaymentMethodCatalog::staffMethods() : [],
             'downpaymentRate' => PaymentMethodCatalog::DOWNPAYMENT_RATE,
             'downpaymentPercentage' => PaymentMethodCatalog::downpaymentPercentage(),

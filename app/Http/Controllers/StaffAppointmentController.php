@@ -17,6 +17,7 @@ use App\Services\NoShowService;
 use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
 use App\Services\SpaServiceCatalog;
+use App\Services\SpaSessionService;
 use App\Services\TherapistAvailabilityService;
 use App\Services\WalkInClientService;
 use App\Support\CustomerEligibility;
@@ -47,6 +48,7 @@ class StaffAppointmentController extends Controller
         private readonly BookingRefundService $refunds,
         private readonly PaymongoService $paymongo,
         private readonly PaymentLedgerService $paymentLedger,
+        private readonly SpaSessionService $sessions,
         private readonly CustomerNotificationService $customerNotifications,
         private readonly NoShowService $noShows,
     ) {}
@@ -177,6 +179,9 @@ class StaffAppointmentController extends Controller
         }
 
         $hasPaymentFields = Schema::hasColumn('spa_bookings', 'payment_method');
+        $bookingMode = $request->string('booking_mode')->toString() === 'immediate' ? 'immediate' : 'scheduled';
+        $isImmediate = $bookingMode === 'immediate';
+        $request->merge(['booking_mode' => $bookingMode]);
 
         $rules = [
             'client_type' => ['required', 'in:walk_in,registered'],
@@ -189,8 +194,11 @@ class StaffAppointmentController extends Controller
             'client_sex' => ['nullable', Rule::in(User::sexOptions())],
             'service' => ['required', 'string', 'in:'.implode(',', $serviceNames)],
             'therapist' => ['nullable', 'string', Rule::in($therapistNames)],
-            'booking_date' => ['required', 'date', 'after_or_equal:today'],
-            'time_slot' => ['required', 'string', 'max:30', 'in:'.implode(',', $allSlots)],
+            'booking_mode' => ['required', Rule::in(['scheduled', 'immediate'])],
+            'booking_date' => [$isImmediate ? 'nullable' : 'required', 'date', 'after_or_equal:today'],
+            'time_slot' => [$isImmediate ? 'nullable' : 'required', 'string', 'max:30', Rule::when(! $isImmediate, Rule::in($allSlots))],
+            'immediate_start_time' => [$isImmediate ? 'required' : 'nullable', 'date_format:H:i'],
+            'immediate_confirmed' => [$isImmediate ? 'accepted' : 'nullable'],
             'notes' => ['nullable', 'string', 'max:500'],
         ];
 
@@ -208,6 +216,23 @@ class StaffAppointmentController extends Controller
         $messages['client_birthday.before_or_equal'] = CustomerEligibility::birthdayMessage();
 
         $validated = Validator::make($request->all(), $rules, $messages)->validateWithBag('appointment');
+
+        if ($isImmediate) {
+            $validated['booking_date'] = now()->toDateString();
+            $validated['time_slot'] = Carbon::createFromFormat(
+                'Y-m-d H:i',
+                $validated['booking_date'].' '.$validated['immediate_start_time'],
+            )->format('g:i A');
+
+            if (! $hasPaymentFields
+                || ($validated['payment_method'] ?? null) !== PaymentMethodCatalog::METHOD_CASH_COUNTER
+                || ($validated['payment_type'] ?? null) !== PaymentMethodCatalog::TYPE_FULL) {
+                return back()
+                    ->withErrors(['payment_method' => 'Start walk-in now requires full payment at the counter before the session begins.'], 'appointment')
+                    ->withInput(SensitiveInput::safeForFlash($request))
+                    ->with('open_add_appointment', true);
+            }
+        }
 
         if ($hasPaymentFields
             && ($validated['payment_type'] ?? null) === PaymentMethodCatalog::TYPE_DOWNPAYMENT
@@ -245,7 +270,7 @@ class StaffAppointmentController extends Controller
         $createdBooking = null;
 
         try {
-            DB::transaction(function () use ($request, $validated, $therapistNames, $staff, $serviceRow, $hasPaymentFields, &$createdBooking): void {
+            DB::transaction(function () use ($request, $validated, $therapistNames, $staff, $serviceRow, $hasPaymentFields, $isImmediate, &$createdBooking): void {
                 if ($validated['client_type'] === 'registered') {
                     $client = User::query()
                         ->when(Schema::hasColumn('users', 'role'), fn ($builder) => $builder->where('role', User::ROLE_USER))
@@ -296,22 +321,36 @@ class StaffAppointmentController extends Controller
                         $validated['time_slot'],
                         $durationMinutes,
                         $therapistNames,
+                        $isImmediate,
                     );
                 }
 
                 $this->therapistAvailability->assertBookableOnDate($therapist, $validated['booking_date']);
 
-                $this->slots->assertBookingAvailable(
-                    $client->id,
-                    $validated['service'],
-                    $therapist,
-                    $validated['booking_date'],
-                    $validated['time_slot'],
-                    $durationMinutes,
-                    null,
-                    $therapistNames,
-                    withTherapistLock: true,
-                );
+                if ($isImmediate) {
+                    $this->slots->assertImmediateWalkInAvailable(
+                        $client->id,
+                        $validated['service'],
+                        $therapist,
+                        $validated['booking_date'],
+                        $validated['time_slot'],
+                        $durationMinutes,
+                        $therapistNames,
+                        withTherapistLock: true,
+                    );
+                } else {
+                    $this->slots->assertBookingAvailable(
+                        $client->id,
+                        $validated['service'],
+                        $therapist,
+                        $validated['booking_date'],
+                        $validated['time_slot'],
+                        $durationMinutes,
+                        null,
+                        $therapistNames,
+                        withTherapistLock: true,
+                    );
+                }
 
                 $hasActiveMembership = Schema::hasTable('membership_purchases')
                     && $client->activeMembership() !== null;
@@ -361,7 +400,10 @@ class StaffAppointmentController extends Controller
 
                 $booking = SpaBooking::query()->create($bookingAttributes);
                 $this->paymentLedger->recordInitialPayment($booking);
-                $createdBooking = $booking;
+                if ($isImmediate) {
+                    $this->sessions->start($booking);
+                }
+                $createdBooking = $booking->fresh();
 
                 ActivityLogger::log(
                     'appointment.created',
@@ -379,11 +421,34 @@ class StaffAppointmentController extends Controller
                         'service_name' => $validated['service'],
                         'therapist_name' => $therapist,
                         'user_id' => $client->id,
+                        'booking_mode' => $isImmediate ? 'immediate_walk_in' : 'scheduled',
+                        'actual_start_at' => $booking->session_started_at?->toIso8601String(),
                     ],
                     user: $staff,
                     subject: $booking,
                     request: $request,
                 );
+
+                if ($isImmediate) {
+                    ActivityLogger::log(
+                        'session.started',
+                        sprintf(
+                            'Started immediate walk-in session for %s (%s with %s).',
+                            trim($validated['client_name']),
+                            $validated['service'],
+                            $therapist,
+                        ),
+                        [
+                            'booking_id' => $booking->id,
+                            'therapist' => $therapist,
+                            'actual_start_at' => $booking->session_started_at?->toIso8601String(),
+                            'expected_end_at' => $booking->session_started_at?->copy()->addMinutes($durationMinutes)->toIso8601String(),
+                        ],
+                        subject: $booking,
+                        user: $staff,
+                        request: $request,
+                    );
+                }
             });
         } catch (ValidationException $e) {
             return back()
@@ -418,6 +483,13 @@ class StaffAppointmentController extends Controller
         $redirect = redirect()
             ->route('appointments.index', ['date' => $validated['booking_date']])
             ->with('status', 'Appointment created for '.$clientLabel.' — '.$validated['service'].' on '.$dateFormatted.' at '.$validated['time_slot'].'.');
+
+        if ($isImmediate) {
+            $redirect->with(
+                'status',
+                'Walk-in session started for '.$clientLabel.' at '.$createdBooking?->session_started_at?->format('g:i A').'.',
+            );
+        }
 
         if ($createdBooking instanceof SpaBooking && $hasPaymentFields) {
             $redirect->with('payment_receipt', $this->receiptPayloadFor($createdBooking->fresh(), $clientLabel));
@@ -836,6 +908,7 @@ class StaffAppointmentController extends Controller
         string $timeSlot,
         int $durationMinutes,
         array $therapistNames,
+        bool $immediate = false,
     ): string {
         $bookingWhen = Carbon::parse($bookingDate)->startOfDay();
         $bookableOnDate = $this->therapistAvailability->bookableTherapistNamesForDate($bookingWhen);
@@ -843,16 +916,28 @@ class StaffAppointmentController extends Controller
 
         foreach ($candidates as $name) {
             try {
-                $this->slots->assertBookingAvailable(
-                    $userId,
-                    $serviceName,
-                    $name,
-                    $bookingDate,
-                    $timeSlot,
-                    $durationMinutes,
-                    null,
-                    $therapistNames,
-                );
+                if ($immediate) {
+                    $this->slots->assertImmediateWalkInAvailable(
+                        $userId,
+                        $serviceName,
+                        $name,
+                        $bookingDate,
+                        $timeSlot,
+                        $durationMinutes,
+                        $therapistNames,
+                    );
+                } else {
+                    $this->slots->assertBookingAvailable(
+                        $userId,
+                        $serviceName,
+                        $name,
+                        $bookingDate,
+                        $timeSlot,
+                        $durationMinutes,
+                        null,
+                        $therapistNames,
+                    );
+                }
 
                 return $name;
             } catch (ValidationException) {

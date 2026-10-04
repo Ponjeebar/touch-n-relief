@@ -289,6 +289,7 @@
                 @csrf
                 <input type="hidden" name="client_type" id="add-client-type" value="{{ old('client_type') }}">
                 <input type="hidden" name="client_user_id" id="add-client-user-id" value="{{ old('client_user_id') }}">
+                <input type="hidden" name="booking_mode" id="add-booking-mode" value="{{ old('booking_mode', 'scheduled') }}">
                 @if ($hasPaymentFields ?? false)
                     <input type="hidden" name="payment_method" id="add-payment-method" value="{{ old('payment_method') }}">
                     <input type="hidden" name="payment_type" id="add-payment-type" value="{{ old('payment_type', 'downpayment') }}">
@@ -389,6 +390,10 @@
 
                 <div class="add-booking-section">
                     <p class="add-booking-section-label">Appointment details</p>
+                    <div class="add-booking-mode" role="group" aria-label="Appointment timing">
+                        <button type="button" class="add-booking-mode-btn" data-add-booking-mode="scheduled">Schedule a time</button>
+                        <button type="button" class="add-booking-mode-btn" data-add-booking-mode="immediate">Start walk-in now</button>
+                    </div>
                 <div class="reschedule-grid add-booking-grid">
                     <div class="profile-field">
                         <label for="add-service">Service</label>
@@ -400,9 +405,15 @@
                         </select>
                     </div>
 
-                    <div class="profile-field">
+                    <div class="profile-field add-scheduled-field">
                         <label for="add-date">Date</label>
                         <input id="add-date" name="booking_date" type="date" min="{{ $today }}" value="{{ old('booking_date', $selectedDateIso ?? $today) }}" required>
+                    </div>
+
+                    <div class="profile-field add-immediate-field hidden-section">
+                        <label for="add-immediate-start-time">Actual start time</label>
+                        <input id="add-immediate-start-time" name="immediate_start_time" type="time" value="{{ old('immediate_start_time', now()->format('H:i')) }}" disabled>
+                        <p class="field-hint">Use the current time or up to {{ \App\Services\BookingSlotService::IMMEDIATE_WALK_IN_BACKDATE_MINUTES }} minutes earlier for correction.</p>
                     </div>
 
                     <div class="profile-field">
@@ -415,11 +426,20 @@
                         </select>
                     </div>
 
-                    <div class="profile-field reschedule-full">
+                    <div class="profile-field reschedule-full add-scheduled-field">
                         <label>Available time slots</label>
                         <p class="appt-slots-hint" id="add-slots-hint">Select service and date to load available times.</p>
                         <div class="appt-time-slots add-time-slots-scroll" id="add-time-slots"></div>
                         <input type="hidden" name="time_slot" id="add-time-slot" value="{{ old('time_slot') }}">
+                    </div>
+
+                    <div class="profile-field reschedule-full add-immediate-field add-immediate-summary hidden-section" aria-live="polite">
+                        <strong id="add-immediate-window">Select a service to calculate the expected end time.</strong>
+                        <span>The therapist must remain available for this entire period.</span>
+                        <label class="add-immediate-confirmation">
+                            <input type="checkbox" name="immediate_confirmed" value="1" @checked(old('immediate_confirmed')) disabled>
+                            I confirm the customer is present and full payment will be collected at the counter now.
+                        </label>
                     </div>
 
                     <div class="profile-field reschedule-full">
@@ -787,15 +807,26 @@
         const addSlotsWrap = document.getElementById('add-time-slots');
         const addSlotsHint = document.getElementById('add-slots-hint');
         const addHiddenSlot = document.getElementById('add-time-slot');
+        const addBookingModeInput = document.getElementById('add-booking-mode');
+        const addBookingModeButtons = Array.from(document.querySelectorAll('[data-add-booking-mode]'));
+        const addScheduledFields = Array.from(document.querySelectorAll('.add-scheduled-field'));
+        const addImmediateFields = Array.from(document.querySelectorAll('.add-immediate-field'));
+        const addImmediateStartTime = document.getElementById('add-immediate-start-time');
+        const addImmediateWindow = document.getElementById('add-immediate-window');
+        const addImmediateConfirmation = document.querySelector('input[name="immediate_confirmed"]');
         const shouldOpenAddAppointment = @json($openAddAppointment ?? false);
         const initialClientType = @json(old('client_type'));
         const addServicePriceMap = @json($servicePriceMap ?? []);
+        const addServiceDurationMap = @json($serviceDurationMap ?? []);
         const addHasPaymentFields = @json($hasPaymentFields ?? false);
         let addAvailabilityTimer = null;
         let addSlotsLoading = false;
         let clientSearchTimer = null;
         let clientSearchRequest = null;
         let activeClientType = '';
+        let selectedAddBookingMode = addBookingModeInput instanceof HTMLInputElement
+            ? (addBookingModeInput.value || 'scheduled')
+            : 'scheduled';
 
         const addPaymentMethodInput = document.getElementById('add-payment-method');
         const addPaymentTypeInput = document.getElementById('add-payment-type');
@@ -813,6 +844,74 @@
         let selectedAddPaymentMethod = addPaymentMethodInput instanceof HTMLInputElement ? (addPaymentMethodInput.value || '') : '';
         let addFullPaymentRequiredSlots = new Set();
 
+        function isImmediateWalkInMode() {
+            return selectedAddBookingMode === 'immediate';
+        }
+
+        function formatAddTime(date) {
+            return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        }
+
+        function updateImmediateWalkInWindow() {
+            if (!addImmediateWindow) return;
+            const service = addServiceSelect instanceof HTMLSelectElement ? addServiceSelect.value : '';
+            const startValue = addImmediateStartTime instanceof HTMLInputElement ? addImmediateStartTime.value : '';
+            const duration = Number(addServiceDurationMap?.[service] || 0);
+            if (!service || !startValue || duration <= 0) {
+                addImmediateWindow.textContent = 'Select a service to calculate the expected end time.';
+                return;
+            }
+
+            const start = new Date(`2000-01-01T${startValue}:00`);
+            const end = new Date(start.getTime() + (duration * 60 * 1000));
+            addImmediateWindow.textContent = `${formatAddTime(start)} to ${formatAddTime(end)} (${duration} minutes)`;
+        }
+
+        function syncAddBookingMode() {
+            const immediate = isImmediateWalkInMode();
+            if (addBookingModeInput instanceof HTMLInputElement) addBookingModeInput.value = selectedAddBookingMode;
+            addBookingModeButtons.forEach((button) => {
+                const active = button.getAttribute('data-add-booking-mode') === selectedAddBookingMode;
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            addScheduledFields.forEach((field) => field.classList.toggle('hidden-section', immediate));
+            addImmediateFields.forEach((field) => field.classList.toggle('hidden-section', !immediate));
+
+            if (addDateInput instanceof HTMLInputElement) {
+                addDateInput.disabled = immediate;
+                addDateInput.required = !immediate;
+            }
+            if (addImmediateStartTime instanceof HTMLInputElement) {
+                addImmediateStartTime.disabled = !immediate;
+                addImmediateStartTime.required = immediate;
+            }
+            if (addImmediateConfirmation instanceof HTMLInputElement) {
+                addImmediateConfirmation.disabled = !immediate;
+                addImmediateConfirmation.required = immediate;
+            }
+
+            if (immediate) {
+                selectedAddPaymentType = 'full';
+                selectedAddPaymentMethod = CASH_COUNTER_METHOD;
+                if (addHiddenSlot instanceof HTMLInputElement) addHiddenSlot.value = '';
+                addFullPaymentNotice?.classList.remove('hidden-section');
+                if (addFullPaymentNotice) addFullPaymentNotice.textContent = 'Immediate walk-ins require full payment at the counter.';
+            } else if (addFullPaymentNotice) {
+                addFullPaymentNotice.textContent = 'Appointments starting in less than 1 hour require full payment.';
+                addFullPaymentNotice.classList.toggle(
+                    'hidden-section',
+                    !addFullPaymentRequiredSlots.has(addHiddenSlot?.value || ''),
+                );
+            }
+
+            paintAddPaymentTypeButtons();
+            paintAddPaymentMethodButtons();
+            updateAddPaymentSummary();
+            syncAddPaymentTransactionPanel();
+            updateImmediateWalkInWindow();
+        }
+
         function isCashCounterSelected() {
             return selectedAddPaymentMethod === CASH_COUNTER_METHOD;
         }
@@ -822,7 +921,11 @@
             const cash = isCashCounterSelected();
             if (addPaymentTransactionHint) addPaymentTransactionHint.classList.toggle('hidden-section', cash);
             if (addPaymentCashHint) addPaymentCashHint.classList.toggle('hidden-section', !cash);
-            if (addAppointmentSaveButton) addAppointmentSaveButton.textContent = cash ? 'Confirm booking' : 'Continue to PayMongo';
+            if (addAppointmentSaveButton) {
+                addAppointmentSaveButton.textContent = isImmediateWalkInMode()
+                    ? 'Start walk-in now'
+                    : (cash ? 'Confirm booking' : 'Continue to PayMongo');
+            }
         }
 
         function formatAddCurrency(amount) {
@@ -853,7 +956,8 @@
             addPaymentTypeButtons.forEach((btn) => {
                 const type = btn.getAttribute('data-add-payment-type') || '';
                 btn.classList.toggle('is-active', type === selectedAddPaymentType);
-                const disabled = type === 'downpayment' && addFullPaymentRequiredSlots.has(addHiddenSlot?.value || '');
+                const disabled = type === 'downpayment'
+                    && (isImmediateWalkInMode() || addFullPaymentRequiredSlots.has(addHiddenSlot?.value || ''));
                 btn.disabled = disabled;
                 btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
             });
@@ -864,6 +968,9 @@
             addPaymentMethodButtons.forEach((btn) => {
                 const method = btn.getAttribute('data-add-payment-method') || '';
                 btn.classList.toggle('is-active', method === selectedAddPaymentMethod);
+                const disabled = isImmediateWalkInMode() && method !== CASH_COUNTER_METHOD;
+                btn.disabled = disabled;
+                btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
             });
             if (addPaymentMethodInput instanceof HTMLInputElement) addPaymentMethodInput.value = selectedAddPaymentMethod;
         }
@@ -999,8 +1106,9 @@
             if (type) applyClientType(type, preserveFields);
             addAppointmentModal?.classList.remove('hidden-section');
             document.body.classList.add('modal-open');
-            refreshAddAppointmentSlots();
             resetAddPaymentFields();
+            syncAddBookingMode();
+            if (!isImmediateWalkInMode()) refreshAddAppointmentSlots();
             if (type === 'walk_in' && typeof window.tnrResetPasswordVisibility === 'function') {
                 window.tnrResetPasswordVisibility(addWalkInPanel);
             }
@@ -1220,6 +1328,7 @@
 
         async function refreshAddAppointmentSlots() {
             if (!staffAvailabilityUrl || !addServiceSelect || !addDateInput) return;
+            if (isImmediateWalkInMode()) return;
 
             const service = addServiceSelect instanceof HTMLSelectElement ? addServiceSelect.value : '';
             const bookingDate = addDateInput instanceof HTMLInputElement ? addDateInput.value : '';
@@ -1288,6 +1397,16 @@
             });
         });
 
+        addBookingModeButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                selectedAddBookingMode = button.getAttribute('data-add-booking-mode') === 'immediate'
+                    ? 'immediate'
+                    : 'scheduled';
+                syncAddBookingMode();
+                if (!isImmediateWalkInMode()) scheduleAddAvailabilityRefresh();
+            });
+        });
+
         closeClientTypeModalBtn?.addEventListener('click', hideClientTypeModal);
         clientTypeModal?.addEventListener('click', (event) => {
             const target = event.target;
@@ -1309,7 +1428,9 @@
         addServiceSelect?.addEventListener('change', () => {
             scheduleAddAvailabilityRefresh();
             updateAddPaymentSummary();
+            updateImmediateWalkInWindow();
         });
+        addImmediateStartTime?.addEventListener('input', updateImmediateWalkInWindow);
         addDateInput?.addEventListener('change', scheduleAddAvailabilityRefresh);
         addTherapistSelect?.addEventListener('change', scheduleAddAvailabilityRefresh);
         addWalkInEmail?.addEventListener('input', scheduleAddAvailabilityRefresh);
@@ -1331,7 +1452,7 @@
         });
 
         addAppointmentForm?.addEventListener('submit', (event) => {
-            if (!addHiddenSlot?.value) {
+            if (!isImmediateWalkInMode() && !addHiddenSlot?.value) {
                 event.preventDefault();
                 if (addSlotsHint) addSlotsHint.textContent = 'Please select an available time slot.';
                 return;
@@ -1357,6 +1478,15 @@
                 if (addPaymentMethodInput instanceof HTMLInputElement) addPaymentMethodInput.value = selectedAddPaymentMethod;
                 if (addPaymentTypeInput instanceof HTMLInputElement) addPaymentTypeInput.value = selectedAddPaymentType;
             }
+
+            if (isImmediateWalkInMode()) {
+                const startValue = addImmediateStartTime instanceof HTMLInputElement ? addImmediateStartTime.value : '';
+                const start = startValue ? new Date(`2000-01-01T${startValue}:00`) : null;
+                const startLabel = start && !Number.isNaN(start.getTime()) ? formatAddTime(start) : startValue;
+                if (!window.confirm(`Start this walk-in now at ${startLabel}? Full counter payment will be recorded and the therapist session will begin immediately.`)) {
+                    event.preventDefault();
+                }
+            }
         });
 
         if (shouldOpenAddAppointment && (initialClientType === 'walk_in' || initialClientType === 'registered')) {
@@ -1375,6 +1505,7 @@
             paintAddPaymentMethodButtons();
             updateAddPaymentSummary();
             syncAddPaymentClientMode();
+            syncAddBookingMode();
         }
 
         const rescheduleModal = document.getElementById('reschedule-appointment-modal');

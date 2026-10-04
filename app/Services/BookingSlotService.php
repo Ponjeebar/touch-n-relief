@@ -15,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class BookingSlotService
 {
+    public const IMMEDIATE_WALK_IN_BACKDATE_MINUTES = 5;
+
     private ?SpaServiceCatalog $catalog = null;
 
     private bool $sessionsSynced = false;
@@ -168,6 +170,88 @@ class BookingSlotService
         if ($this->therapistSlotTaken($therapistName, $bookingDate, $normalizedSlot, $durationMinutes, $excludeBookingId)) {
             throw ValidationException::withMessages([
                 'time_slot' => 'That therapist is not available at this time. The selected slot overlaps with an existing appointment. Please choose another slot or therapist.',
+            ]);
+        }
+    }
+
+    /**
+     * Validate a staff-created walk-in that starts at the actual current minute
+     * instead of one of the public fixed booking slots.
+     *
+     * @param  array<int, string>  $therapistNames
+     *
+     * @throws ValidationException
+     */
+    public function assertImmediateWalkInAvailable(
+        int $userId,
+        string $serviceName,
+        string $therapistName,
+        string $bookingDate,
+        string $timeSlot,
+        int $durationMinutes,
+        array $therapistNames = [],
+        bool $withTherapistLock = false,
+    ): void {
+        $this->syncExpiredSessions();
+
+        $normalizedSlot = $this->normalizeSlotLabel($timeSlot);
+        $window = $normalizedSlot !== null
+            ? $this->slotWindow($bookingDate, $normalizedSlot, max($durationMinutes, 1))
+            : null;
+        $currentMinute = now()->copy()->startOfMinute();
+
+        if ($window === null
+            || $bookingDate !== $currentMinute->toDateString()
+            || $window['start']->lt($currentMinute->copy()->subMinutes(self::IMMEDIATE_WALK_IN_BACKDATE_MINUTES))
+            || $window['start']->gt($currentMinute)) {
+            throw ValidationException::withMessages([
+                'immediate_start_time' => 'Start walk-in now must use the current time or a time within the previous '.self::IMMEDIATE_WALK_IN_BACKDATE_MINUTES.' minutes.',
+            ]);
+        }
+
+        $offeredSlots = $this->offeredSlotLabelsForServiceOnDate($serviceName, $bookingDate);
+        if ($offeredSlots === []) {
+            throw ValidationException::withMessages([
+                'immediate_start_time' => 'This service is not offered today or the spa is closed.',
+            ]);
+        }
+
+        $offeredWindows = collect($offeredSlots)
+            ->map(fn (string $slot): ?array => $this->slotWindow($bookingDate, $slot, 1))
+            ->filter()
+            ->values();
+        $withinOfferedPeriod = $offeredWindows->contains(
+            fn (array $offered): bool => $window['start']->gte($offered['start'])
+                && $window['start']->lt($offered['start']->copy()->addMinutes(30)),
+        );
+
+        if (! $withinOfferedPeriod) {
+            throw ValidationException::withMessages([
+                'immediate_start_time' => 'The selected start time is outside today\'s service hours.',
+            ]);
+        }
+
+        app(TherapistAvailabilityService::class)->assertBookableOnDate($therapistName, $bookingDate);
+
+        if ($withTherapistLock) {
+            $this->lockTherapistBookingsForUpdate($therapistName, $bookingDate);
+        }
+
+        if ($this->userConflictAt($userId, $bookingDate, $normalizedSlot, $durationMinutes) !== null) {
+            throw ValidationException::withMessages([
+                'immediate_start_time' => 'This walk-in overlaps with another appointment for this client.',
+            ]);
+        }
+
+        if ($this->therapistSlotTaken($therapistName, $bookingDate, $normalizedSlot, $durationMinutes)) {
+            throw ValidationException::withMessages([
+                'immediate_start_time' => 'That therapist is unavailable for the full walk-in service time. Choose another therapist.',
+            ]);
+        }
+
+        if ($therapistNames !== [] && ! in_array($therapistName, $therapistNames, true)) {
+            throw ValidationException::withMessages([
+                'therapist' => 'The selected therapist is unavailable. Please choose another therapist.',
             ]);
         }
     }
