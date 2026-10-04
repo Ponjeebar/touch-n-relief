@@ -226,7 +226,7 @@ test('completed appointment rebooking stays usable on mobile and desktop', async
     }
 });
 
-test('changing the booking date resets service, therapist, and time selections', async ({ page }) => {
+test('returning to the date step resets choices and allows the same date again', async ({ page }) => {
     await login(page, accounts.customer);
     await page.goto('/booking', { waitUntil: 'domcontentloaded' });
     const bookingTourKey = await page.locator('#tnr-customer-tour-config').evaluate((config) => (
@@ -243,16 +243,12 @@ test('changing the booking date resets service, therapist, and time selections',
         await page.goto('/booking', { waitUntil: 'domcontentloaded' });
 
         const dateInput = page.locator('#booking_date');
-        const [firstDate, secondDate] = await dateInput.evaluate((input) => {
+        const firstDate = await dateInput.evaluate((input) => {
             const start = new Date(`${input.min}T12:00:00`);
             const nextMonday = new Date(start);
             const daysUntilMonday = (8 - nextMonday.getDay()) % 7 || 7;
             nextMonday.setDate(nextMonday.getDate() + daysUntilMonday);
-            const nextTuesday = new Date(nextMonday);
-            nextTuesday.setDate(nextTuesday.getDate() + 1);
-            const iso = (date) => date.toISOString().slice(0, 10);
-
-            return [iso(nextMonday), iso(nextTuesday)];
+            return nextMonday.toISOString().slice(0, 10);
         });
 
         await dateInput.fill(firstDate);
@@ -270,13 +266,14 @@ test('changing the booking date resets service, therapist, and time selections',
         await back.click();
         await back.click();
         await expect(page.locator('#booking-grid')).toHaveAttribute('data-mobile-step', 'date');
+        await expect(dateInput).toHaveValue('');
         await expect(page.locator('.booking-field-time')).toBeHidden();
         await expect(page.locator('input[name="service"]:checked')).toHaveCount(0);
         await expect(page.locator('input[name="therapist"]:checked')).toHaveCount(0);
         await expect(page.locator('#time_slot')).toHaveValue('');
         await expect(page.locator('#time-slots')).toBeEmpty();
 
-        await dateInput.fill(secondDate);
+        await dateInput.fill(firstDate);
 
         await expect(page.locator('input[name="service"]:checked')).toHaveCount(0);
         await expect(page.locator('input[name="therapist"]:checked')).toHaveCount(0);

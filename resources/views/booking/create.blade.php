@@ -645,6 +645,9 @@
 
                 var previousStep = mobileSteps[activeIndex - 1];
                 if (previousStep === 'date') {
+                    dateInput.value = '';
+                    lastDateValue = '';
+                    datePickerWasOpened = false;
                     clearServiceSelection();
                     clearTherapistSelection();
                     hiddenSlot.value = '';
