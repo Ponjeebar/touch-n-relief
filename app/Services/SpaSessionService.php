@@ -356,6 +356,9 @@ class SpaSessionService
 
     private function resolveActiveAppointmentDisplayStatus(SpaBooking $booking): string
     {
+        if ($booking->isPaymentHoldExpired()) {
+            return 'Payment Expired';
+        }
         if ($booking->rescheduled_at !== null) {
             return SpaBooking::DISPLAY_RESCHEDULED;
         }
@@ -435,14 +438,14 @@ class SpaSessionService
         return 'This appointment cannot be started.';
     }
 
-    public function start(SpaBooking $booking): void
+    public function start(SpaBooking $booking, ?Carbon $startedAt = null): void
     {
         if (! $this->canStart($booking)) {
             throw new \InvalidArgumentException('This appointment cannot be started.');
         }
 
         $booking->forceFill([
-            'session_started_at' => now(),
+            'session_started_at' => $startedAt ?? now(),
             'session_status' => SpaBooking::STATUS_IN_SESSION,
         ])->save();
     }
@@ -737,6 +740,9 @@ class SpaSessionService
             'Cancelled' => 'cancelled',
             'Completed' => 'completed',
             'In Session' => 'active',
+            'No Show' => 'no-show',
+            'Payment Expired' => 'expired',
+            'Payment Failed' => 'failed',
             SpaBooking::DISPLAY_PAYMENT_PENDING => 'pending',
             SpaBooking::DISPLAY_BALANCE_DUE => 'balance-due',
             SpaBooking::DISPLAY_RESCHEDULED => 'rescheduled',
@@ -925,7 +931,7 @@ class SpaSessionService
             })
             ->count();
 
-        $therapists = Therapist::query()->get();
+        $therapists = Therapist::query()->where('is_active', true)->get();
         $therapistCount = $therapists->count();
         $activeTherapistCount = $therapists
             ->filter(fn (Therapist $therapist): bool => app(TherapistAvailabilityService::class)->effectiveStatus($therapist, $now) === 'available')
@@ -939,7 +945,7 @@ class SpaSessionService
             'upcoming_appointments' => $upcomingAppointmentsCount,
             'today_sales' => $todaySalesTotal > 0 ? number_format($todaySalesTotal, 0) : '0',
             'today_transactions' => $todayTransactionCount,
-            'active_therapists' => $activeTherapistCount > 0 ? $activeTherapistCount : $therapistCount,
+            'active_therapists' => $activeTherapistCount,
             'therapist_count' => $therapistCount > 0 ? $therapistCount : 0,
             'server_now_iso' => $now->toIso8601String(),
             'timezone' => (string) config('app.timezone', 'Asia/Manila'),

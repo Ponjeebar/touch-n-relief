@@ -9,9 +9,15 @@
             <select id="txn-filter" class="cr-history-select" aria-label="Filter transaction history">
                 <option value="all">Filter: All</option>
                 <option value="cancelled">Cancelled</option>
-                <option value="confirm">Confirm</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="balance-due">Confirmed – Balance Due</option>
+                <option value="pending">Payment Pending</option>
+                <option value="expired">Payment Expired</option>
+                <option value="failed">Payment Failed</option>
+                <option value="active">In Session</option>
+                <option value="no-show">No Show</option>
+                <option value="rescheduled">Rescheduled</option>
                 <option value="completed">Completed</option>
-                <option value="upcoming">Upcoming</option>
             </select>
             <select id="txn-sort" class="cr-history-select" aria-label="Sort transaction history">
                 <option value="date-desc">Sort: Latest first</option>
@@ -102,7 +108,7 @@
         const statusKey = row.getAttribute('data-status') || '';
         const matchesQuery = query === '' || hay.includes(query);
         const matchesFilter = filter === 'all'
-            || (['cancelled', 'confirm', 'completed', 'upcoming'].includes(filter) && statusKey === filter);
+            || statusKey === filter;
 
         return matchesQuery && matchesFilter;
     };

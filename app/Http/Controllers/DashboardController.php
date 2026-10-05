@@ -622,25 +622,19 @@ class DashboardController extends Controller
                     'arrival_confirmed',
                 );
 
-                $targetWindow = $sessions->window($booking);
-                $hasActiveConflict = SpaBooking::query()
-                    ->whereKeyNot($booking->id)
-                    ->where('therapist_name', $booking->therapist_name)
-                    ->where('session_status', SpaBooking::STATUS_IN_SESSION)
-                    ->whereNull('cancelled_at')
-                    ->whereNull('completed_at')
-                    ->lockForUpdate()
-                    ->get()
-                    ->contains(function (SpaBooking $active) use ($sessions, $targetWindow): bool {
-                        $activeStart = $active->session_started_at ?? $sessions->window($active)['start'] ?? null;
-                        $activeEnd = $sessions->sessionEndAt($active);
-
-                        return $targetWindow !== null && $activeStart !== null && $activeEnd !== null
-                            && $activeStart->lt($targetWindow['end'])
-                            && $activeEnd->gt($targetWindow['start']);
-                    });
-                if ($hasActiveConflict) {
-                    throw ValidationException::withMessages(['arrival_confirmed' => 'The assigned therapist is currently serving another overlapping session.']);
+                $slots = app(BookingSlotService::class);
+                $actualStart = now();
+                $targetWindow = ['start' => $actualStart, 'end' => $actualStart->copy()->addMinutes($slots->resolvedBookingDurationMinutes($booking))];
+                if ($slots->therapistWindowTaken(
+                    (string) $booking->therapist_name,
+                    $booking->booking_date->format('Y-m-d'),
+                    $targetWindow,
+                    $booking->id,
+                )) {
+                    throw ValidationException::withMessages(['arrival_confirmed' => 'The actual session interval overlaps another appointment or required therapist rest. Reassign or reschedule this appointment.']);
+                }
+                if ($slots->userWindowConflict($booking->user_id, $booking->booking_date->format('Y-m-d'), $targetWindow, $booking->id) !== null) {
+                    throw ValidationException::withMessages(['arrival_confirmed' => 'The actual session interval overlaps another appointment for this client. Reschedule before collecting payment.']);
                 }
 
                 if (! $sessions->canConfirmPaymentAndStart($booking)) {
@@ -684,7 +678,7 @@ class DashboardController extends Controller
                 }
 
                 $booking->refresh();
-                $sessions->start($booking);
+                $sessions->start($booking, $actualStart);
 
                 ActivityLogger::log(
                     'session.started',
@@ -2174,6 +2168,10 @@ class DashboardController extends Controller
 
         $transactions = DB::table('transactions')
             ->leftJoin('therapists', 'transactions.therapist_id', '=', 'therapists.id')
+            ->when($linkedUser !== null, fn ($query) => $query->where(function ($query) use ($linkedUser): void {
+                $query->whereNull('transactions.spa_booking_id')
+                    ->orWhereNotIn('transactions.spa_booking_id', SpaBooking::query()->where('user_id', $linkedUser->id)->select('id'));
+            }))
             ->where(function ($query) use ($linkedUser, $clientNames) {
                 if ($linkedUser !== null) {
                     $query->where('user_id', $linkedUser->id);
@@ -2247,6 +2245,7 @@ class DashboardController extends Controller
 
         return SpaBooking::query()
             ->where('user_id', $user->id)
+            ->with('transaction')
             ->orderByDesc('booking_date')
             ->orderByDesc('time_slot')
             ->get()
@@ -2256,7 +2255,7 @@ class DashboardController extends Controller
                 $status = $this->spaBookingStatusLabel($booking);
 
                 return [
-                    'transaction_id' => 'BKG-'.str_pad((string) $booking->id, 5, '0', STR_PAD_LEFT),
+                    'transaction_id' => $booking->transaction?->transaction_id ?? 'BKG-'.str_pad((string) $booking->id, 5, '0', STR_PAD_LEFT),
                     'service' => (string) $booking->service_name,
                     'therapist' => $booking->therapist_name ?: '—',
                     'date' => $date,
@@ -2265,7 +2264,7 @@ class DashboardController extends Controller
                     'amount' => $booking->amount !== null ? '₱'.number_format((float) $booking->amount, 2) : '—',
                     'status' => $status['label'],
                     'status_key' => $status['key'],
-                    'notes' => $booking->notes !== null ? trim((string) $booking->notes) : null,
+                    'notes' => $booking->transaction?->notes ?? ($booking->notes !== null ? trim((string) $booking->notes) : null),
                     'history_at' => Carbon::parse($date.' '.$time)->timestamp,
                 ];
             })
@@ -2274,29 +2273,24 @@ class DashboardController extends Controller
 
     private function spaBookingStatusLabel(SpaBooking $booking): array
     {
-        if ($booking->isCancelled()) {
-            return ['label' => 'Cancelled', 'key' => 'cancelled'];
+        $label = app(SpaSessionService::class)->appointmentStatus($booking);
+        if ($label === SpaBooking::DISPLAY_PAYMENT_PENDING && $booking->payment_status === PaymentMethodCatalog::STATUS_FAILED) {
+            $label = 'Payment Failed';
         }
+        $key = match ($label) {
+            'No Show' => 'no-show',
+            'Cancelled' => 'cancelled',
+            'Completed' => 'completed',
+            'In Session' => 'active',
+            'Payment Expired' => 'expired',
+            'Payment Failed' => 'failed',
+            SpaBooking::DISPLAY_PAYMENT_PENDING => 'pending',
+            SpaBooking::DISPLAY_BALANCE_DUE => 'balance-due',
+            SpaBooking::DISPLAY_RESCHEDULED => 'rescheduled',
+            default => 'confirmed',
+        };
 
-        try {
-            $start = Carbon::parse($booking->booking_date->format('Y-m-d').' '.(string) $booking->time_slot);
-        } catch (\Throwable) {
-            return ['label' => 'Upcoming', 'key' => 'upcoming'];
-        }
-
-        $duration = max((int) ($booking->duration_minutes ?? 60), 1);
-        $end = $start->copy()->addMinutes($duration);
-        $now = now();
-
-        if ($now->gte($end)) {
-            return ['label' => 'Completed', 'key' => 'completed'];
-        }
-
-        if ($now->gte($start) && $now->lt($end)) {
-            return ['label' => 'Confirm', 'key' => 'confirm'];
-        }
-
-        return ['label' => 'Upcoming', 'key' => 'upcoming'];
+        return ['label' => $label, 'key' => $key];
     }
 
     public function reporting(Request $request): View

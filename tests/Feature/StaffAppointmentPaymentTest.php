@@ -1047,6 +1047,58 @@ class StaffAppointmentPaymentTest extends TestCase
             ->assertSee('addServiceDurationMap', false);
     }
 
+    public function test_actual_scheduled_start_interval_is_checked_before_collecting_balance(): void
+    {
+        Carbon::setTestNow('2026-10-06 13:09:00');
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create();
+        $therapist = app(TherapistAvailabilityService::class)->bookableTherapistNamesForDate(now())[0];
+        $booking = SpaBooking::create([
+            'user_id' => $client->id, 'client_name' => $client->name, 'service_name' => 'Swedish Massage',
+            'therapist_name' => $therapist, 'booking_date' => now()->toDateString(), 'time_slot' => '1:00 PM',
+            'duration_minutes' => 60, 'amount' => 100, 'payment_amount' => 50,
+            'payment_method' => 'cash_counter', 'payment_status' => 'paid', 'session_status' => 'confirmed',
+        ]);
+        $next = $booking->replicate();
+        $next->forceFill(['user_id' => User::factory()->create()->id, 'time_slot' => '2:00 PM'])->save();
+        $this->actingAs($staff)->patch(route('appointments.start', $booking), ['arrival_confirmed' => '1', 'amount_tendered' => 50])
+            ->assertSessionHasErrors('arrival_confirmed', errorBag: 'session_start');
+        $this->assertNull($booking->fresh()->session_started_at);
+        $this->assertNull($booking->fresh()->balance_paid_at);
+        $this->assertDatabaseCount('payment_ledger_entries', 0);
+        $this->assertDatabaseCount('transactions', 0);
+        $next->forceFill(['user_id' => $client->id, 'therapist_name' => app(TherapistAvailabilityService::class)->bookableTherapistNamesForDate(now())[1]])->save();
+        $this->patch(route('appointments.start', $booking), ['arrival_confirmed' => '1', 'amount_tendered' => 50])
+            ->assertSessionHasErrors('arrival_confirmed', errorBag: 'session_start');
+        $this->assertNull($booking->fresh()->balance_paid_at);
+        $next->forceFill(['cancelled_at' => now(), 'session_status' => 'cancelled'])->save();
+        Carbon::setTestNow('2026-10-06 13:10:00');
+        $this->patch(route('appointments.start', $booking), ['arrival_confirmed' => '1', 'amount_tendered' => 50])
+            ->assertSessionHasErrors('arrival_confirmed', errorBag: 'session_start');
+        $this->assertNull($booking->fresh()->balance_paid_at);
+        $this->assertDatabaseCount('payment_ledger_entries', 0);
+        Carbon::setTestNow();
+    }
+
+    public function test_immediate_walk_in_cannot_overlap_a_late_started_session(): void
+    {
+        Carbon::setTestNow('2026-10-06 14:00:00');
+        $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+        $therapist = app(TherapistAvailabilityService::class)->bookableTherapistNamesForDate(now())[0];
+        SpaBooking::create([
+            'user_id' => User::factory()->create()->id, 'client_name' => 'Existing session', 'service_name' => 'Swedish Massage',
+            'therapist_name' => $therapist, 'booking_date' => now()->toDateString(), 'time_slot' => '1:00 PM',
+            'duration_minutes' => 60, 'amount' => 100, 'payment_amount' => 100, 'payment_method' => 'cash_counter',
+            'payment_status' => 'paid', 'session_status' => 'in_session', 'session_started_at' => now()->setTime(13, 9),
+        ]);
+        $this->actingAs($staff)->post(route('appointments.store'), $this->immediateBookingInput($client, $therapist))
+            ->assertSessionHasErrors('immediate_start_time', errorBag: 'appointment');
+        $this->assertDatabaseCount('spa_bookings', 1);
+        $this->assertDatabaseCount('payment_ledger_entries', 0);
+        Carbon::setTestNow();
+    }
+
     private function bookingInput(User $client, string $method, string $type, ?string $serviceName = null): array
     {
         $service = SpaService::query()

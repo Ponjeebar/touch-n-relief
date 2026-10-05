@@ -120,6 +120,16 @@ class BrowserTestSeeder extends Seeder
                 'session_status' => SpaBooking::STATUS_CONFIRMED,
             ],
             [
+                'booking_date' => now()->subDay()->toDateString(),
+                'time_slot' => '10:00 AM',
+                'service_name' => 'Foot Reflexology',
+                'therapist_name' => 'Carlos Mendoza',
+                'session_status' => SpaBooking::STATUS_NO_SHOW,
+                'duration_minutes' => 45,
+                'amount' => 70,
+                'payment_amount' => 70,
+            ],
+            [
                 'booking_date' => now()->toDateString(),
                 'time_slot' => now()->format('g:i A'),
                 'service_name' => 'Aromatherapy',

@@ -388,15 +388,18 @@ class PostgresBookingConcurrencyTest extends TestCase
         $this->assertSame(2, DB::table('activity_logs')->where('action', 'system.settings_updated')->count());
     }
 
-    public function test_customer_cancellation_and_session_start_cannot_both_commit(): void
+    public function test_staff_cancellation_and_actual_session_start_cannot_both_commit(): void
     {
         $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $therapist = Therapist::create(['therapist_code' => 'PG-CANCEL-START', 'name' => 'Cancellation Race Therapist', 'status' => 'available', 'work_on_off_day' => true, 'is_active' => true]);
         $booking = SpaBooking::query()->create([
             'user_id' => $customer->id,
             'client_name' => $customer->name,
             'service_name' => 'Foot Reflexology',
-            'booking_date' => now()->addDay()->toDateString(),
-            'time_slot' => '10:00 AM',
+            'therapist_name' => $therapist->name,
+            'booking_date' => now()->toDateString(),
+            'time_slot' => now()->format('g:i A'),
             'amount' => 70,
             'payment_amount' => 70,
             'payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
@@ -440,6 +443,56 @@ class PostgresBookingConcurrencyTest extends TestCase
     /** @param list<string> $actors
      * @return list<string>
      */
+    public function test_concurrent_gateway_requests_reserve_one_refund_only(): void
+    {
+        $booking = $this->gatewayRefundBooking(100);
+        $this->assertSame(['accepted', 'accepted'], $this->runWorkflowWorkers('refund-request', $booking->id, ['a', 'b']));
+        $this->assertSame(1, $booking->refunds()->count());
+        $this->assertSame(100.0, (float) $booking->refunds()->sum('amount'));
+        $this->assertSame('pending', $booking->fresh()->refund_status);
+        $this->assertSame(0, PaymentLedgerEntry::where('entry_type', 'refund')->count());
+    }
+
+    public function test_concurrent_distinct_refund_updates_preserve_records_summary_and_source_limit(): void
+    {
+        $booking = $this->gatewayRefundBooking(100);
+        $this->runWorkflowWorkers('refund-update', $booking->id, ['a', 'b']);
+        $this->assertSame(2, $booking->refunds()->count());
+        $this->assertSame(60.0, (float) $booking->fresh()->refund_amount);
+        $this->assertSame(60.0, (float) PaymentLedgerEntry::where('entry_type', 'refund')->sum('amount'));
+        $this->runWorkflowWorkers('refund-update', $booking->id, ['c', 'd']);
+        $this->assertSame(3, $booking->refunds()->count());
+        $this->assertSame(90.0, (float) $booking->fresh()->refund_amount);
+        $this->assertSame(90.0, (float) PaymentLedgerEntry::where('entry_type', 'refund')->sum('amount'));
+    }
+
+    public function test_competing_immediate_walk_in_actions_create_one_booking_collection_and_start(): void
+    {
+        User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $clients = [User::factory()->create(['role' => User::ROLE_USER]), User::factory()->create(['role' => User::ROLE_USER])];
+        $therapist = Therapist::create(['therapist_code' => 'PG-WALK-IN', 'name' => 'Walk In Race Therapist', 'status' => 'available', 'work_on_off_day' => true, 'is_active' => true]);
+        $this->assertSame(['created', 'stale'], $this->runWorkflowWorkers('walk-in', $therapist->id, array_map(fn ($client) => (string) $client->id, $clients)));
+        $booking = SpaBooking::where('therapist_name', $therapist->name)->sole();
+        $this->assertSame('in_session', $booking->session_status);
+        $this->assertSame('13:00', $booking->session_started_at->format('H:i'));
+        $this->assertSame(1, PaymentLedgerEntry::where('spa_booking_id', $booking->id)->count());
+        $this->assertSame((float) $booking->amount, (float) PaymentLedgerEntry::where('spa_booking_id', $booking->id)->sum('amount'));
+        $this->assertSame(1, DB::table('activity_logs')->where('subject_id', $booking->id)->where('action', 'session.started')->count());
+    }
+
+    private function gatewayRefundBooking(float $amount): SpaBooking
+    {
+        $client = User::factory()->create(['role' => User::ROLE_USER]);
+
+        return SpaBooking::create([
+            'user_id' => $client->id, 'client_name' => $client->name, 'service_name' => 'Foot Reflexology',
+            'booking_date' => now()->addDay()->toDateString(), 'time_slot' => '10:00 AM',
+            'amount' => $amount, 'payment_amount' => $amount, 'payment_method' => 'paymongo',
+            'payment_transaction_id' => 'pay_pg_refund', 'payment_status' => 'paid',
+            'cancelled_at' => now(), 'session_status' => 'cancelled',
+        ]);
+    }
+
     private function runWorkflowWorkers(string $action, int $recordId, array $actors): array
     {
         $barrier = storage_path('framework/testing/workflow-'.bin2hex(random_bytes(8)));

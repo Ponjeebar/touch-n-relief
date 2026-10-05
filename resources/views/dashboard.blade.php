@@ -132,7 +132,7 @@
 
                     <div class="staff-summary" aria-label="Administrator summary">
                         <dl class="staff-summary-item staff-summary-item--primary">
-                            <dt>Today's sales</dt>
+                            <dt>Completed service value today</dt>
                             <dd>&#8369;{{ $todaySales ?? 0 }}</dd>
                             <span>{{ $todayTransactions ?? 0 }} completed transactions</span>
                         </dl>
@@ -147,7 +147,7 @@
                             <span>Active right now</span>
                         </dl>
                         <dl class="staff-summary-item">
-                            <dt>Active therapists</dt>
+                            <dt>Available therapists</dt>
                             <dd>{{ $activeTherapists ?? 0 }}<small>/{{ $therapistCount ?? 0 }}</small></dd>
                             <span>Available staff</span>
                         </dl>

@@ -148,7 +148,7 @@
                             <span>From now onward</span>
                         </dl>
                         <dl class="staff-summary-item">
-                            <dt>Active therapists</dt>
+                            <dt>Available therapists</dt>
                             <dd>{{ $activeTherapists ?? 0 }}<small>/{{ $therapistCount ?? 0 }}</small></dd>
                             <span>Available staff</span>
                         </dl>

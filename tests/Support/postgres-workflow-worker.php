@@ -1,19 +1,23 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StaffAppointmentController;
 use App\Http\Controllers\SystemSettingsController;
 use App\Models\MembershipPurchase;
 use App\Models\RefundConfirmation;
 use App\Models\SpaBooking;
+use App\Models\Therapist;
 use App\Models\User;
-use App\Services\BookingCancellationService;
+use App\Services\BookingRefundService;
 use App\Services\BookingSlotService;
 use App\Services\MembershipPurchaseService;
 use App\Services\NoShowService;
+use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
 use App\Services\SiteSettingsService;
 use App\Services\SpaSessionService;
 use App\Support\PaymentMethodCatalog;
+use Carbon\Carbon;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -162,25 +166,48 @@ try {
             app(NoShowService::class),
         );
         echo 'saved';
+    } elseif ($action === 'refund-request') {
+        $paymongo = Mockery::mock(PaymongoService::class);
+        $paymongo->shouldReceive('isConfigured')->andReturnTrue();
+        $paymongo->shouldReceive('resolvePaymentIdForBooking')->andReturn('pay_pg_refund');
+        $paymongo->shouldReceive('paymentSupportsApiRefund')->andReturnTrue();
+        $paymongo->shouldReceive('createRefund')->zeroOrMoreTimes()->andReturn(['id' => 'ref_request_'.$actor, 'attributes' => ['status' => 'pending']]);
+        $app->instance(PaymongoService::class, $paymongo);
+        app(BookingRefundService::class)->processRefund(SpaBooking::findOrFail((int) $recordId));
+        echo 'accepted';
+    } elseif ($action === 'refund-update') {
+        app(BookingRefundService::class)->applyPaymongoUpdate('ref_distinct_'.$actor, 'pay_pg_refund', 30, BookingRefundService::STATUS_PROCESSED);
+        echo 'accepted';
+    } elseif ($action === 'walk-in') {
+        Carbon::setTestNow('2026-10-06 13:00:00');
+        $staff = User::where('role', User::ROLE_RECEPTIONIST)->firstOrFail();
+        $client = User::findOrFail((int) $actor);
+        $therapist = Therapist::findOrFail((int) $recordId);
+        Auth::setUser($staff);
+        $request = Request::create('/appointments', 'POST', [
+            'client_type' => 'registered', 'client_user_id' => $client->id,
+            'client_name' => $client->name, 'client_email' => $client->email, 'client_phone' => $client->contact_number,
+            'service' => 'Foot Reflexology', 'therapist' => $therapist->name, 'booking_mode' => 'immediate',
+            'immediate_start_time' => '13:00', 'immediate_confirmed' => '1',
+            'payment_method' => 'cash_counter', 'payment_type' => 'full', 'counter_amount_tendered' => 1000,
+        ]);
+        $request->setUserResolver(fn (): User => $staff);
+        $request->setLaravelSession(app('session')->driver());
+        app(StaffAppointmentController::class)->store($request);
+        echo SpaBooking::where('user_id', $client->id)->whereNotNull('session_started_at')->exists() ? 'created' : 'stale';
     } elseif ($action === 'cancel-start') {
+        $staff = User::where('role', User::ROLE_RECEPTIONIST)->firstOrFail();
+        Auth::setUser($staff);
+        $booking = SpaBooking::findOrFail((int) $recordId);
+        $request = Request::create('/appointments/'.$booking->id, 'PATCH', ['arrival_confirmed' => '1'], [], [], ['HTTP_ACCEPT' => 'application/json']);
+        $request->setUserResolver(fn (): User => $staff);
+        $request->setLaravelSession(app('session')->driver());
         if ($actor === 'cancel') {
-            app(BookingCancellationService::class)->cancel(
-                SpaBooking::query()->findOrFail((int) $recordId),
-                'schedule_conflict',
-            );
+            app(StaffAppointmentController::class)->cancel($request, $booking);
             echo 'cancelled';
         } else {
-            DB::transaction(function () use ($recordId): void {
-                $booking = SpaBooking::query()->lockForUpdate()->findOrFail((int) $recordId);
-                if ($booking->cancelled_at !== null) {
-                    throw ValidationException::withMessages(['booking' => 'stale']);
-                }
-                $booking->forceFill([
-                    'session_status' => SpaBooking::STATUS_IN_SESSION,
-                    'session_started_at' => now(),
-                ])->save();
-            });
-            echo 'started';
+            $response = app(DashboardController::class)->startSession($request, $booking, app(SpaSessionService::class), app(PaymentLedgerService::class));
+            echo $response->getStatusCode() < 400 && $booking->fresh()->session_started_at !== null ? 'started' : 'stale';
         }
     }
 } catch (ValidationException) {

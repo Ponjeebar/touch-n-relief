@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const password = 'AuditPassword9';
 const viewports = [
@@ -398,6 +399,7 @@ test('staff immediate walk-in shows the calculated session and enforced payment 
 });
 
 test('scheduled start confirms exact balance, traps focus, and restores the trigger', async ({ page }) => {
+    execFileSync('php', ['tests/Support/refresh-browser-start.php'], { stdio: 'pipe' });
     await page.setViewportSize({ width: 390, height: 844 });
     await setTheme(page, 'dark');
     await login(page, accounts.receptionist);

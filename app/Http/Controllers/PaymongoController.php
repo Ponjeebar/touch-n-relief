@@ -473,11 +473,7 @@ class PaymongoController extends Controller
     {
         $attributes = is_array($refund['attributes'] ?? null) ? $refund['attributes'] : [];
         $gatewayStatus = strtolower((string) ($attributes['status'] ?? ''));
-        $status = match ($gatewayStatus) {
-            'succeeded', 'success', 'refunded' => BookingRefundService::STATUS_PROCESSED,
-            'failed', 'cancelled', 'canceled' => BookingRefundService::STATUS_FAILED,
-            default => BookingRefundService::STATUS_PENDING,
-        };
+        $status = BookingRefundService::statusForGateway($gatewayStatus);
 
         $this->applyRefundUpdate($refund, $status);
     }

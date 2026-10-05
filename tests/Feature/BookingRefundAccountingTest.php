@@ -147,6 +147,103 @@ class BookingRefundAccountingTest extends TestCase
         $this->assertSame(100.0, (float) $booking->fresh()->refund_amount);
     }
 
+    public function test_only_explicit_successful_gateway_responses_enter_the_refund_ledger(): void
+    {
+        foreach (['failed', 'cancelled', 'pending', 'processing', 'unknown', null, 'succeeded'] as $index => $status) {
+            $booking = $this->fullyCollectedBooking(PaymentMethodCatalog::METHOD_PAYMONGO);
+            $this->mock(PaymongoService::class, function ($mock) use ($index, $status): void {
+                $mock->shouldReceive('isConfigured')->andReturnTrue();
+                $mock->shouldReceive('resolvePaymentIdForBooking')->andReturn('pay_test_refund');
+                $mock->shouldReceive('paymentSupportsApiRefund')->andReturnTrue();
+                $mock->shouldReceive('createRefund')->once()->andReturn([
+                    'id' => 'ref_status_'.$index,
+                    'attributes' => $status === null ? [] : ['status' => $status],
+                ]);
+            });
+            app(BookingRefundService::class)->processRefund($booking);
+            $refund = $booking->refunds()->where('payment_component', BookingRefund::COMPONENT_INITIAL)->firstOrFail();
+            $expected = match ($status) {
+                'succeeded' => BookingRefundService::STATUS_PROCESSED,
+                'failed', 'cancelled' => BookingRefundService::STATUS_FAILED,
+                default => BookingRefundService::STATUS_PENDING,
+            };
+            $this->assertSame($expected, $refund->status, 'Gateway status: '.($status ?? 'missing'));
+            $this->assertSame($status === 'succeeded' ? 1 : 0, PaymentLedgerEntry::where('booking_refund_id', $refund->id)->count());
+            $this->assertSame(PaymentMethodCatalog::STATUS_PAID, $booking->fresh()->payment_status);
+            $this->assertSame(0.0, $booking->fresh()->remainingBalance());
+        }
+    }
+
+    public function test_distinct_gateway_references_preserve_pending_reservations(): void
+    {
+        $booking = $this->fullyCollectedBooking(PaymentMethodCatalog::METHOD_PAYMONGO);
+        $service = app(BookingRefundService::class);
+        $service->applyPaymongoUpdate('ref_reserved', 'pay_test_refund', 25, BookingRefundService::STATUS_PENDING);
+        $service->applyPaymongoUpdate('ref_other', 'pay_test_refund', 20, BookingRefundService::STATUS_PROCESSED);
+        $this->assertDatabaseHas('booking_refunds', ['reference' => 'ref_reserved', 'amount' => 25, 'status' => 'pending']);
+        $this->assertDatabaseHas('booking_refunds', ['reference' => 'ref_other', 'amount' => 20, 'status' => 'processed']);
+        $service->applyPaymongoUpdate('ref_exceeds_reserved', 'pay_test_refund', 10, BookingRefundService::STATUS_PROCESSED);
+        $this->assertDatabaseMissing('booking_refunds', ['reference' => 'ref_exceeds_reserved']);
+        $service->applyPaymongoUpdate('ref_reserved', 'pay_test_refund', 25, BookingRefundService::STATUS_PROCESSED);
+        $this->assertSame(45.0, (float) PaymentLedgerEntry::where('entry_type', 'refund')->sum('amount'));
+    }
+
+    public function test_processed_refund_amount_is_immutable_and_reporting_agrees(): void
+    {
+        $booking = $this->fullyCollectedBooking(PaymentMethodCatalog::METHOD_PAYMONGO);
+        $booking->forceFill(['payment_amount' => 100, 'balance_amount' => null, 'balance_paid_at' => null])->save();
+        app(PaymentLedgerService::class)->recordInitialPayment($booking);
+        app(PaymentLedgerService::class)->recordBalancePayment($booking);
+        $service = app(BookingRefundService::class);
+        $service->applyPaymongoUpdate('ref_immutable', 'pay_test_refund', 25, BookingRefundService::STATUS_PROCESSED);
+        $service->applyPaymongoUpdate('ref_immutable', 'pay_test_refund', 50, BookingRefundService::STATUS_PROCESSED);
+        $this->assertSame(25.0, (float) $booking->refunds()->firstOrFail()->amount);
+        $this->assertSame(25.0, (float) $booking->fresh()->refund_amount);
+        $service->applyPaymongoUpdate('ref_immutable', 'pay_test_refund', 25, BookingRefundService::STATUS_PROCESSED);
+        $this->assertSame(25.0, (float) $booking->refunds()->firstOrFail()->amount);
+        $this->assertSame(25.0, (float) $booking->fresh()->refund_amount);
+        $this->assertSame(1, PaymentLedgerEntry::where('entry_type', 'refund')->count());
+        $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $this->actingAs($staff)->getJson(route('reporting.data', ['period' => 'daily', 'period_value' => now()->toDateString()]))
+            ->assertOk()->assertJsonPath('grossCollections', 100)->assertJsonPath('refundTotal', 25)->assertJsonPath('primaryAmount', 75);
+    }
+
+    public function test_uncertain_gateway_request_cannot_be_paid_again_manually_or_retried(): void
+    {
+        $booking = $this->fullyCollectedBooking(PaymentMethodCatalog::METHOD_PAYMONGO);
+        $booking->forceFill(['balance_paid_at' => null, 'balance_amount' => null])->save();
+        $this->mock(PaymongoService::class, function ($mock): void {
+            $mock->shouldReceive('isConfigured')->andReturnTrue();
+            $mock->shouldReceive('resolvePaymentIdForBooking')->andReturn('pay_test_refund');
+            $mock->shouldReceive('paymentSupportsApiRefund')->andReturnTrue();
+            $mock->shouldReceive('createRefund')->once()->andThrow(new \RuntimeException('Connection timed out'));
+        });
+        $service = app(BookingRefundService::class);
+        $service->processRefund($booking);
+        $service->processRefund($booking->fresh());
+        $this->assertDatabaseCount('booking_refunds', 1);
+        $this->assertFalse($service->canCompleteManualRefund($booking->fresh()));
+        $this->assertDatabaseHas('booking_refunds', ['status' => 'pending', 'processing_channel' => BookingRefund::CHANNEL_PAYMONGO]);
+        $this->assertDatabaseCount('payment_ledger_entries', 0);
+        $recordId = $booking->refunds()->sole()->id;
+        $service->applyPaymongoUpdate('ref_timeout_reconciled', 'pay_test_refund', 50, BookingRefundService::STATUS_PROCESSED);
+        $this->assertSame($recordId, $booking->refunds()->sole()->id);
+        $this->assertSame('refunded', $booking->fresh()->payment_status);
+        $this->assertSame(50.0, (float) PaymentLedgerEntry::where('entry_type', 'refund')->sum('amount'));
+    }
+
+    public function test_gateway_update_cannot_process_a_manual_counter_refund(): void
+    {
+        $booking = $this->fullyCollectedBooking(PaymentMethodCatalog::METHOD_CASH_COUNTER);
+        $service = app(BookingRefundService::class);
+        $service->processRefund($booking);
+        $refund = $booking->refunds()->where('payment_component', BookingRefund::COMPONENT_INITIAL)->sole();
+        $service->applyPaymongoUpdate($refund->reference, 'pay_wrong_source', 50, BookingRefundService::STATUS_PROCESSED);
+        $this->assertSame('pending', $refund->fresh()->status);
+        $this->assertDatabaseCount('payment_ledger_entries', 0);
+        $this->assertSame('paid', $booking->fresh()->payment_status);
+    }
+
     private function confirmation(float $amount): array
     {
         return ['method' => 'cash', 'recipient' => 'Refund test customer', 'confirmed' => true, 'expected_amount' => $amount, 'evidence' => UploadedFile::fake()->createWithContent('acknowledgment.pdf', "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF")];

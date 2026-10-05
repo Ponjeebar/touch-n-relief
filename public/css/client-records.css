@@ -478,13 +478,17 @@
     white-space: nowrap;
 }
 
-.cr-txn-status-cancelled {
+.cr-txn-status-cancelled,
+.cr-txn-status-no-show,
+.cr-txn-status-failed {
     background: #fdeeed;
     color: #8b2e2e;
     border: 1px solid #efc5c5;
 }
 
-.cr-txn-status-confirm {
+.cr-txn-status-confirm,
+.cr-txn-status-confirmed,
+.cr-txn-status-active {
     background: #dff2fc;
     color: #084d68;
     border: 1px solid #a8d4eb;
@@ -496,7 +500,11 @@
     border: 1px solid #b8d9eb;
 }
 
-.cr-txn-status-upcoming {
+.cr-txn-status-upcoming,
+.cr-txn-status-pending,
+.cr-txn-status-expired,
+.cr-txn-status-rescheduled,
+.cr-txn-status-balance-due {
     background: #f3f6f8;
     color: #4f6d8c;
     border: 1px solid #d5dee6;

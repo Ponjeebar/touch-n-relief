@@ -23,8 +23,6 @@ class BookingRefundService
 
     public const STATUS_NOT_APPLICABLE = 'not_applicable';
 
-    private const NON_API_REFUNDABLE_SOURCES = ['qrph', 'ubp', 'unionbank'];
-
     public function __construct(
         private readonly PaymongoService $paymongo,
         private readonly PaymentLedgerService $paymentLedger,
@@ -187,10 +185,17 @@ class BookingRefundService
     public function applyPaymongoUpdate(string $refundId, string $paymentId, float $amount, string $status): void
     {
         DB::transaction(function () use ($refundId, $paymentId, $amount, $status): void {
+            if ($refundId === '' || ! in_array($status, [self::STATUS_PENDING, self::STATUS_PROCESSED, self::STATUS_FAILED], true)) {
+                Log::warning('Ignored PayMongo refund update without a valid identity or status.', compact('refundId', 'status'));
+
+                return;
+            }
             $refund = $refundId !== ''
-                ? BookingRefund::query()->where('reference', $refundId)->lockForUpdate()->first()
+                ? BookingRefund::query()->where('reference', $refundId)->first()
                 : null;
-            $booking = $refund?->booking;
+            $booking = $refund instanceof BookingRefund
+                ? SpaBooking::query()->lockForUpdate()->find($refund->spa_booking_id)
+                : null;
             if (! $booking instanceof SpaBooking && $paymentId !== '') {
                 $booking = SpaBooking::query()->where('payment_transaction_id', $paymentId)
                     ->lockForUpdate()->latest('id')->first();
@@ -203,13 +208,25 @@ class BookingRefundService
             }
 
             $this->importLegacyRefund($booking);
-            $refund ??= BookingRefund::query()->where('reference', $refundId)->lockForUpdate()->first();
+            $refund = BookingRefund::query()->where('reference', $refundId)->lockForUpdate()->first();
+            if ($refund instanceof BookingRefund && ($refund->spa_booking_id !== $booking->id
+                || $refund->processing_channel !== BookingRefund::CHANNEL_PAYMONGO
+                || $refund->payment_component !== BookingRefund::COMPONENT_INITIAL
+                || ($paymentId !== '' && $refund->gateway_payment_id !== null && $refund->gateway_payment_id !== $paymentId))) {
+                Log::warning('Ignored conflicting PayMongo refund payment identity.', compact('refundId', 'paymentId'));
+
+                return;
+            }
             if (! $refund instanceof BookingRefund) {
-                $refund = BookingRefund::query()->where('spa_booking_id', $booking->id)
+                $requests = BookingRefund::query()->where('spa_booking_id', $booking->id)
                     ->where('payment_component', BookingRefund::COMPONENT_INITIAL)
                     ->where('processing_channel', BookingRefund::CHANNEL_PAYMONGO)
-                    ->whereIn('status', [self::STATUS_PENDING, self::STATUS_FAILED])
-                    ->lockForUpdate()->latest('id')->first();
+                    ->where('status', self::STATUS_PENDING)
+                    ->where('reference', 'like', 'RF-REQ-%')
+                    ->where('amount', round($amount, 2))
+                    ->when($paymentId !== '', fn ($query) => $query->where('gateway_payment_id', $paymentId))
+                    ->lockForUpdate()->get();
+                $refund = $requests->count() === 1 ? $requests->first() : null;
             }
 
             $refundAmount = round($amount > 0 ? $amount : (float) ($refund?->amount ?? 0), 2);
@@ -237,7 +254,13 @@ class BookingRefundService
                 ]);
             }
 
-            if ($refund->status === self::STATUS_PROCESSED && $status !== self::STATUS_PROCESSED) {
+            if ($refund->status === self::STATUS_PROCESSED) {
+                if ((int) round((float) $refund->amount * 100) !== (int) round($refundAmount * 100)) {
+                    Log::warning('Ignored contradictory amount for a processed PayMongo refund; reconciliation required.', [
+                        'refund_id' => $refundId, 'stored_amount' => $refund->amount, 'received_amount' => $refundAmount,
+                    ]);
+                }
+
                 return;
             }
 
@@ -322,28 +345,50 @@ class BookingRefundService
             );
             $refundId = (string) ($gatewayRefund['id'] ?? '');
             $attributes = is_array($gatewayRefund['attributes'] ?? null) ? $gatewayRefund['attributes'] : [];
-            $processed = ! in_array(strtolower((string) ($attributes['status'] ?? 'succeeded')), ['pending', 'processing'], true);
+            $status = self::statusForGateway((string) ($attributes['status'] ?? ''));
+            if ($refundId !== '' && BookingRefund::where('reference', $refundId)->whereKeyNot($refund->id)->exists()) {
+                $refund->forceFill(['note' => 'PayMongo returned a refund reference already assigned to another record. Reconcile the gateway outcome before any further payout.'])->save();
+                Log::warning('PayMongo returned a duplicate refund identity; reconciliation required.', ['booking_id' => $booking->id, 'refund_id' => $refundId]);
+
+                return;
+            }
+            if ($refundId === '' || (isset($attributes['amount']) && (int) $attributes['amount'] !== (int) round($amount * 100))) {
+                $status = self::STATUS_PENDING;
+                Log::warning('PayMongo refund response requires reconciliation.', ['booking_id' => $booking->id, 'refund_id' => $refundId]);
+            }
+            $processed = $status === self::STATUS_PROCESSED;
             $refund->forceFill([
                 'gateway_payment_id' => $paymentId,
                 'reference' => $refundId !== '' ? $this->uniqueReference($refundId, $refund) : $refund->reference,
-                'status' => $processed ? self::STATUS_PROCESSED : self::STATUS_PENDING,
+                'status' => $status,
                 'processed_at' => $processed ? now() : null,
                 'note' => $processed
                     ? 'Refund sent back to the client\'s PayMongo payment method.'
-                    : 'PayMongo refund is processing. It will return to the client\'s payment method once complete.',
+                    : ($status === self::STATUS_FAILED
+                        ? 'PayMongo could not complete the refund. Please contact reception for assistance.'
+                        : 'PayMongo refund is awaiting confirmation. Verify its gateway status before any further payout.'),
             ])->save();
             $this->paymentLedger->recordRefund($refund->fresh());
         } catch (\Throwable $exception) {
-            Log::warning('PayMongo refund failed.', [
+            Log::warning('PayMongo refund outcome is uncertain.', [
                 'booking_id' => $booking->id,
                 'payment_id' => $paymentId,
                 'message' => $exception->getMessage(),
             ]);
-            $message = $this->isNonApiRefundableError($exception->getMessage())
-                ? 'This PayMongo payment cannot be refunded automatically. Return ₱'.number_format($amount, 2).' manually, then mark the refund complete.'
-                : 'Automatic refund failed. Return ₱'.number_format($amount, 2).' manually, then mark the refund complete.';
-            $this->convertToManual($refund, $message);
+            $refund->forceFill([
+                'status' => self::STATUS_PENDING,
+                'note' => 'The gateway refund outcome is uncertain. Reconcile it in PayMongo before issuing another refund. Manual payout is blocked for this amount.',
+            ])->save();
         }
+    }
+
+    public static function statusForGateway(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'succeeded', 'success', 'refunded' => self::STATUS_PROCESSED,
+            'failed', 'cancelled', 'canceled' => self::STATUS_FAILED,
+            default => self::STATUS_PENDING,
+        };
     }
 
     private function queueManualRefund(SpaBooking $booking, string $component, float $amount, string $method, string $note): BookingRefund
@@ -479,17 +524,5 @@ class BookingRefundService
             'gcash' => 'Send ₱{amount} back to the client\'s GCash account, then mark the refund complete.',
             default => 'Return ₱{amount} to the client using the original payment channel, then mark the refund complete.',
         };
-    }
-
-    private function isNonApiRefundableError(string $message): bool
-    {
-        $lower = strtolower($message);
-        foreach (self::NON_API_REFUNDABLE_SOURCES as $source) {
-            if (str_contains($lower, $source)) {
-                return true;
-            }
-        }
-
-        return str_contains($lower, 'refunds are not allowed');
     }
 }

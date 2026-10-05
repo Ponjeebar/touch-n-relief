@@ -56,6 +56,18 @@ class BookingSlotService
         );
     }
 
+    /** @return array{start: Carbon, end: Carbon}|null */
+    public function bookingWindow(SpaBooking $booking): ?array
+    {
+        if ($booking->session_started_at !== null) {
+            $start = $booking->session_started_at->copy();
+
+            return ['start' => $start, 'end' => $start->copy()->addMinutes($this->resolvedBookingDurationMinutes($booking))];
+        }
+
+        return $this->slotWindow($booking->booking_date->format('Y-m-d'), (string) $booking->time_slot, $this->resolvedBookingDurationMinutes($booking));
+    }
+
     public function normalizeSlotLabelPublic(string $label): ?string
     {
         return $this->normalizeSlotLabel($label);
@@ -84,7 +96,7 @@ class BookingSlotService
             ->where('therapist_name', $therapistName)
             ->whereDate('booking_date', $bookingDate)
             ->lockForUpdate()
-            ->get(['id', 'time_slot', 'duration_minutes', 'service_name']);
+            ->get(['id', 'booking_date', 'time_slot', 'duration_minutes', 'service_name', 'session_started_at']);
     }
 
     /**
@@ -394,12 +406,14 @@ class BookingSlotService
             return null;
         }
 
+        return $this->userWindowConflict($userId, $bookingDate, $proposedWindow, $excludeBookingId);
+    }
+
+    /** @param array{start: Carbon, end: Carbon} $proposedWindow */
+    public function userWindowConflict(int $userId, string $bookingDate, array $proposedWindow, ?int $excludeBookingId = null): ?array
+    {
         foreach ($this->blockingBookingsForUserOnDate($userId, $bookingDate, $excludeBookingId) as $booking) {
-            $existingWindow = $this->slotWindow(
-                $bookingDate,
-                (string) $booking->time_slot,
-                $this->resolvedBookingDurationMinutes($booking),
-            );
+            $existingWindow = $this->bookingWindow($booking);
 
             if ($existingWindow !== null && $this->windowsOverlap($proposedWindow, $existingWindow)) {
                 return [
@@ -444,11 +458,7 @@ class BookingSlotService
             }
 
             foreach ($existing as $booking) {
-                $existingWindow = $this->slotWindow(
-                    $bookingDate,
-                    (string) $booking->time_slot,
-                    $this->resolvedBookingDurationMinutes($booking),
-                );
+                $existingWindow = $this->bookingWindow($booking);
 
                 if ($existingWindow !== null && $this->windowsOverlap($proposedWindow, $existingWindow)) {
                     $conflicts[$slotLabel] = [
@@ -475,7 +485,7 @@ class BookingSlotService
             ->where('user_id', $userId)
             ->whereDate('booking_date', $bookingDate)
             ->when($excludeBookingId !== null, fn ($query) => $query->where('id', '!=', $excludeBookingId))
-            ->get(['id', 'time_slot', 'service_name', 'therapist_name', 'duration_minutes']);
+            ->get(['id', 'booking_date', 'time_slot', 'service_name', 'therapist_name', 'duration_minutes', 'session_started_at']);
     }
 
     /**
@@ -495,7 +505,7 @@ class BookingSlotService
             ->where('therapist_name', $therapistName)
             ->whereDate('booking_date', $bookingDate)
             ->when($excludeBookingId !== null, fn ($query) => $query->where('id', '!=', $excludeBookingId))
-            ->get(['id', 'time_slot', 'duration_minutes', 'service_name']);
+            ->get(['id', 'booking_date', 'time_slot', 'duration_minutes', 'service_name', 'session_started_at']);
     }
 
     public function therapistSlotTaken(
@@ -515,6 +525,12 @@ class BookingSlotService
             return false;
         }
 
+        return $this->therapistWindowTaken($therapistName, $bookingDate, $proposedWindow, $excludeBookingId);
+    }
+
+    /** @param array{start: Carbon, end: Carbon} $proposedWindow */
+    public function therapistWindowTaken(string $therapistName, string $bookingDate, array $proposedWindow, ?int $excludeBookingId = null): bool
+    {
         foreach ($this->therapistRestWindowsForDate($therapistName, $bookingDate, $excludeBookingId) as $restWindow) {
             if ($this->windowsOverlap($proposedWindow, $restWindow)) {
                 return true;
@@ -522,11 +538,7 @@ class BookingSlotService
         }
 
         foreach ($this->blockingBookingsForTherapistOnDate($therapistName, $bookingDate, $excludeBookingId) as $booking) {
-            $existingWindow = $this->slotWindow(
-                $bookingDate,
-                (string) $booking->time_slot,
-                $this->resolvedBookingDurationMinutes($booking),
-            );
+            $existingWindow = $this->bookingWindow($booking);
 
             if ($existingWindow !== null && $this->windowsOverlap($proposedWindow, $existingWindow)) {
                 return true;
@@ -600,11 +612,7 @@ class BookingSlotService
             }
 
             foreach ($existing as $booking) {
-                $existingWindow = $this->slotWindow(
-                    $bookingDate,
-                    (string) $booking->time_slot,
-                    $this->resolvedBookingDurationMinutes($booking),
-                );
+                $existingWindow = $this->bookingWindow($booking);
 
                 if ($existingWindow !== null && $this->windowsOverlap($proposedWindow, $existingWindow)) {
                     $busy[] = $slotLabel;
@@ -663,11 +671,7 @@ class BookingSlotService
             }
 
             foreach ($existing as $booking) {
-                $existingWindow = $this->slotWindow(
-                    $bookingDate,
-                    (string) $booking->time_slot,
-                    $this->resolvedBookingDurationMinutes($booking),
-                );
+                $existingWindow = $this->bookingWindow($booking);
 
                 if ($existingWindow !== null && $this->windowsOverlap($proposedWindow, $existingWindow)) {
                     $existingSlot = (string) $booking->time_slot;
@@ -754,12 +758,9 @@ class BookingSlotService
                     ->orWhereNotIn('session_status', [SpaBooking::STATUS_CANCELLED, SpaBooking::STATUS_NO_SHOW]);
             })
             ->when($excludeBookingId !== null, fn ($query) => $query->where('id', '!=', $excludeBookingId))
-            ->get(['id', 'time_slot', 'duration_minutes', 'service_name'])
-            ->map(fn (SpaBooking $booking): ?array => $this->slotWindow(
-                $bookingDate,
-                (string) $booking->time_slot,
-                $this->resolvedBookingDurationMinutes($booking),
-            ))
+            ->get()
+            ->reject(fn (SpaBooking $booking): bool => $booking->isPaymentHoldExpired())
+            ->map(fn (SpaBooking $booking): ?array => $this->bookingWindow($booking))
             ->filter()
             ->sortBy(fn (array $window): int => $window['start']->timestamp)
             ->values();
