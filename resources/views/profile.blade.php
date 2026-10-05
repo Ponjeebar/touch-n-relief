@@ -33,30 +33,9 @@
         .profile-page{
             min-height:100vh;
             padding:7.4rem 0 3.2rem;
-            background:#5f737b;
+            background:#f1f5f3;
             position:relative;
             overflow:hidden;
-        }
-        .profile-page::before,
-        .profile-page::after{
-            content:"";
-            position:absolute;
-            width:280px;
-            height:54px;
-            border-radius:999px;
-            transform:rotate(-38deg);
-            opacity:.78;
-            pointer-events:none;
-        }
-        .profile-page::before{
-            background:#d8d866;
-            left:-82px;
-            top:40px;
-        }
-        .profile-page::after{
-            background:#89b8c9;
-            right:-82px;
-            bottom:76px;
         }
         .profile-page > .container{
             width:min(1100px,94%);
@@ -67,7 +46,7 @@
             background:#f7f9fb;
             border:1px solid rgba(18,26,32,.18);
             border-radius:10px;
-            box-shadow:0 20px 52px rgba(0,0,0,.22);
+            box-shadow:0 4px 18px rgba(18,42,38,.06);
             overflow:hidden;
             position:relative;
             z-index:1;
@@ -91,20 +70,14 @@
             color:rgba(255,255,255,.92);
             font-weight:600;
         }
-        .profile-cover{
-            height:190px;
-            background:
-                linear-gradient(0deg, rgba(18,30,38,.24), rgba(18,30,38,.24)),
-                radial-gradient(circle at 25% 35%, rgba(120,185,205,.6), rgba(78,108,124,.58) 40%, rgba(52,74,85,.74) 100%);
-            position:relative;
-        }
+
         .profile-head{
             display:flex;
-            align-items:flex-end;
+            align-items:center;
             justify-content:space-between;
             gap:1.5rem;
-            padding:0 2rem 1.25rem;
-            margin-top:-22px;
+            padding:1.5rem 2rem;
+            margin-top:0;
             position:relative;
             z-index:2;
             flex-wrap:wrap;
@@ -137,12 +110,12 @@
             padding-top:0;
             display:flex;
             align-items:center;
-            min-height:124px;
+            min-height:80px;
             min-width:0;
         }
         .profile-avatar{
-            width:124px;
-            height:124px;
+            width:80px;
+            height:80px;
             border-radius:50%;
             border:4px solid #f4f5f7;
             background:linear-gradient(160deg,#dfe7eb,#9ab1bf);
@@ -227,7 +200,7 @@
         .profile-title{
             margin:0 0 .35rem;
             font-family:"Manrope","Inter",sans-serif;
-            font-size:2.2rem;
+            font-size:1.75rem;
             color:#15242d;
             font-weight:800;
             letter-spacing:-.02em;
@@ -257,7 +230,7 @@
             border-radius:16px;
             box-shadow:0 6px 18px rgba(18,42,58,.05);
         }
-        .profile-password-block h3{
+        .profile-password-block h2{
             margin:0 0 1rem;
             font-family:"Manrope","Inter",sans-serif;
             font-size:1.02rem;
@@ -670,7 +643,7 @@
             .profile-page textarea{font-size:16px !important}
             .profile-grid,
             .profile-password-grid{grid-template-columns:1fr}
-            .profile-head{padding:0 1.15rem}
+            .profile-head{padding:1.25rem 1.15rem}
             .profile-body{padding:1.2rem 1.15rem 1.3rem}
             .profile-title{font-size:1.75rem}
             .profile-avatar{width:92px;height:92px;font-size:1.5rem}
@@ -695,8 +668,8 @@
         }
         @media (max-width:600px){
             .profile-head{
-                margin-top:-46px;
-                padding:0 1rem 1.2rem;
+                margin-top:0;
+                padding:1.2rem 1rem;
             }
             .profile-id{
                 flex-direction:column;
@@ -720,6 +693,30 @@
                 line-height:1.16;
             }
         }
+
+        .profile-category + .profile-category{margin-top:1.5rem}
+        .profile-category-heading{margin-bottom:.85rem}
+        .profile-category-heading h2{margin:0 0 .35rem;font-family:"Manrope","Inter",sans-serif;font-size:1.1rem;color:#15242d}
+        .profile-category-heading p,.profile-category-description{margin:0 0 1rem;color:#526875;font-size:.9rem;line-height:1.6}
+        .profile-category-nav{display:flex;flex-wrap:wrap;gap:.35rem 1.25rem;padding:.9rem 2rem;border-top:1px solid #dce8df;border-bottom:1px solid #dce8df;background:#fff}
+        .profile-category-nav a{color:#245b47;font-size:.85rem;font-weight:600;padding:.35rem 0;text-decoration:none;border-bottom:2px solid transparent}
+        .profile-category-nav a:hover,.profile-category-nav a:focus-visible{border-bottom-color:currentColor}
+        .profile-category,.profile-password-block,.profile-wellness,#profile-appointments{scroll-margin-top:110px}
+        .profile-grid,.profile-password-block,.profile-section{border-radius:10px;box-shadow:none}
+        .profile-wellness{background:#f5faf7}
+        .profile-avatar-edit{opacity:1;pointer-events:auto;transform:none;background:#08764f}
+        html[data-theme="dark"] .profile-page{background:#10251e}
+        html[data-theme="dark"] .profile-shell{background:#172e25;border-color:#355345}
+        html[data-theme="dark"] .profile-grid,html[data-theme="dark"] .profile-password-block,html[data-theme="dark"] .profile-section,html[data-theme="dark"] .profile-category-nav{background:#203a2e;border-color:#426251}
+        html[data-theme="dark"] .profile-title,html[data-theme="dark"] .profile-category-heading h2,html[data-theme="dark"] .profile-password-block h2,html[data-theme="dark"] .profile-section-head h2,html[data-theme="dark"] .profile-field label,html[data-theme="dark"] .profile-wellness-label{color:#eff7f1}
+        html[data-theme="dark"] .profile-category-heading p,html[data-theme="dark"] .profile-category-description,html[data-theme="dark"] .profile-category-nav a,html[data-theme="dark"] .profile-wellness-foot,html[data-theme="dark"] .profile-txn-teaser,html[data-theme="dark"] .profile-section-head span{color:#c0d5c9}
+        html[data-theme="dark"] .profile-field input{background:#152c21;color:#eff7f1;border-color:#537360;color-scheme:dark}
+        html[data-theme="dark"] .profile-field input::placeholder{color:#afc6b7;opacity:1}
+        html[data-theme="dark"] .profile-field input#age,html[data-theme="dark"] .profile-field input#birthday:read-only{background:#294437;color:#e3f0e8;border-color:#537360}
+        html[data-theme="dark"] .profile-section-head .profile-wellness-badge{background:#28513a;color:#d6f2df;border-color:#537360}
+        html[data-theme="dark"] .profile-wellness-chip{background:#152c21;color:#e2f0e7;border-color:#537360}
+        html[data-theme="dark"] .profile-wellness-chip.is-selected{background:#285d42;color:#fff;border-color:#83c9a0;box-shadow:none}
+        @media(max-width:600px){.profile-topbar{flex-wrap:wrap;gap:.35rem}.profile-topbar span{font-size:.8rem}.profile-category-nav{padding:.75rem 1rem;gap:.25rem 1rem}.profile-category-nav a{font-size:.8rem}.profile-body{padding:1.25rem 1rem}.profile-section,.profile-password-block{padding:1rem}.profile-section-head{flex-wrap:wrap}}
     </style>
     @include('partials.chatbot-assets')
 </head>
@@ -785,6 +782,7 @@
                         </div>
                     </div>
                 </div>
+                <nav class="profile-category-nav" aria-label="Profile sections"><a href="#personal-information">Personal information</a><a href="#account-details">Account details</a><a href="#password-section">Password</a><a href="#wellness-section">Wellness preferences</a><a href="#profile-appointments">My Appointments</a></nav>
                 <div class="profile-body">
                     @if (session('status'))
                         <div class="profile-success-toast" id="profile-status-toast" role="status" aria-live="polite">
@@ -808,49 +806,66 @@
                     <form id="edit-profile-form" method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
-                        <div class="profile-grid" id="basic-info-section">
-                            <div class="profile-field">
-                                <label for="name">Name</label>
-                                <input id="name" name="name" value="{{ old('name', $user->name) }}" required>
-                            </div>
-                            <div class="profile-field">
-                                <label for="username">Username</label>
-                                <input id="username" name="username" value="{{ old('username', $user->username) }}" required>
-                            </div>
-                            <div class="profile-field">
-                                <label for="email">Email</label>
-                                <input id="email" type="email" name="email" value="{{ old('email', $user->email) }}" required>
-                            </div>
-                            <div class="profile-field">
-                                <label for="email_current_password">Current password to change email</label>
-                                <input id="email_current_password" type="password" name="email_current_password" autocomplete="current-password" placeholder="Required only when changing email">
-                            </div>
-                            <div class="profile-field">
-                                <label for="contact_number">Contact number</label>
-                                <input id="contact_number" name="contact_number" value="{{ old('contact_number', $user->contact_number) }}" maxlength="11" pattern="^09\d{9}$" title="Use 09XXXXXXXXX (11 digits)." inputmode="numeric">
-                            </div>
-                            <div class="profile-field">
-                                <label for="birthday">Date of Birth</label>
-                                <input
-                                    id="birthday"
-                                    type="date"
-                                    name="birthday"
-                                    value="{{ old('birthday', optional($user->birthday)->format('Y-m-d')) }}"
-                                    max="{{ $user->isUser() ? \App\Support\CustomerEligibility::latestEligibleBirthday() : now()->toDateString() }}"
-                                >
-                            </div>
-                            <div class="profile-field">
-                                <label for="age">Age</label>
-                                <input
-                                    id="age"
-                                    type="text"
-                                    value="{{ $user->birthday?->age !== null ? $user->birthday->age : '' }}"
-                                    placeholder="Auto-calculated"
-                                    readonly
-                                    tabindex="-1"
-                                >
-                            </div>
+                        <div id="basic-info-section">
+                            <section class="profile-category" id="personal-information" aria-labelledby="personal-information-title">
+                                <div class="profile-category-heading">
+                                    <h2 id="personal-information-title">Personal information</h2>
+                                    <p>Your contact details and date of birth.</p>
+                                </div>
+                                <div class="profile-grid">
+                                    <div class="profile-field">
+                                        <label for="name">Name</label>
+                                        <input id="name" name="name" value="{{ old('name', $user->name) }}" required>
+                                    </div>
+                                    <div class="profile-field">
+                                        <label for="contact_number">Contact number</label>
+                                        <input id="contact_number" name="contact_number" value="{{ old('contact_number', $user->contact_number) }}" maxlength="11" pattern="^09\d{9}$" title="Use 09XXXXXXXXX (11 digits)." inputmode="numeric">
+                                    </div>
+                                    <div class="profile-field">
+                                        <label for="birthday">Date of Birth</label>
+                                        <input
+                                        id="birthday"
+                                        type="date"
+                                        name="birthday"
+                                        value="{{ old('birthday', optional($user->birthday)->format('Y-m-d')) }}"
+                                        max="{{ $user->isUser() ? \App\Support\CustomerEligibility::latestEligibleBirthday() : now()->toDateString() }}"
+                                        >
+                                    </div>
+                                    <div class="profile-field">
+                                        <label for="age">Age</label>
+                                        <input
+                                        id="age"
+                                        type="text"
+                                        value="{{ $user->birthday?->age !== null ? $user->birthday->age : '' }}"
+                                        placeholder="Auto-calculated"
+                                        readonly
+                                        tabindex="-1"
+                                        >
+                                    </div>
+                                </div>
+                            </section>
+                            <section class="profile-category" id="account-details" aria-labelledby="account-details-title">
+                                <div class="profile-category-heading">
+                                    <h2 id="account-details-title">Account details</h2>
+                                    <p>Your username and email address. Changing email requires your current password and verification of the new address.</p>
+                                </div>
+                                <div class="profile-grid">
+                                    <div class="profile-field">
+                                        <label for="username">Username</label>
+                                        <input id="username" name="username" value="{{ old('username', $user->username) }}" required>
+                                    </div>
+                                    <div class="profile-field">
+                                        <label for="email">Email</label>
+                                        <input id="email" type="email" name="email" value="{{ old('email', $user->email) }}" required>
+                                    </div>
+                                    <div class="profile-field">
+                                        <label for="email_current_password">Current password to change email</label>
+                                        <input id="email_current_password" type="password" name="email_current_password" autocomplete="current-password" placeholder="Required only when changing email">
+                                    </div>
+                                </div>
+                            </section>
                         </div>
+
                         <div class="profile-local-actions" id="basic-info-actions">
                             <button type="button" class="btn btn-light section-edit-btn" id="basic-info-edit">Edit</button>
                             <button type="button" class="btn btn-light section-cancel-btn" id="basic-info-cancel">Cancel</button>
@@ -858,7 +873,7 @@
                         </div>
 
                         <div class="profile-password-block" id="password-section">
-                            <h3>Change password</h3>
+                            <h2>Password</h2><p class="profile-category-description">Use your current password to set a new one.</p>
                             <div class="profile-password-grid">
                                 <div class="profile-field profile-field-span2">
                                     <label for="current_password">Current password</label>
@@ -981,7 +996,7 @@
                     </form>
 
                     <div class="profile-sections">
-                        <section class="profile-section profile-section-compact" aria-labelledby="profile-transactions-title">
+                        <section class="profile-section profile-section-compact" id="profile-appointments" aria-labelledby="profile-transactions-title">
                             <div class="profile-section-head">
                                 <h2 id="profile-transactions-title">My Appointments</h2>
                                 <span>{{ count($transactions) }} record{{ count($transactions) === 1 ? '' : 's' }}</span>
