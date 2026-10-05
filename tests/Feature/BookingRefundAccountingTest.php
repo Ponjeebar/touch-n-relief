@@ -12,6 +12,7 @@ use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
 use App\Support\PaymentMethodCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -37,7 +38,7 @@ class BookingRefundAccountingTest extends TestCase
         );
         $this->assertSame(0, PaymentLedgerEntry::query()->where('entry_type', PaymentLedgerEntry::TYPE_REFUND)->count());
 
-        $service->completeManualRefund($booking->fresh(), 'Returned at the counter.', $staff->id);
+        $service->completeManualRefund($booking->fresh(), 'Returned at the counter.', $staff->id, $this->confirmation(100));
         $booking->refresh();
 
         $this->assertSame(PaymentMethodCatalog::STATUS_REFUNDED, $booking->payment_status);
@@ -137,12 +138,18 @@ class BookingRefundAccountingTest extends TestCase
 
         $this->actingAs($staff)->patchJson(route('appointments.refund.complete', $booking), [
             'refund_note' => 'Balance returned in cash.',
+            ...$this->confirmation(50),
         ])->assertOk()
             ->assertJsonPath('message', 'Refund of ₱50.00 marked complete for '.$booking->client_name.'.');
 
         $log = ActivityLog::query()->where('action', 'refund.completed')->where('subject_id', $booking->id)->firstOrFail();
         $this->assertSame(50.0, (float) $log->properties['refund_amount']);
         $this->assertSame(100.0, (float) $booking->fresh()->refund_amount);
+    }
+
+    private function confirmation(float $amount): array
+    {
+        return ['method' => 'cash', 'recipient' => 'Refund test customer', 'confirmed' => true, 'expected_amount' => $amount, 'evidence' => UploadedFile::fake()->createWithContent('acknowledgment.pdf', "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF")];
     }
 
     private function fullyCollectedBooking(string $initialMethod): SpaBooking

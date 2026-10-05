@@ -218,6 +218,7 @@ class PostgresBookingConcurrencyTest extends TestCase
 
             $results = collect($processes)->map(fn (Process $process): string => trim($process->getOutput()))->sort()->values()->all();
             $this->assertSame(['processed', 'stale'], $results, collect($processes)->map(fn (Process $process): string => $process->getErrorOutput())->implode("\n"));
+            $this->assertSame(1, DB::table('refund_confirmations')->where('spa_booking_id', $booking->id)->count());
             $this->assertSame(1, PaymentLedgerEntry::query()->where('spa_booking_id', $booking->id)
                 ->where('entry_type', PaymentLedgerEntry::TYPE_REFUND)->count());
         } finally {

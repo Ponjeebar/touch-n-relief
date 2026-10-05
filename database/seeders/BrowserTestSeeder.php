@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Receptionist;
 use App\Models\SpaBooking;
 use App\Models\User;
+use App\Services\BookingRefundService;
 use App\Services\PaymentLedgerService;
 use App\Support\PaymentMethodCatalog;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -146,6 +147,22 @@ class BrowserTestSeeder extends Seeder
             ], $details));
 
             app(PaymentLedgerService::class)->recordInitialPayment($booking);
+        }
+
+        foreach (range(0, 2) as $index) {
+            $booking = SpaBooking::create([
+                'user_id' => $customerUser->id, 'client_name' => $customerUser->name,
+                'booking_source' => SpaBooking::SOURCE_ONLINE, 'service_name' => 'Foot Reflexology',
+                'therapist_name' => 'Erica Tamondong', 'duration_minutes' => 60,
+                'booking_date' => now()->toDateString(), 'time_slot' => '10:00 AM',
+                'amount' => 100, 'payment_amount' => 100, 'payment_type' => PaymentMethodCatalog::TYPE_FULL,
+                'payment_method' => PaymentMethodCatalog::METHOD_CASH_COUNTER,
+                'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+                'payment_transaction_id' => 'REFUND-E2E-'.$index,
+                'cancelled_at' => now(), 'session_status' => SpaBooking::STATUS_CANCELLED,
+            ]);
+            app(PaymentLedgerService::class)->recordInitialPayment($booking);
+            app(BookingRefundService::class)->processRefund($booking);
         }
     }
 }

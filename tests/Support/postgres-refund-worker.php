@@ -3,6 +3,7 @@
 use App\Models\SpaBooking;
 use App\Services\BookingRefundService;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
@@ -26,6 +27,7 @@ try {
         SpaBooking::query()->findOrFail((int) $bookingId),
         'PostgreSQL concurrent refund test.',
         (int) $staffId,
+        ['method' => 'cash', 'recipient' => 'Concurrency test customer', 'confirmed' => true, 'expected_amount' => 50, 'evidence' => UploadedFile::fake()->createWithContent('acknowledgment.pdf', "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF")],
     );
     echo 'processed';
 } catch (ValidationException) {

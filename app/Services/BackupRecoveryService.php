@@ -25,6 +25,8 @@ class BackupRecoveryService
         'store_closures',
         'service_slot_date_overrides',
         'spa_bookings',
+        'refund_confirmations',
+        'booking_refunds',
         'payment_ledger_entries',
         'transactions',
         'registrations',

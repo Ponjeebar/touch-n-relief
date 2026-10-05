@@ -101,6 +101,9 @@ Route::middleware(['auth', 'current.staff.session', 'staff.activity'])->group(fu
         Route::get('/appointments/{spaBooking}/reschedule/availability', [StaffAppointmentController::class, 'rescheduleAvailability'])->name('appointments.reschedule.availability');
         Route::patch('/appointments/{spaBooking}/cancel', [StaffAppointmentController::class, 'cancel'])->name('appointments.cancel');
         Route::patch('/appointments/{spaBooking}/no-show', [StaffAppointmentController::class, 'markNoShow'])->name('appointments.no-show');
+        Route::get('/refund-confirmations/{refundConfirmation}/evidence', [StaffAppointmentController::class, 'refundEvidence'])->name('refund.evidence');
+        Route::get('/appointments/{spaBooking}/refund-confirmations', [StaffAppointmentController::class, 'refundConfirmations'])->name('refund.confirmations');
+        Route::patch('/refund-confirmations/{refundConfirmation}/dispute', [StaffAppointmentController::class, 'refundDispute'])->name('refund.dispute');
         Route::patch('/appointments/{spaBooking}/refund', [StaffAppointmentController::class, 'completeRefund'])->name('appointments.refund.complete');
         Route::patch('/appointments/{spaBooking}/collect-balance', [DashboardController::class, 'collectBalance'])->name('appointments.collect-balance');
         Route::patch('/appointments/{spaBooking}/start', [DashboardController::class, 'startSession'])->name('appointments.start');

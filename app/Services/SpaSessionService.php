@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BookingRefund;
 use App\Models\SpaBooking;
 use App\Models\Therapist;
 use App\Models\Transaction;
@@ -822,6 +823,7 @@ class SpaSessionService
                 ? '₱'.number_format((float) $booking->refund_amount, 2)
                 : '',
             'refund_reference' => (string) ($booking->refund_reference ?? ''),
+            'pending_manual_refund_amount' => (float) $booking->refunds()->where('status', BookingRefundService::STATUS_PENDING)->where('processing_channel', BookingRefund::CHANNEL_MANUAL)->sum('amount') ?: ((str_starts_with((string) $booking->refund_reference, 'RF-PND-') && ! $booking->refunds()->exists()) ? (float) $booking->refund_amount : 0),
             'refund_note' => (string) ($booking->refund_note ?? ''),
             'refunded_at' => $booking->refunded_at?->format('M j, Y g:i A') ?? '',
             'can_complete_refund' => app(BookingRefundService::class)->canCompleteManualRefund($booking),

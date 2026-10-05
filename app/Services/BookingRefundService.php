@@ -3,10 +3,13 @@
 namespace App\Services;
 
 use App\Models\BookingRefund;
+use App\Models\RefundConfirmation;
 use App\Models\SpaBooking;
+use App\Models\User;
 use App\Support\PaymentMethodCatalog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -81,6 +84,7 @@ class BookingRefundService
     {
         return DB::transaction(function () use ($booking): SpaBooking {
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
+            $this->assertNoOpenRefundDispute($locked);
             $this->importLegacyRefund($locked);
 
             $initialAmount = $this->availableForComponent($locked, BookingRefund::COMPONENT_INITIAL);
@@ -123,10 +127,11 @@ class BookingRefundService
         });
     }
 
-    public function completeManualRefund(SpaBooking $booking, ?string $staffNote = null, ?int $staffId = null): SpaBooking
+    public function completeManualRefund(SpaBooking $booking, ?string $staffNote = null, ?int $staffId = null, array $confirmation = []): SpaBooking
     {
-        return DB::transaction(function () use ($booking, $staffNote, $staffId): SpaBooking {
+        return DB::transaction(function () use ($booking, $staffNote, $staffId, $confirmation): SpaBooking {
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
+            $this->assertNoOpenRefundDispute($locked);
             $this->importLegacyRefund($locked);
             $pending = BookingRefund::query()->where('spa_booking_id', $locked->id)
                 ->where('status', self::STATUS_PENDING)
@@ -137,9 +142,35 @@ class BookingRefundService
                 throw ValidationException::withMessages(['refund' => 'This booking does not have a pending manual refund to complete.']);
             }
 
+            $validated = Validator::make($confirmation, [
+                'method' => ['required', 'in:cash,gcash,bank_transfer'],
+                'recipient' => ['required', 'string', 'max:150'],
+                'transfer_reference' => ['required_unless:method,cash', 'nullable', 'string', 'max:100'],
+                'confirmed' => ['accepted'],
+                'expected_amount' => ['required', 'numeric', 'min:0.01'],
+                'evidence' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
+            ])->validate();
+            if ((int) round((float) $validated['expected_amount'] * 100) !== (int) round((float) $pending->sum('amount') * 100)) {
+                throw ValidationException::withMessages(['refund' => 'The pending refund amount changed. Close and reopen the appointment before confirming.']);
+            }
+            $staff = User::query()->find($staffId);
+            abort_unless($staff && in_array($staff->role, [User::ROLE_ADMIN, User::ROLE_RECEPTIONIST], true), 403);
+            $file = $validated['evidence'];
+            $record = RefundConfirmation::query()->create([
+                'spa_booking_id' => $locked->id,
+                'confirmed_by' => $staffId,
+                'amount' => $pending->sum('amount'),
+                'method' => $validated['method'],
+                'recipient' => $validated['recipient'],
+                'transfer_reference' => $validated['method'] === 'cash' ? null : $validated['transfer_reference'],
+                'evidence_mime' => $file->getMimeType(),
+                'evidence' => base64_encode(file_get_contents($file->getRealPath())),
+                'confirmed_at' => now(),
+            ]);
             $note = trim((string) $staffNote);
             foreach ($pending as $refund) {
                 $refund->forceFill([
+                    'refund_confirmation_id' => $record->id,
                     'status' => self::STATUS_PROCESSED,
                     'processed_at' => now(),
                     'processed_by' => $staffId,
@@ -241,6 +272,13 @@ class BookingRefundService
             $this->paymentLedger->recordRefund($refund->fresh());
             $this->syncBookingSummary($booking);
         });
+    }
+
+    private function assertNoOpenRefundDispute(SpaBooking $booking): void
+    {
+        if (RefundConfirmation::query()->where('spa_booking_id', $booking->id)->whereNotNull('disputed_at')->whereNull('resolved_at')->exists()) {
+            throw ValidationException::withMessages(['refund' => 'A refund dispute needs reconciliation before another refund can be issued.']);
+        }
     }
 
     private function processPaymongoRefund(SpaBooking $booking, float $amount): void

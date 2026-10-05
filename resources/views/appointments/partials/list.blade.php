@@ -212,6 +212,8 @@
                         data-refund-amount="{{ $appointment['refund_amount'] ?? '' }}"
                         data-refund-reference="{{ $appointment['refund_reference'] ?? '' }}"
                         data-refund-note="{{ $appointment['refund_note'] ?? '' }}"
+                        data-manual-refund-amount="{{ $appointment['pending_manual_refund_amount'] ?? 0 }}"
+                        data-refund-history-url="{{ $bookingId ? route('refund.confirmations', $bookingId) : '' }}"
                         data-can-complete-refund="{{ ! empty($appointment['can_complete_refund']) ? '1' : '0' }}"
                         data-refund-url="{{ ! empty($appointment['can_complete_refund']) && $bookingId ? route('appointments.refund.complete', $bookingId) : '' }}"
                     >

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BookingRefund;
 use App\Models\Customer;
+use App\Models\RefundConfirmation;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\Therapist;
@@ -38,6 +38,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 
 class StaffAppointmentController extends Controller
 {
@@ -852,6 +853,61 @@ class StaffAppointmentController extends Controller
             ->with('status', $message);
     }
 
+    public function refundEvidence(Request $request, RefundConfirmation $refundConfirmation): Response
+    {
+        $this->ensureStaff($request);
+
+        return response(base64_decode($refundConfirmation->evidence, true), 200, [
+            'Content-Type' => $refundConfirmation->evidence_mime,
+            'Content-Disposition' => 'attachment; filename="refund-'.$refundConfirmation->id.'.'.($refundConfirmation->evidence_mime === 'application/pdf' ? 'pdf' : ($refundConfirmation->evidence_mime === 'image/png' ? 'png' : 'jpg')).'"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function refundConfirmations(Request $request, SpaBooking $spaBooking): JsonResponse
+    {
+        $this->ensureStaff($request);
+
+        return response()->json(RefundConfirmation::query()->where('spa_booking_id', $spaBooking->id)->latest('id')->get([
+            'id', 'confirmed_by', 'amount', 'method', 'recipient', 'transfer_reference', 'confirmed_at',
+            'disputed_at', 'resolved_at', 'dispute_note', 'resolution_note',
+        ])->map(fn ($record) => [
+            'id' => $record->id,
+            'amount' => $record->amount,
+            'method' => $record->method,
+            'recipient' => $record->recipient,
+            'reference' => $record->transfer_reference,
+            'confirmed_at' => $record->confirmed_at->format('M j, Y g:i A'),
+            'staff' => User::query()->find($record->confirmed_by)?->name ?? 'Former staff',
+            'disputed' => $record->disputed_at !== null && $record->resolved_at === null,
+            'dispute_note' => $record->dispute_note,
+            'resolution_note' => $record->resolution_note,
+            'evidence_url' => route('refund.evidence', $record),
+            'dispute_url' => route('refund.dispute', $record),
+        ]));
+    }
+
+    public function refundDispute(Request $request, RefundConfirmation $refundConfirmation): JsonResponse
+    {
+        $staff = $this->ensureStaff($request);
+        $validated = $request->validate(['action' => ['required', 'in:report,resolve'], 'note' => ['required', 'string', 'max:1000']]);
+        DB::transaction(function () use ($refundConfirmation, $validated, $staff, $request): void {
+            SpaBooking::query()->lockForUpdate()->findOrFail($refundConfirmation->spa_booking_id);
+            $record = RefundConfirmation::query()->lockForUpdate()->findOrFail($refundConfirmation->id);
+            $open = $record->disputed_at !== null && $record->resolved_at === null;
+            if (($validated['action'] === 'report' && $open) || ($validated['action'] === 'resolve' && ! $open)) {
+                throw ValidationException::withMessages(['refund' => 'The dispute state changed. Reopen the appointment.']);
+            }
+            $record->forceFill($validated['action'] === 'report'
+                ? ['disputed_at' => now(), 'dispute_note' => $validated['note'], 'resolved_at' => null, 'resolution_note' => null]
+                : ['resolved_at' => now(), 'resolution_note' => $validated['note']])->save();
+            ActivityLogger::log('refund.dispute.'.$validated['action'], 'Refund dispute '.$validated['action'].'.', ['confirmation_id' => $record->id, 'note' => $validated['note']], subject: $record, user: $staff, request: $request);
+        });
+
+        return response()->json(['message' => 'Refund dispute updated. No payment or refund was created.']);
+    }
+
     public function completeRefund(Request $request, SpaBooking $spaBooking): JsonResponse|RedirectResponse
     {
         $staff = $this->ensureStaff($request);
@@ -862,20 +918,29 @@ class StaffAppointmentController extends Controller
         $validated = $request->validate([
             'refund_note' => ['nullable', 'string', 'max:500'],
         ]);
-        $manualRefundAmount = (float) $spaBooking->refunds()
-            ->where('status', BookingRefundService::STATUS_PENDING)
-            ->where('processing_channel', BookingRefund::CHANNEL_MANUAL)
-            ->sum('amount');
-        if ($manualRefundAmount < 0.01) {
-            $manualRefundAmount = (float) ($spaBooking->refund_amount ?? 0);
-        }
-
+        $manualRefundAmount = 0.0;
         try {
-            $spaBooking = $this->refunds->completeManualRefund(
-                $spaBooking,
-                $validated['refund_note'] ?? null,
-                $staff->id,
-            );
+            $spaBooking = DB::transaction(function () use ($spaBooking, $validated, $staff, $request, &$manualRefundAmount): SpaBooking {
+                $completed = $this->refunds->completeManualRefund(
+                    $spaBooking,
+                    $validated['refund_note'] ?? null,
+                    $staff->id,
+                    $request->only(['method', 'recipient', 'transfer_reference', 'confirmed', 'expected_amount']) + ['evidence' => $request->file('evidence')],
+                );
+                $confirmation = RefundConfirmation::query()->where('spa_booking_id', $completed->id)->latest('id')->firstOrFail(['id', 'amount', 'method', 'transfer_reference']);
+                $manualRefundAmount = (float) $confirmation->amount;
+                $clientName = (string) ($completed->client_name ?: $completed->user?->name ?: 'Client');
+                ActivityLogger::log(
+                    'refund.completed',
+                    sprintf('Marked refund complete for %s (₱%s).', $clientName, number_format((float) $confirmation->amount, 2)),
+                    ['booking_id' => $completed->id, 'client_name' => $clientName, 'refund_amount' => (float) $confirmation->amount,
+                        'refund_reference' => $completed->refund_reference, 'confirmation_id' => $confirmation->id,
+                        'method' => $confirmation->method, 'transfer_reference' => $confirmation->transfer_reference],
+                    subject: $completed, user: $staff, request: $request,
+                );
+
+                return $completed;
+            });
         } catch (ValidationException $e) {
             if ($request->expectsJson()) {
                 throw $e;
@@ -885,24 +950,6 @@ class StaffAppointmentController extends Controller
         }
 
         $clientName = (string) ($spaBooking->client_name ?: $spaBooking->user?->name ?: 'Client');
-
-        ActivityLogger::log(
-            'refund.completed',
-            sprintf(
-                'Marked refund complete for %s (₱%s).',
-                $clientName,
-                number_format($manualRefundAmount, 2),
-            ),
-            [
-                'booking_id' => $spaBooking->id,
-                'client_name' => $clientName,
-                'refund_amount' => $manualRefundAmount,
-                'refund_reference' => $spaBooking->refund_reference,
-            ],
-            subject: $spaBooking,
-            user: $staff,
-            request: $request,
-        );
 
         $message = 'Refund of ₱'.number_format($manualRefundAmount, 2).' marked complete for '.$clientName.'.';
 

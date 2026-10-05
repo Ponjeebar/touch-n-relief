@@ -1271,6 +1271,47 @@ html[data-theme="dark"] .balance-summary-due strong {
     grid-column: 1 / -1;
 }
 
+#manual-refund-form {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+
+#manual-refund-form .field-hint,
+#refund-confirmation-history p {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+#refund-confirmation-history form {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+#refund-confirmation-history textarea,
+#manual-refund-form textarea,
+#manual-refund-form select {
+    width: 100%;
+    min-width: 0;
+    color: inherit;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px;
+    font: inherit;
+}
+
+#manual-refund-form input[type="file"] {
+    max-width: 100%;
+}
+
+#manual-refund-form input[type="checkbox"] {
+    width: auto;
+}
+
 .reschedule-select,
 .reschedule-textarea {
     width: 100%;

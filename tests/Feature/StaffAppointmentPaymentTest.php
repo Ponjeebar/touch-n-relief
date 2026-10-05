@@ -18,6 +18,7 @@ use App\Services\TherapistAvailabilityService;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -777,7 +778,7 @@ class StaffAppointmentPaymentTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($receptionist)
-            ->patchJson(route('appointments.refund.complete', $booking))
+            ->patchJson(route('appointments.refund.complete', $booking), ['method' => 'cash', 'recipient' => $client->name, 'confirmed' => true, 'expected_amount' => 50, 'evidence' => UploadedFile::fake()->createWithContent('ack.pdf', "%PDF-1.4\n%%EOF")])
             ->assertOk()
             ->assertJsonPath('refund_status', BookingRefundService::STATUS_PROCESSED);
 

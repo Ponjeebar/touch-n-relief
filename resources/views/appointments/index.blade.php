@@ -689,7 +689,7 @@
             <h3 class="profile-modal-title" id="view-appointment-modal-title">Appointment Details</h3>
             <div class="reschedule-subtitle" id="view-modal-subtitle">Review the booking details.</div>
 
-            <div class="reschedule-grid">
+            <div class="reschedule-grid" id="view-details-grid">
                 <div class="profile-field">
                     <label>Client</label>
                     <input id="view-client" type="text" readonly>
@@ -765,10 +765,23 @@
                     <label>Refund</label>
                     <textarea id="view-refund-status" class="reschedule-textarea" rows="2" readonly></textarea>
                     <p class="field-hint" id="view-refund-note"></p>
+                    <div id="refund-confirmation-history" aria-live="polite"></div>
                 </div>
             </div>
 
-            <div class="profile-modal-actions view-modal-actions">
+            <form id="manual-refund-form" class="reschedule-grid hidden-section" enctype="multipart/form-data">
+                <input type="hidden" name="expected_amount" id="refund-expected-amount">
+                <div class="profile-field reschedule-full"><label for="refund-confirm-amount">Amount to return</label><input id="refund-confirm-amount" readonly><p class="field-hint">Return the money first. This records staff confirmation, not an automatic transfer.</p></div>
+                <div class="profile-field"><label for="refund-method">Refund method</label><select id="refund-method" name="method" required><option value="cash">Cash</option><option value="gcash">GCash transfer</option><option value="bank_transfer">Bank transfer</option></select></div>
+                <div class="profile-field"><label for="refund-recipient">Recipient name / account</label><input id="refund-recipient" name="recipient" maxlength="150" required></div>
+                <div class="profile-field reschedule-full hidden-section" id="refund-transfer-wrap"><label for="refund-transfer-reference">Actual transfer reference</label><input id="refund-transfer-reference" name="transfer_reference" maxlength="100"><p class="field-hint">Use the reference issued by GCash or the bank.</p></div>
+                <div class="profile-field reschedule-full"><label for="refund-evidence" id="refund-evidence-label">Signed cash acknowledgment</label><input id="refund-evidence" name="evidence" type="file" accept="image/jpeg,image/png,application/pdf" required><p class="field-hint">JPEG, PNG or PDF, up to 2 MB. Staff-only access. For remote refunds, attach the transaction confirmation showing amount, recipient and reference.</p></div>
+                <div class="profile-field reschedule-full"><label for="refund-confirm-note">Refund note (optional)</label><textarea id="refund-confirm-note" name="refund_note" maxlength="500" rows="2"></textarea></div>
+                <div class="profile-field reschedule-full"><label><input type="checkbox" name="confirmed" value="1" required> I confirm the displayed amount was returned to this recipient and the attachment supports this refund.</label><p class="field-hint">For a disputed refund, reconcile the evidence with actual cash or transfer records before issuing any further refund.</p></div>
+                <p id="refund-confirm-error" class="field-hint reschedule-full" role="alert"></p>
+                <div class="profile-modal-actions reschedule-full"><button type="submit" class="user-action add">Confirm manual refund</button><button type="button" class="user-action" id="refund-confirm-cancel">Back</button></div>
+            </form>
+            <div class="profile-modal-actions view-modal-actions" id="view-details-actions">
                 <a class="user-action add hidden-section" id="view-retry-paymongo-link" href="#">Resume PayMongo checkout</a>
                 <button type="button" class="user-action hidden-section" id="view-complete-refund-btn">Mark refund complete</button>
                 <button type="button" class="user-action" id="view-close-btn">Close</button>
@@ -2038,9 +2051,12 @@
         const viewCompleteRefundBtn = document.getElementById('view-complete-refund-btn');
         const viewRetryPaymongoLink = document.getElementById('view-retry-paymongo-link');
         let activeRefundUrl = '';
+        let viewReturnFocus = null;
+        let refundHistoryGeneration = 0;
         let activeViewBookingId = '';
 
         function openViewModal(button) {
+            viewReturnFocus = button;
             const client = button.getAttribute('data-client') ?? '';
             const service = button.getAttribute('data-service') ?? '';
             const therapist = button.getAttribute('data-therapist') ?? '';
@@ -2123,6 +2139,17 @@
                 viewCompleteRefundBtn.classList.toggle('hidden-section', !canCompleteRefund || !activeRefundUrl);
             }
 
+            document.getElementById('view-details-grid').classList.remove('hidden-section');
+            document.getElementById('view-details-actions').classList.remove('hidden-section');
+            document.getElementById('view-appointment-modal-title').textContent = 'Appointment Details';
+            document.getElementById('manual-refund-form').reset();
+            document.getElementById('manual-refund-form').classList.add('hidden-section');
+            const pendingManualAmount = Number(button.getAttribute('data-manual-refund-amount') || 0);
+            document.getElementById('refund-confirm-amount').value = `₱${pendingManualAmount.toFixed(2)}`;
+            document.getElementById('refund-expected-amount').value = pendingManualAmount.toFixed(2);
+            document.getElementById('refund-recipient').value = client;
+            document.getElementById('refund-confirm-error').textContent = '';
+            loadRefundHistory(button.getAttribute('data-refund-history-url') || '');
             viewModal?.classList.remove('hidden-section');
             document.body.classList.add('modal-open');
         }
@@ -2132,11 +2159,103 @@
             document.body.classList.remove('modal-open');
             activeRefundUrl = '';
             activeViewBookingId = '';
+            refundHistoryGeneration++;
+            viewReturnFocus?.focus();
         }
 
-        viewCompleteRefundBtn?.addEventListener('click', async () => {
+        const refundForm = document.getElementById('manual-refund-form');
+        async function loadRefundHistory(url) {
+            const generation = ++refundHistoryGeneration;
+            const history = document.getElementById('refund-confirmation-history');
+            history.replaceChildren();
+            if (!url) return;
+            try {
+                const response = await fetch(url, { headers: { Accept: 'application/json' } });
+                if (!response.ok) throw new Error('history');
+                const records = await response.json();
+                if (generation !== refundHistoryGeneration) return;
+                if (!records.length) {
+                    history.textContent = 'No supporting refund evidence recorded.';
+                    return;
+                }
+                records.forEach(record => {
+                    const section = document.createElement('div');
+                    const summary = document.createElement('p');
+                    summary.textContent = `₱${record.amount} · ${record.method} · ${record.recipient} · ${record.reference || 'Cash acknowledgment'} · ${record.staff} · ${record.confirmed_at}`;
+                    const link = document.createElement('a');
+                    link.href = record.evidence_url;
+                    link.download = '';
+                    link.textContent = 'Download supporting evidence';
+                    const note = document.createElement('p');
+                    note.textContent = record.disputed ? `Dispute awaiting reconciliation: ${record.dispute_note}` : (record.resolution_note ? `Reconciled: ${record.resolution_note}` : 'No dispute recorded.');
+                    const form = document.createElement('form');
+                    const input = document.createElement('textarea');
+                    input.required = true; input.maxLength = 1000; input.rows = 2;
+                    input.setAttribute('aria-label', record.disputed ? 'Reconciliation findings' : 'Refund dispute details');
+                    input.placeholder = record.disputed ? 'Record checked transfer or cash records and the outcome.' : 'Describe the customer’s refund dispute.';
+                    const button = document.createElement('button');
+                    button.type = 'submit'; button.className = 'user-action';
+                    button.textContent = record.disputed ? 'Record reconciliation' : 'Report refund dispute';
+                    form.append(input, button);
+                    form.addEventListener('submit', async event => {
+                        event.preventDefault();
+                        button.disabled = true;
+                        try {
+                            const result = await fetch(record.dispute_url, { method: 'PATCH', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' }, body: JSON.stringify({ action: record.disputed ? 'resolve' : 'report', note: input.value }) });
+                            const data = await result.json();
+                            if (!result.ok) throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message);
+                            if (generation === refundHistoryGeneration) await loadRefundHistory(url);
+                        } catch (error) { note.textContent = error.message || 'Unable to update dispute. Try again.'; }
+                        finally { button.disabled = false; }
+                    });
+                    section.append(summary, link, note, form);
+                    history.append(section);
+                });
+            } catch (error) { if (generation === refundHistoryGeneration) history.textContent = 'Unable to load refund evidence. Close and reopen the appointment to retry.'; }
+        }
+        const refundMethod = document.getElementById('refund-method');
+        function updateRefundMethod() {
+            const cash = refundMethod.value === 'cash';
+            document.getElementById('refund-transfer-wrap').classList.toggle('hidden-section', cash);
+            document.getElementById('refund-transfer-reference').required = !cash;
+            document.getElementById('refund-evidence-label').textContent = cash ? 'Signed cash acknowledgment' : 'Transfer confirmation';
+        }
+        refundMethod.addEventListener('change', updateRefundMethod);
+        viewCompleteRefundBtn?.addEventListener('click', () => {
+            refundForm.classList.remove('hidden-section');
+            document.getElementById('view-details-grid').classList.add('hidden-section');
+            document.getElementById('view-details-actions').classList.add('hidden-section');
+            document.getElementById('view-appointment-modal-title').textContent = 'Confirm manual refund';
+            viewCompleteRefundBtn.classList.add('hidden-section');
+            updateRefundMethod();
+            refundMethod.focus();
+        });
+        document.getElementById('refund-confirm-cancel').addEventListener('click', () => {
+            refundForm.classList.add('hidden-section');
+            document.getElementById('view-details-grid').classList.remove('hidden-section');
+            document.getElementById('view-details-actions').classList.remove('hidden-section');
+            document.getElementById('view-appointment-modal-title').textContent = 'Appointment Details';
+            viewCompleteRefundBtn.classList.remove('hidden-section');
+            viewCompleteRefundBtn.focus();
+        });
+        viewModal.addEventListener('keydown', event => {
+            if (event.key !== 'Tab') return;
+            const controls = [...viewModal.querySelectorAll('button:not([disabled]), input:not([disabled]), select, textarea, a[href]')].filter(el => el.getClientRects().length);
+            if (!controls.length) return;
+            const first = controls[0], last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        });
+        refundForm.addEventListener('submit', async event => {
+            event.preventDefault();
             if (!activeRefundUrl) return;
-            if (!window.confirm('Confirm that the refund has been returned to the client?')) return;
+            const submit = refundForm.querySelector('[type=submit]');
+            if (submit.disabled) return;
+            submit.disabled = true;
+            document.getElementById('refund-confirm-error').textContent = '';
+            const completedBookingId = activeViewBookingId;
+            const payload = new FormData(refundForm);
+            payload.set('_method', 'PATCH');
 
             viewCompleteRefundBtn.disabled = true;
 
@@ -2145,15 +2264,14 @@
                     || document.querySelector('input[name="_token"]')?.value
                     || '';
                 const response = await fetch(activeRefundUrl, {
-                    method: 'PATCH',
+                    method: 'POST',
                     headers: {
                         'Accept': 'application/json',
-                        'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-TOKEN': token,
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({}),
+                    body: payload,
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) {
@@ -2161,12 +2279,11 @@
                     const msg = errors && typeof errors === 'object'
                         ? Object.values(errors).flat().join(' ')
                         : (data?.message || 'Unable to complete refund.');
-                    window.alert(msg);
+                    document.getElementById('refund-confirm-error').textContent = msg;
                     return;
                 }
 
-                const completedBookingId = activeViewBookingId;
-                hideViewModal();
+                if (activeViewBookingId === completedBookingId) hideViewModal();
                 const toast = document.getElementById('status-toast');
                 if (toast) {
                     toast.classList.remove('hidden-section');
@@ -2184,9 +2301,10 @@
                     }).catch(() => {});
                 }
             } catch (error) {
-                window.alert('Unable to complete refund. Please check your connection and try again.');
+                document.getElementById('refund-confirm-error').textContent = 'Unable to complete refund. Please check your connection and try again.';
             } finally {
                 viewCompleteRefundBtn.disabled = false;
+                submit.disabled = false;
             }
         });
 
