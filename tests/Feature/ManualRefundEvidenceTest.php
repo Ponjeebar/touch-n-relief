@@ -93,7 +93,7 @@ class ManualRefundEvidenceTest extends TestCase
         $this->actingAs($staff)->patchJson(route('appointments.refund.complete', $booking), array_replace($this->payload(), ['expected_amount' => 25]))->assertOk();
         $record = RefundConfirmation::firstOrFail();
         $this->assertNull($record->transfer_reference);
-        $this->patchJson(route('refund.dispute', $record), ['action' => 'report', 'note' => 'Customer reports no receipt.'])->assertOk();
+        $this->patchJson(route('refund.dispute', $record), ['action' => 'report', 'note' => 'Customer reports no receipt.', 'dispute_version' => $record->disputeVersion()])->assertOk();
         $this->patchJson(route('refund.dispute', $record), ['action' => 'report', 'note' => 'Duplicate'])->assertUnprocessable();
         try {
             app(BookingRefundService::class)->processRefund($booking->fresh());
@@ -103,7 +103,7 @@ class ManualRefundEvidenceTest extends TestCase
         }
         $this->assertSame(1, BookingRefund::count());
         $this->assertSame(25.0, (float) PaymentLedgerEntry::where('entry_type', PaymentLedgerEntry::TYPE_REFUND)->sum('amount'));
-        $this->patchJson(route('refund.dispute', $record), ['action' => 'resolve', 'note' => 'Matched signed acknowledgment to cash register.'])->assertOk();
+        $this->patchJson(route('refund.dispute', $record), ['action' => 'resolve', 'note' => 'Matched signed acknowledgment to cash register.', 'dispute_version' => $record->disputeVersion()])->assertOk();
         app(BookingRefundService::class)->processRefund($booking->fresh());
         $this->assertSame(2, BookingRefund::count());
         $this->assertSame(75.0, (float) BookingRefund::where('status', BookingRefundService::STATUS_PENDING)->sum('amount'));
@@ -127,6 +127,39 @@ class ManualRefundEvidenceTest extends TestCase
         $this->assertSame(BookingRefundService::STATUS_PENDING, $booking->fresh()->refund_status);
         $this->assertNull(BookingRefund::firstOrFail()->refund_confirmation_id);
         $this->get(route('refund.confirmations', $booking))->assertRedirect(route('login'));
+    }
+
+    public function test_old_forms_cannot_resolve_a_reopened_dispute_even_with_identical_notes_and_time(): void
+    {
+        $this->freezeTime();
+        foreach ([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST] as $role) {
+            $booking = $this->booking();
+            $booking->refunds()->update(['amount' => 25]);
+            $this->actingAs(User::factory()->create(['role' => $role]));
+            $this->patchJson(route('appointments.refund.complete', $booking), array_replace($this->payload(), ['expected_amount' => 25]))->assertOk();
+            $record = RefundConfirmation::where('spa_booking_id', $booking->id)->firstOrFail();
+            $url = route('refund.dispute', $record);
+            $report = ['action' => 'report', 'note' => 'Money not received.', 'dispute_version' => $record->disputeVersion()];
+            $this->patchJson($url, $report)->assertOk();
+            $resolution = ['action' => 'resolve', 'note' => 'Checked records.', 'dispute_version' => $record->disputeVersion()];
+            $this->patchJson($url, $resolution)->assertOk();
+            $this->patchJson($url, $report)->assertUnprocessable()->assertJsonValidationErrors('refund');
+            $report['dispute_version'] = $record->disputeVersion();
+            $this->patchJson($url, $report)->assertOk();
+            $logs = DB::table('activity_logs')->where('subject_type', $record->getMorphClass())->where('subject_id', $record->id)->count();
+            $this->patchJson($url, $resolution)->assertUnprocessable()->assertJsonValidationErrors('refund');
+            $this->patchJson($url, ['action' => 'resolve', 'note' => 'Missing version'])->assertUnprocessable()->assertJsonValidationErrors('dispute_version');
+            $this->assertNull($record->fresh()->resolved_at);
+            $this->assertSame($logs, DB::table('activity_logs')->where('subject_type', $record->getMorphClass())->where('subject_id', $record->id)->count());
+            $this->assertSame(25.0, (float) PaymentLedgerEntry::where('spa_booking_id', $booking->id)->where('entry_type', PaymentLedgerEntry::TYPE_REFUND)->sum('amount'));
+            $this->getJson(route('refund.confirmations', $booking))->assertOk()->assertJsonPath('0.dispute_version', $record->disputeVersion())->assertJsonPath('0.disputed', true);
+            try {
+                app(BookingRefundService::class)->processRefund($booking->fresh());
+                $this->fail('The newer complaint must still block further refunds.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('refund', $exception->errors());
+            }
+        }
     }
 
     public function test_ledger_failure_rolls_back_confirmation_and_refund_status(): void

@@ -44,8 +44,22 @@ for (const [index, scenario] of scenarios.entries()) {
         await history.getByText('Download supporting evidence').click();
         expect((await downloadPromise).suggestedFilename()).toMatch(/refund-\d+\.pdf/);
         await history.locator('textarea').fill('Customer disputed receipt; checking records.');
+        const reportedHistory = page.waitForResponse(response => response.url().includes('/refund-confirmations') && response.request().method() === 'GET');
         await history.getByRole('button', { name: 'Report refund dispute' }).click();
         await expect(history).toContainText('Dispute awaiting reconciliation');
+        const [reported] = await (await reportedHistory).json();
+        if (index === 0) {
+            const headers = { 'X-CSRF-TOKEN': await page.locator('meta[name="csrf-token"]').getAttribute('content'), Accept: 'application/json' };
+            expect((await page.request.patch(reported.dispute_url, { headers, data: { action: 'resolve', note: 'Another staff member checked records.', dispute_version: reported.dispute_version } })).status()).toBe(200);
+            const [resolved] = await (await page.request.get(`/appointments/${await view.getAttribute('data-booking-id')}/refund-confirmations`, { headers })).json();
+            expect((await page.request.patch(reported.dispute_url, { headers, data: { action: 'report', note: 'New complaint requires review.', dispute_version: resolved.dispute_version } })).status()).toBe(200);
+            await history.locator('textarea').fill('Old reconciliation form.');
+            await history.getByRole('button', { name: 'Record reconciliation' }).click();
+            await expect(history).toContainText('The dispute state changed. Reopen the appointment.');
+            await page.locator('#view-close-btn').click();
+            await view.click();
+            await expect(history).toContainText('New complaint requires review.');
+        }
         await history.locator('textarea').fill('Transfer or signed cash acknowledgment reconciled with register.');
         await history.getByRole('button', { name: 'Record reconciliation' }).click();
         await expect(history).toContainText('Reconciled:');

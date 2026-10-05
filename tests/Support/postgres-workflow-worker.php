@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\StaffAppointmentController;
 use App\Http\Controllers\SystemSettingsController;
 use App\Models\MembershipPurchase;
+use App\Models\RefundConfirmation;
 use App\Models\SpaBooking;
 use App\Models\User;
 use App\Services\BookingCancellationService;
@@ -122,6 +124,16 @@ try {
             'cs_pg_membership_'.$actor,
         );
         echo 'confirmed';
+    } elseif ($action === 'refund-dispute') {
+        [$staffId, $version] = explode(':', $actor);
+        $staff = User::query()->findOrFail((int) $staffId);
+        Auth::setUser($staff);
+        $request = Request::create('/refund-confirmations/'.$recordId.'/dispute', 'PATCH', [
+            'action' => 'resolve', 'note' => 'Verified the cash acknowledgment.', 'dispute_version' => $version,
+        ]);
+        $request->setUserResolver(fn (): User => $staff);
+        $app->make(StaffAppointmentController::class)->refundDispute($request, RefundConfirmation::query()->findOrFail((int) $recordId));
+        echo 'resolved';
     } elseif ($action === 'settings') {
         $profiles = [
             'a' => [10, 40, 2],

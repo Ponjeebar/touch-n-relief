@@ -2201,7 +2201,7 @@
                         event.preventDefault();
                         button.disabled = true;
                         try {
-                            const result = await fetch(record.dispute_url, { method: 'PATCH', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' }, body: JSON.stringify({ action: record.disputed ? 'resolve' : 'report', note: input.value }) });
+                            const result = await fetch(record.dispute_url, { method: 'PATCH', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' }, body: JSON.stringify({ action: record.disputed ? 'resolve' : 'report', note: input.value, dispute_version: record.dispute_version }) });
                             const data = await result.json();
                             if (!result.ok) throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message);
                             if (generation === refundHistoryGeneration) await loadRefundHistory(url);

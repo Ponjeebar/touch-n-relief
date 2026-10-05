@@ -5,6 +5,7 @@ namespace Tests\Integration;
 use App\Models\BookingRefund;
 use App\Models\MembershipPurchase;
 use App\Models\PaymentLedgerEntry;
+use App\Models\RefundConfirmation;
 use App\Models\SpaBooking;
 use App\Models\Therapist;
 use App\Models\User;
@@ -411,6 +412,29 @@ class PostgresBookingConcurrencyTest extends TestCase
         if ($booking->session_started_at !== null) {
             $this->assertDatabaseMissing('booking_refunds', ['spa_booking_id' => $booking->id]);
         }
+    }
+
+    public function test_simultaneous_reconciliation_requests_accept_only_one_observed_dispute_version(): void
+    {
+        $customer = User::factory()->create();
+        $booking = SpaBooking::query()->create([
+            'user_id' => $customer->id, 'client_name' => $customer->name,
+            'service_name' => 'Massage', 'booking_date' => now()->addDay()->toDateString(),
+            'time_slot' => '10:00 AM', 'amount' => 100,
+        ]);
+        $staff = collect([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST])->map(fn (string $role): User => User::factory()->create(['role' => $role]));
+        $record = RefundConfirmation::query()->create([
+            'spa_booking_id' => $booking->id, 'confirmed_by' => $staff->first()->id,
+            'amount' => 25, 'method' => 'cash', 'recipient' => $customer->name,
+            'evidence_mime' => 'application/pdf', 'evidence' => base64_encode('%PDF-1.4'),
+            'confirmed_at' => now(), 'disputed_at' => now(), 'dispute_note' => 'Not received.',
+        ]);
+        $version = $record->disputeVersion();
+        $results = $this->runWorkflowWorkers('refund-dispute', $record->id, $staff->map(fn (User $user): string => $user->id.':'.$version)->all());
+        $this->assertSame(['resolved', 'stale'], $results);
+        $this->assertNotNull($record->fresh()->resolved_at);
+        $this->assertSame(1, DB::table('activity_logs')->where('action', 'refund.dispute.resolve')->count());
+        $this->assertDatabaseCount('payment_ledger_entries', 0);
     }
 
     /** @param list<string> $actors

@@ -869,34 +869,42 @@ class StaffAppointmentController extends Controller
     {
         $this->ensureStaff($request);
 
-        return response()->json(RefundConfirmation::query()->where('spa_booking_id', $spaBooking->id)->latest('id')->get([
-            'id', 'confirmed_by', 'amount', 'method', 'recipient', 'transfer_reference', 'confirmed_at',
-            'disputed_at', 'resolved_at', 'dispute_note', 'resolution_note',
-        ])->map(fn ($record) => [
-            'id' => $record->id,
-            'amount' => $record->amount,
-            'method' => $record->method,
-            'recipient' => $record->recipient,
-            'reference' => $record->transfer_reference,
-            'confirmed_at' => $record->confirmed_at->format('M j, Y g:i A'),
-            'staff' => User::query()->find($record->confirmed_by)?->name ?? 'Former staff',
-            'disputed' => $record->disputed_at !== null && $record->resolved_at === null,
-            'dispute_note' => $record->dispute_note,
-            'resolution_note' => $record->resolution_note,
-            'evidence_url' => route('refund.evidence', $record),
-            'dispute_url' => route('refund.dispute', $record),
-        ]));
+        $history = DB::transaction(function () use ($spaBooking) {
+            // Read the displayed dispute and its version under the same booking lock.
+            SpaBooking::query()->lockForUpdate()->findOrFail($spaBooking->id);
+
+            return RefundConfirmation::query()->where('spa_booking_id', $spaBooking->id)->latest('id')->get([
+                'id', 'confirmed_by', 'amount', 'method', 'recipient', 'transfer_reference', 'confirmed_at',
+                'disputed_at', 'resolved_at', 'dispute_note', 'resolution_note',
+            ])->map(fn ($record) => [
+                'id' => $record->id,
+                'amount' => $record->amount,
+                'method' => $record->method,
+                'recipient' => $record->recipient,
+                'reference' => $record->transfer_reference,
+                'confirmed_at' => $record->confirmed_at->format('M j, Y g:i A'),
+                'staff' => User::query()->find($record->confirmed_by)?->name ?? 'Former staff',
+                'disputed' => $record->disputed_at !== null && $record->resolved_at === null,
+                'dispute_note' => $record->dispute_note,
+                'resolution_note' => $record->resolution_note,
+                'evidence_url' => route('refund.evidence', $record),
+                'dispute_url' => route('refund.dispute', $record),
+                'dispute_version' => $record->disputeVersion(),
+            ]);
+        });
+
+        return response()->json($history);
     }
 
     public function refundDispute(Request $request, RefundConfirmation $refundConfirmation): JsonResponse
     {
         $staff = $this->ensureStaff($request);
-        $validated = $request->validate(['action' => ['required', 'in:report,resolve'], 'note' => ['required', 'string', 'max:1000']]);
+        $validated = $request->validate(['action' => ['required', 'in:report,resolve'], 'note' => ['required', 'string', 'max:1000'], 'dispute_version' => ['required', 'string', 'regex:/^\d+$/', 'max:20']]);
         DB::transaction(function () use ($refundConfirmation, $validated, $staff, $request): void {
             SpaBooking::query()->lockForUpdate()->findOrFail($refundConfirmation->spa_booking_id);
             $record = RefundConfirmation::query()->lockForUpdate()->findOrFail($refundConfirmation->id);
             $open = $record->disputed_at !== null && $record->resolved_at === null;
-            if (($validated['action'] === 'report' && $open) || ($validated['action'] === 'resolve' && ! $open)) {
+            if ($validated['dispute_version'] !== $record->disputeVersion() || ($validated['action'] === 'report' && $open) || ($validated['action'] === 'resolve' && ! $open)) {
                 throw ValidationException::withMessages(['refund' => 'The dispute state changed. Reopen the appointment.']);
             }
             $record->forceFill($validated['action'] === 'report'
