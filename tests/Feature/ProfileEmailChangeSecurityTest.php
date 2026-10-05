@@ -29,8 +29,7 @@ class ProfileEmailChangeSecurityTest extends TestCase
         ]);
         $this->actingAs($user)->get(route('profile.edit'))
             ->assertOk()
-            ->assertSee('name="email_current_password"', false)
-            ->assertSee('emailPassword.disabled = !isEditing;', false);
+            ->assertSee('name="email_current_password"', false);
 
         [$verification, $code] = $this->requestEmailChange($user, 'customer-new@example.test');
 

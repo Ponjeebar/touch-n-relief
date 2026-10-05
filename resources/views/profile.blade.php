@@ -717,6 +717,28 @@
         html[data-theme="dark"] .profile-wellness-chip{background:#152c21;color:#e2f0e7;border-color:#537360}
         html[data-theme="dark"] .profile-wellness-chip.is-selected{background:#285d42;color:#fff;border-color:#83c9a0;box-shadow:none}
         @media(max-width:600px){.profile-topbar{flex-wrap:wrap;gap:.35rem}.profile-topbar span{font-size:.8rem}.profile-category-nav{padding:.75rem 1rem;gap:.25rem 1rem}.profile-category-nav a{font-size:.8rem}.profile-body{padding:1.25rem 1rem}.profile-section,.profile-password-block{padding:1rem}.profile-section-head{flex-wrap:wrap}}
+
+        .profile-page{overflow:clip}
+        .profile-page > .profile-layout{width:min(1240px,94%);display:grid;grid-template-columns:210px minmax(0,1fr);gap:1.5rem;align-items:start}
+        .profile-layout .profile-shell{width:100%;min-width:0}
+        .profile-layout .profile-category-nav{position:sticky;top:110px;margin:0;padding:1rem 0;background:transparent;border:0}
+        .profile-category-nav details{width:100%}
+        .profile-category-nav summary{display:none}
+        .profile-category-nav a{display:block;padding:.85rem 1rem;margin:0;border:0;border-left:3px solid transparent;border-radius:0;font-size:.9rem;line-height:1.4}
+        .profile-category-nav a:hover,.profile-category-nav a:focus-visible{background:#e3eee7;border-left-color:#08764f}
+        html[data-theme="dark"] .profile-layout .profile-category-nav{background:transparent}
+        html[data-theme="dark"] .profile-category-nav a:hover,html[data-theme="dark"] .profile-category-nav a:focus-visible{background:#294437;border-left-color:#83c9a0}
+        .profile-category .profile-local-actions{padding-top:.75rem}
+        .profile-local-actions .section-edit-btn:disabled{opacity:.5;cursor:not-allowed}
+        @media(max-width:900px){
+            .profile-page > .profile-layout{grid-template-columns:1fr;gap:1rem}
+            .profile-layout .profile-category-nav{position:static;padding:.65rem 1rem;border:1px solid #c5d8cd;border-radius:8px;background:#fff}
+            .profile-category-nav summary{display:block;cursor:pointer;font-weight:700;color:#245b47;padding:.35rem 0}
+            .profile-category-nav summary::after{content:' +';float:right}
+            .profile-category-nav details[open] summary::after{content:' -'}
+            html[data-theme="dark"] .profile-layout .profile-category-nav{background:#203a2e;border-color:#426251}
+            html[data-theme="dark"] .profile-category-nav summary{color:#e3f0e8}
+        }
     </style>
     @include('partials.chatbot-assets')
 </head>
@@ -749,7 +771,8 @@
     <script src="{{ asset('js/mobile-navigation.js') }}?v={{ filemtime(public_path('js/mobile-navigation.js')) }}" defer></script>
 
     <main class="profile-page">
-        <div class="container">
+        <div class="container profile-layout">
+            <nav class="profile-category-nav" aria-label="Profile sections"><details open><summary>Profile categories</summary><a href="#personal-information">Personal information</a><a href="#account-details">Account details</a><a href="#password-section">Password</a><a href="#wellness-section">Wellness preferences</a><a href="#profile-appointments">My Appointments</a></details></nav>
             <div class="profile-shell">
                 <div class="profile-topbar">
                     <strong>Profile Overview</strong>
@@ -782,7 +805,7 @@
                         </div>
                     </div>
                 </div>
-                <nav class="profile-category-nav" aria-label="Profile sections"><a href="#personal-information">Personal information</a><a href="#account-details">Account details</a><a href="#password-section">Password</a><a href="#wellness-section">Wellness preferences</a><a href="#profile-appointments">My Appointments</a></nav>
+
                 <div class="profile-body">
                     @if (session('status'))
                         <div class="profile-success-toast" id="profile-status-toast" role="status" aria-live="polite">
@@ -843,6 +866,11 @@
                                         >
                                     </div>
                                 </div>
+                                <div class="profile-local-actions" id="basic-info-actions">
+                                    <button type="button" class="btn btn-light section-edit-btn" id="basic-info-edit">Edit</button>
+                                    <button type="button" class="btn btn-light section-cancel-btn" id="basic-info-cancel">Cancel</button>
+                                    <button type="submit" class="btn btn-light section-save-btn" id="basic-info-save">Save changes</button>
+                                </div>
                             </section>
                             <section class="profile-category" id="account-details" aria-labelledby="account-details-title">
                                 <div class="profile-category-heading">
@@ -863,14 +891,15 @@
                                         <input id="email_current_password" type="password" name="email_current_password" autocomplete="current-password" placeholder="Required only when changing email">
                                     </div>
                                 </div>
+                                <div class="profile-local-actions" id="account-actions">
+                                    <button type="button" class="btn btn-light section-edit-btn" id="account-edit">Edit</button>
+                                    <button type="button" class="btn btn-light section-cancel-btn" id="account-cancel">Cancel</button>
+                                    <button type="submit" class="btn btn-light section-save-btn" id="account-save">Save changes</button>
+                                </div>
                             </section>
                         </div>
 
-                        <div class="profile-local-actions" id="basic-info-actions">
-                            <button type="button" class="btn btn-light section-edit-btn" id="basic-info-edit">Edit</button>
-                            <button type="button" class="btn btn-light section-cancel-btn" id="basic-info-cancel">Cancel</button>
-                            <button type="submit" class="btn btn-light section-save-btn" id="basic-info-save">Save changes</button>
-                        </div>
+
 
                         <div class="profile-password-block" id="password-section">
                             <h2>Password</h2><p class="profile-category-description">Use your current password to set a new one.</p>
@@ -1016,6 +1045,11 @@
 
 <script>
     (function () {
+        var categories = document.querySelector('.profile-category-nav details');
+        var compactProfile = window.matchMedia('(max-width:900px)');
+        function setCategoryMenu() { categories.open = !compactProfile.matches; }
+        setCategoryMenu();
+        compactProfile.addEventListener('change', setCategoryMenu);
         var form = document.getElementById('edit-profile-form');
         if (!form) return;
 
@@ -1054,8 +1088,45 @@
         var wellnessEditBtn = document.getElementById('wellness-edit');
         var wellnessCancelBtn = document.getElementById('wellness-cancel');
 
+
+        var accountActions = document.getElementById('account-actions');
+        var accountSnapshot = null;
+        function syncCategoryEditing() {
+            var active = form.querySelector('.profile-local-actions.is-editing');
+            form.querySelectorAll('.section-edit-btn').forEach(function (button) {
+                button.disabled = !!active && !active.contains(button);
+            });
+        }
+        function setAccountEditing(editing) {
+            accountActions.classList.toggle('is-editing', editing);
+            ['username', 'email'].forEach(function (id) { document.getElementById(id).readOnly = !editing; });
+            document.getElementById('email_current_password').disabled = !editing;
+            syncCategoryEditing();
+        }
+        document.getElementById('account-edit').addEventListener('click', function () {
+            accountSnapshot = { username: document.getElementById('username').value, email: document.getElementById('email').value };
+            setAccountEditing(true);
+        });
+        document.getElementById('account-cancel').addEventListener('click', function () {
+            document.getElementById('username').value = accountSnapshot.username;
+            document.getElementById('email').value = accountSnapshot.email;
+            document.getElementById('email_current_password').value = '';
+            window.tnrResetPasswordVisibility?.(document.getElementById('account-details'));
+            setAccountEditing(false);
+        });
+        setAccountEditing(false);
+
         var basicInfoSnapshot = null;
         var wellnessSnapshot = null;
+
+        form.addEventListener('submit', function () {
+            // Preserve current wellness values when another category is saved.
+            form.querySelectorAll('.profile-wellness-hidden:checked').forEach(function (input) {
+                if (input.name !== 'is_pregnant' || form.querySelector('input[name="sex"]:checked')?.value === 'female') {
+                    input.disabled = false;
+                }
+            });
+        });
 
         function syncPregnancyField() {
             if (!pregnancyField) return;
@@ -1090,13 +1161,13 @@
         function setBasicInfoEditing(isEditing) {
             if (!basicInfoSection || !basicInfoActions) return;
             basicInfoActions.classList.toggle('is-editing', isEditing);
-            ['name', 'username', 'email', 'contact_number'].forEach(function (id) {
+            ['name', 'contact_number'].forEach(function (id) {
                 var el = document.getElementById(id);
                 if (el) el.readOnly = !isEditing;
             });
-            var emailPassword = document.getElementById('email_current_password');
-            if (emailPassword) emailPassword.disabled = !isEditing;
+
             if (birthdayInput) birthdayInput.readOnly = !isEditing;
+            syncCategoryEditing();
         }
 
         function resetPasswordVisibility() {
@@ -1116,6 +1187,7 @@
             passwordSection.querySelectorAll('[data-pw-toggle]').forEach(function (btn) {
                 btn.disabled = !isEditing;
             });
+            syncCategoryEditing();
         }
 
         function setWellnessEditing(isEditing) {
@@ -1137,6 +1209,7 @@
             } else {
                 syncPregnancyField();
             }
+            syncCategoryEditing();
         }
 
         function updateAgeFromBirthday() {
@@ -1166,8 +1239,6 @@
         basicInfoEditBtn?.addEventListener('click', function () {
             basicInfoSnapshot = {
                 name: document.getElementById('name')?.value || '',
-                username: document.getElementById('username')?.value || '',
-                email: document.getElementById('email')?.value || '',
                 contact_number: document.getElementById('contact_number')?.value || '',
                 birthday: birthdayInput?.value || '',
             };
@@ -1176,9 +1247,6 @@
         basicInfoCancelBtn?.addEventListener('click', function () {
             if (basicInfoSnapshot) {
                 if (document.getElementById('name')) document.getElementById('name').value = basicInfoSnapshot.name;
-                if (document.getElementById('username')) document.getElementById('username').value = basicInfoSnapshot.username;
-                if (document.getElementById('email')) document.getElementById('email').value = basicInfoSnapshot.email;
-                if (document.getElementById('email_current_password')) document.getElementById('email_current_password').value = '';
                 if (document.getElementById('contact_number')) document.getElementById('contact_number').value = basicInfoSnapshot.contact_number;
                 if (birthdayInput) birthdayInput.value = basicInfoSnapshot.birthday;
                 updateAgeFromBirthday();
