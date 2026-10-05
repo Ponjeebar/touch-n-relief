@@ -349,6 +349,7 @@ class SpaSessionService
             SpaBooking::STATUS_CANCELLED => 'Cancelled',
             SpaBooking::STATUS_COMPLETED => 'Completed',
             SpaBooking::STATUS_IN_SESSION => 'In Session',
+            SpaBooking::STATUS_NO_SHOW => 'No Show',
             default => $this->resolveActiveAppointmentDisplayStatus($booking),
         };
     }

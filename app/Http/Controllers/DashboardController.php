@@ -1048,7 +1048,7 @@ class DashboardController extends Controller
             'in_session' => (int) ($statusCounts->get('in-session', 0)),
             'completed' => (int) ($statusCounts->get('completed', 0)),
             'cancelled' => (int) ($statusCounts->get('cancelled', 0)),
-            'no_show' => (int) ($statusCounts->get('no show', 0)),
+            'no_show' => (int) ($statusCounts->get('no-show', 0)),
         ];
 
         if ($statusFilter !== '') {

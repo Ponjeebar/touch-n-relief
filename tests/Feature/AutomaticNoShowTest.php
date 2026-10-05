@@ -136,6 +136,34 @@ class AutomaticNoShowTest extends TestCase
         $this->assertDatabaseCount('activity_logs', 0);
     }
 
+    public function test_paid_automatic_no_show_is_displayed_counted_and_filtered_for_both_staff_roles(): void
+    {
+        Carbon::setTestNow('2026-10-04 10:15:00');
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = $this->booking($customer, '2026-10-04', '10:00 AM');
+        $this->artisan('appointments:process-no-shows')->assertSuccessful();
+
+        foreach ([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST] as $role) {
+            $staff = User::factory()->create(['role' => $role]);
+            $this->actingAs($staff);
+            $this->get(route('appointments.index', ['date' => '2026-10-04']))
+                ->assertOk()
+                ->assertViewHas('stats', fn (array $stats): bool => $stats['no_show'] === 1 && $stats['confirmed'] === 0)
+                ->assertViewHas('appointments', fn ($rows): bool => $rows->count() === 1 && $rows->first()['status'] === 'No Show');
+            $this->get(route('appointments.index', ['date' => '2026-10-04', 'status_filter' => 'no-show']))
+                ->assertOk()
+                ->assertViewHas('appointments', fn ($rows): bool => $rows->count() === 1);
+            $this->get(route('appointments.index', ['date' => '2026-10-04', 'status_filter' => 'confirmed']))
+                ->assertOk()
+                ->assertViewHas('appointments', fn ($rows): bool => $rows->count() === 0);
+        }
+
+        $this->assertSame(SpaBooking::STATUS_NO_SHOW, $booking->fresh()->session_status);
+        $this->assertSame(PaymentMethodCatalog::STATUS_PAID, $booking->fresh()->payment_status);
+        $this->assertEquals(500, $booking->fresh()->payment_amount);
+        $this->assertDatabaseCount('customer_notifications', 1);
+    }
+
     private function booking(User $customer, string $date, string $time): SpaBooking
     {
         return SpaBooking::query()->create([
