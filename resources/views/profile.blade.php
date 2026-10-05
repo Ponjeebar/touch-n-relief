@@ -739,6 +739,34 @@
             html[data-theme="dark"] .profile-layout .profile-category-nav{background:#203a2e;border-color:#426251}
             html[data-theme="dark"] .profile-category-nav summary{color:#e3f0e8}
         }
+
+        .profile-layout .profile-category-nav{padding:.65rem;background:#fff;border:1px solid #d8e3dd;border-radius:8px}
+        .profile-category-nav a{border-radius:5px;border-left:0;padding:.8rem .9rem}
+        .profile-category-nav a[aria-current="location"]{background:#e6f0e9;color:#14583e;font-weight:700}
+        .profile-shell{background:#fff}
+        .profile-head{padding:1.5rem 2.25rem;border-bottom:1px solid #d8e3dd}
+        .profile-body{padding:1.75rem 2.25rem 2rem}
+        .profile-category-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3rem 1rem;align-items:center;margin-bottom:1.2rem}
+        .profile-category-heading h2{margin:0}
+        .profile-category-heading p{grid-column:1 / -1;margin:0;max-width:68ch}
+        .profile-category-heading .profile-local-actions{padding:0;margin:0}
+        .profile-category-heading .btn{border-radius:6px;padding:.5rem .85rem;background:#fff;color:#176247;border-color:#9eb9aa}
+        .profile-category-heading .section-save-btn{background:#08764f;color:#fff;border-color:#08764f}
+        .profile-grid{padding:0;border:0;background:transparent;gap:1rem 1.5rem}
+        .profile-category + .profile-category{margin-top:1.75rem;padding-top:1.75rem;border-top:1px solid #d8e3dd}
+        .profile-password-block,.profile-section{background:transparent;border:0;border-top:1px solid #d8e3dd;border-radius:0;padding:1.75rem 0 0;margin-top:1.75rem}
+        .profile-sections{margin-top:0}
+        .profile-category-heading .profile-local-actions{flex-wrap:wrap}
+        .profile-section-head{flex-wrap:wrap}
+        .profile-section-head .profile-local-actions{margin:0;padding:0}
+        .profile-section-head .btn{border-radius:6px;background:#fff;color:#176247;border-color:#9eb9aa}
+        html[data-theme="dark"] .profile-section-head .btn{background:#203a2e;color:#e9f6ee;border-color:#6c927b}
+        html[data-theme="dark"] .profile-layout .profile-category-nav{background:#203a2e;border-color:#426251}
+        html[data-theme="dark"] .profile-category-nav a[aria-current="location"]{background:#31543f;color:#e9f6ee}
+        html[data-theme="dark"] .profile-grid,html[data-theme="dark"] .profile-password-block,html[data-theme="dark"] .profile-section{background:transparent;border-color:#426251}
+        html[data-theme="dark"] .profile-category + .profile-category,html[data-theme="dark"] .profile-head{border-color:#426251}
+        html[data-theme="dark"] .profile-category-heading .btn{background:#203a2e;color:#e9f6ee;border-color:#6c927b}
+        @media(max-width:600px){.profile-head{padding:1.25rem 1rem}.profile-body{padding:1.25rem 1rem}.profile-category-heading{gap:.5rem}.profile-category-heading .profile-local-actions.is-editing{grid-column:1 / -1;justify-content:flex-start}}
     </style>
     @include('partials.chatbot-assets')
 </head>
@@ -833,6 +861,11 @@
                             <section class="profile-category" id="personal-information" aria-labelledby="personal-information-title">
                                 <div class="profile-category-heading">
                                     <h2 id="personal-information-title">Personal information</h2>
+<div class="profile-local-actions" id="basic-info-actions">
+                                    <button type="button" class="btn btn-light section-edit-btn" id="basic-info-edit">Edit</button>
+                                    <button type="button" class="btn btn-light section-cancel-btn" id="basic-info-cancel">Cancel</button>
+                                    <button type="submit" class="btn btn-light section-save-btn" id="basic-info-save">Save changes</button>
+                                </div>
                                     <p>Your contact details and date of birth.</p>
                                 </div>
                                 <div class="profile-grid">
@@ -866,15 +899,16 @@
                                         >
                                     </div>
                                 </div>
-                                <div class="profile-local-actions" id="basic-info-actions">
-                                    <button type="button" class="btn btn-light section-edit-btn" id="basic-info-edit">Edit</button>
-                                    <button type="button" class="btn btn-light section-cancel-btn" id="basic-info-cancel">Cancel</button>
-                                    <button type="submit" class="btn btn-light section-save-btn" id="basic-info-save">Save changes</button>
-                                </div>
+
                             </section>
                             <section class="profile-category" id="account-details" aria-labelledby="account-details-title">
                                 <div class="profile-category-heading">
                                     <h2 id="account-details-title">Account details</h2>
+<div class="profile-local-actions" id="account-actions">
+                                    <button type="button" class="btn btn-light section-edit-btn" id="account-edit">Edit</button>
+                                    <button type="button" class="btn btn-light section-cancel-btn" id="account-cancel">Cancel</button>
+                                    <button type="submit" class="btn btn-light section-save-btn" id="account-save">Save changes</button>
+                                </div>
                                     <p>Your username and email address. Changing email requires your current password and verification of the new address.</p>
                                 </div>
                                 <div class="profile-grid">
@@ -891,18 +925,19 @@
                                         <input id="email_current_password" type="password" name="email_current_password" autocomplete="current-password" placeholder="Required only when changing email">
                                     </div>
                                 </div>
-                                <div class="profile-local-actions" id="account-actions">
-                                    <button type="button" class="btn btn-light section-edit-btn" id="account-edit">Edit</button>
-                                    <button type="button" class="btn btn-light section-cancel-btn" id="account-cancel">Cancel</button>
-                                    <button type="submit" class="btn btn-light section-save-btn" id="account-save">Save changes</button>
-                                </div>
+
                             </section>
                         </div>
 
 
 
                         <div class="profile-password-block" id="password-section">
-                            <h2>Password</h2><p class="profile-category-description">Use your current password to set a new one.</p>
+                            <div class="profile-category-heading"><h2>Password</h2>
+<div class="profile-local-actions" id="password-actions">
+                                <button type="button" class="btn btn-light section-edit-btn" id="password-edit">Edit</button>
+                                <button type="button" class="btn btn-light section-cancel-btn" id="password-cancel">Cancel</button>
+                                <button type="submit" class="btn btn-light section-save-btn" id="password-save">Save changes</button>
+                            </div><p class="profile-category-description">Use your current password to set a new one.</p></div>
                             <div class="profile-password-grid">
                                 <div class="profile-field profile-field-span2">
                                     <label for="current_password">Current password</label>
@@ -932,11 +967,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="profile-local-actions" id="password-actions">
-                                <button type="button" class="btn btn-light section-edit-btn" id="password-edit">Edit</button>
-                                <button type="button" class="btn btn-light section-cancel-btn" id="password-cancel">Cancel</button>
-                                <button type="submit" class="btn btn-light section-save-btn" id="password-save">Save changes</button>
-                            </div>
+
                         </div>
 
                         @php
@@ -954,7 +985,12 @@
                                         Completed {{ $user->profile_completed_at->format('M d, Y') }}
                                     </span>
                                 @endif
+                            <div class="profile-local-actions" id="wellness-actions">
+                                <button type="button" class="btn btn-light section-edit-btn" id="wellness-edit">Edit</button>
+                                <button type="button" class="btn btn-light section-cancel-btn" id="wellness-cancel">Cancel</button>
+                                <button type="submit" class="btn btn-light section-save-btn" id="wellness-save">Save changes</button>
                             </div>
+</div>
 
                             <div class="profile-wellness-grid">
                                 <div class="profile-wellness-group">
@@ -1014,12 +1050,8 @@
                                 </div>
                             </div>
 
-                            <p class="profile-wellness-foot">Tap an option to update your preferences, then click <strong>Save changes</strong> below. Changing pregnancy to <strong>No</strong> restores the full service menu on the home page and booking page.</p>
-                            <div class="profile-local-actions" id="wellness-actions">
-                                <button type="button" class="btn btn-light section-edit-btn" id="wellness-edit">Edit</button>
-                                <button type="button" class="btn btn-light section-cancel-btn" id="wellness-cancel">Cancel</button>
-                                <button type="submit" class="btn btn-light section-save-btn" id="wellness-save">Save changes</button>
-                            </div>
+                            <p class="profile-wellness-foot">Tap an option to update your preferences, then click <strong>Save changes</strong>. Changing pregnancy to <strong>No</strong> restores the full service menu on the home page and booking page.</p>
+
                         </section>
 
                     </form>
@@ -1048,6 +1080,16 @@
         var categories = document.querySelector('.profile-category-nav details');
         var compactProfile = window.matchMedia('(max-width:900px)');
         function setCategoryMenu() { categories.open = !compactProfile.matches; }
+        var categoryLinks = categories.querySelectorAll('a');
+        function markCategory() {
+            var target = window.location.hash || '#personal-information';
+            categoryLinks.forEach(function (link) {
+                if (link.getAttribute('href') === target) link.setAttribute('aria-current', 'location');
+                else link.removeAttribute('aria-current');
+            });
+        }
+        markCategory();
+        window.addEventListener('hashchange', markCategory);
         setCategoryMenu();
         compactProfile.addEventListener('change', setCategoryMenu);
         var form = document.getElementById('edit-profile-form');
