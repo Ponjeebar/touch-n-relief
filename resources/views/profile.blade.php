@@ -719,9 +719,9 @@
         @media(max-width:600px){.profile-topbar{flex-wrap:wrap;gap:.35rem}.profile-topbar span{font-size:.8rem}.profile-category-nav{padding:.75rem 1rem;gap:.25rem 1rem}.profile-category-nav a{font-size:.8rem}.profile-body{padding:1.25rem 1rem}.profile-section,.profile-password-block{padding:1rem}.profile-section-head{flex-wrap:wrap}}
 
         .profile-page{overflow:clip}
-        .profile-page > .profile-layout{width:min(1240px,94%);display:grid;grid-template-columns:210px minmax(0,1fr);gap:1.5rem;align-items:start}
+        .profile-page > .profile-layout{width:min(1080px,92%);display:block;position:relative}
         .profile-layout .profile-shell{width:100%;min-width:0}
-        .profile-layout .profile-category-nav{position:sticky;top:110px;margin:0;padding:1rem 0;background:transparent;border:0}
+        .profile-layout .profile-category-nav{position:absolute;top:0;left:-234px;width:210px;margin:0;padding:1rem 0;background:transparent;border:0}
         .profile-category-nav details{width:100%}
         .profile-category-nav summary{display:none}
         .profile-category-nav a{display:block;padding:.85rem 1rem;margin:0;border:0;border-left:3px solid transparent;border-radius:0;font-size:.9rem;line-height:1.4}
@@ -730,9 +730,9 @@
         html[data-theme="dark"] .profile-category-nav a:hover,html[data-theme="dark"] .profile-category-nav a:focus-visible{background:#294437;border-left-color:#83c9a0}
         .profile-category .profile-local-actions{padding-top:.75rem}
         .profile-local-actions .section-edit-btn:disabled{opacity:.5;cursor:not-allowed}
-        @media(max-width:900px){
-            .profile-page > .profile-layout{grid-template-columns:1fr;gap:1rem}
-            .profile-layout .profile-category-nav{position:static;padding:.65rem 1rem;border:1px solid #c5d8cd;border-radius:8px;background:#fff}
+        @media(max-width:1599px){
+            .profile-layout .profile-shell{margin-top:1rem}
+            .profile-layout .profile-category-nav{position:static;width:100%;padding:.65rem 1rem;border:1px solid #c5d8cd;border-radius:8px;background:#fff}
             .profile-category-nav summary{display:block;cursor:pointer;font-weight:700;color:#245b47;padding:.35rem 0}
             .profile-category-nav summary::after{content:' +';float:right}
             .profile-category-nav details[open] summary::after{content:' -'}
@@ -1078,7 +1078,7 @@
 <script>
     (function () {
         var categories = document.querySelector('.profile-category-nav details');
-        var compactProfile = window.matchMedia('(max-width:900px)');
+        var compactProfile = window.matchMedia('(max-width:1599px)');
         function setCategoryMenu() { categories.open = !compactProfile.matches; }
         var categoryLinks = categories.querySelectorAll('a');
         function markCategory() {

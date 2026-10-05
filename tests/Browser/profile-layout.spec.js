@@ -23,7 +23,7 @@ test.beforeAll(async ({ browser }) => {
     await context.close();
 });
 for (const theme of ['light', 'dark']) {
-    for (const width of [390, 768, 1366]) {
+    for (const width of [390, 768, 1366, 1920]) {
         test('profile categories and editing ' + width + ' ' + theme, async ({ page }) => {
             await page.setViewportSize({ width, height: 900 });
             await page.addInitScript(mode => {
@@ -36,7 +36,11 @@ for (const theme of ['light', 'dark']) {
             if (await tour.isVisible()) await tour.click();
             const categories = page.getByRole('navigation', { name: 'Profile sections' });
             await expect(categories).toBeVisible();
-            if (width > 900) {
+            const panel = await page.locator('.profile-shell').boundingBox();
+            const header = await page.locator('.landing-header .nav-shell').boundingBox();
+            expect(Math.abs(panel.x - header.x)).toBeLessThanOrEqual(2);
+            expect(Math.abs(panel.width - header.width)).toBeLessThanOrEqual(2);
+            if (width >= 1600) {
                 const navigationBox = await categories.boundingBox();
                 const panelBox = await page.locator('.profile-shell').boundingBox();
                 expect(navigationBox.x + navigationBox.width).toBeLessThan(panelBox.x);
