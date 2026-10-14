@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Schema;
 
 class NotificationFeedService
 {
-    public function recentBookingNotifications(int $limit = 6, ?User $user = null): array
+    public const RECENT_LIMIT = 20;
+
+    public function recentBookingNotifications(int $limit = self::RECENT_LIMIT, ?User $user = null): array
     {
         $user ??= auth()->user();
         if (! $user || ! Schema::hasTable('staff_notifications')) {

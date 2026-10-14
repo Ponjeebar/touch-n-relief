@@ -54,7 +54,7 @@ class DashboardController extends Controller
             ->active()
             ->orderBy('created_at', 'desc')
             ->get();
-        $notifications = app(NotificationFeedService::class)->recentBookingNotifications(6);
+        $notifications = app(NotificationFeedService::class)->recentBookingNotifications();
         $live = $sessions->dashboardSnapshot();
         $salesTrend = $this->adminSalesTrend();
 
@@ -457,7 +457,7 @@ class DashboardController extends Controller
 
     public function receptionistDashboard(Request $request, SpaSessionService $sessions): View
     {
-        $notifications = app(NotificationFeedService::class)->recentBookingNotifications(6);
+        $notifications = app(NotificationFeedService::class)->recentBookingNotifications();
         $live = $sessions->dashboardSnapshot();
 
         return view('receptionist-dashboard', [
@@ -517,7 +517,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'server_time' => now()->toIso8601String(),
-            'notifications' => $notificationFeed->recentBookingNotifications(6),
+            'notifications' => $notificationFeed->recentBookingNotifications(),
             'notification_unread_count' => $notificationFeed->unreadCount(),
             'today_appointments' => $live['today_appointments'],
             'appointments_today' => $live['appointments_today'],
@@ -920,7 +920,7 @@ class DashboardController extends Controller
         $this->ensureCatalogSeeded();
         $sessions->releaseAvailabilityBlocks();
 
-        $notifications = app(NotificationFeedService::class)->recentBookingNotifications(6);
+        $notifications = app(NotificationFeedService::class)->recentBookingNotifications();
 
         $bookings = SpaBooking::query()
             ->visibleToStaff()

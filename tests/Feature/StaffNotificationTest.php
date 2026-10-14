@@ -161,6 +161,32 @@ class StaffNotificationTest extends TestCase
         $this->assertNull($note->fresh()->read_at);
     }
 
+    public function test_recent_feed_returns_twenty_latest_owned_notifications_and_read_all_covers_older_items(): void
+    {
+        foreach ([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST] as $role) {
+            $staff = User::factory()->create(['role' => $role]);
+            $other = User::factory()->create(['role' => User::ROLE_ADMIN]);
+            foreach (range(1, 25) as $index) {
+                StaffNotification::create([
+                    ...$this->notificationData($staff),
+                    'title' => 'Notification '.$index,
+                    'occurred_at' => now()->subMinutes(26 - $index),
+                ]);
+            }
+            StaffNotification::create($this->notificationData($other));
+
+            $this->actingAs($staff)->getJson(route('staff-feed.poll'))
+                ->assertOk()->assertJsonCount(20, 'notifications')
+                ->assertJsonPath('notifications.0.title', 'Notification 25')
+                ->assertJsonPath('notifications.19.title', 'Notification 6')
+                ->assertJsonPath('notification_unread_count', 25);
+
+            $this->postJson(route('staff-notifications.mark-all-read'))->assertOk();
+            $this->assertSame(0, app(NotificationFeedService::class)->unreadCount($staff));
+            $this->assertSame(1, app(NotificationFeedService::class)->unreadCount($other));
+        }
+    }
+
     private function notificationData(User $user): array
     {
         return [

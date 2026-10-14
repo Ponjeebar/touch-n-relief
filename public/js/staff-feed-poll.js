@@ -72,7 +72,9 @@
                 return;
             }
 
+            const scrollTop = list.scrollTop;
             list.innerHTML = items.map(renderNotification).join('');
+            list.scrollTop = scrollTop;
         });
 
         const unreadCount = Number.isInteger(serverUnreadCount)

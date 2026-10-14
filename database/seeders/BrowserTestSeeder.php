@@ -161,7 +161,7 @@ class BrowserTestSeeder extends Seeder
         }
 
         foreach (User::query()->whereIn('role', [User::ROLE_ADMIN, User::ROLE_RECEPTIONIST])->get() as $staff) {
-            foreach (range(1, 6) as $index) {
+            foreach (range(1, 20) as $index) {
                 StaffNotification::create([
                     'staff_user_id' => $staff->id,
                     'event_key' => 'browser:notification:'.$index,

@@ -107,7 +107,7 @@
         inset: 12px 10px auto;
         width: auto;
         max-width: none;
-        max-height: calc(100dvh - 90px - env(safe-area-inset-bottom));
+        max-height: min(480px, 60dvh, calc(100dvh - 164px - env(safe-area-inset-bottom)));
         z-index: 1201;
     }
     .dashboard-notifications::before { display: none; }

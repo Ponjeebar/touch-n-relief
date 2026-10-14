@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs';
 for (const role of ['admin', 'receptionist']) {
     for (const theme of ['light', 'dark']) {
         test(`${role} notifications open and close across screen sizes in ${theme}`, async ({ page }) => {
+            await page.clock.install();
             await page.setViewportSize({ width: 390, height: 844 });
             await page.addInitScript((mode) => {
                 localStorage.setItem('tnr-theme-preference-version', 'light-default-v1');
@@ -40,6 +41,21 @@ for (const role of ['admin', 'receptionist']) {
                         return { foreground: style.color, background: style.backgroundColor };
                     });
                     expect(colors.foreground).not.toBe(colors.background);
+                    const list = panel.getByRole('region', { name: 'Recent notifications' });
+                    await expect(list.locator('.dashboard-note')).toHaveCount(20);
+                    expect(await list.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+                    const headerTop = controlBounds.y;
+                    await list.focus();
+                    await page.keyboard.press('End');
+                    await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+                    expect((await readAll.boundingBox()).y).toBe(headerTop);
+                    await expect(list.locator('.dashboard-note').last()).toBeInViewport();
+                    if (viewport.width === 390 && path === '/ongoing-sessions') {
+                        const feedResponse = page.waitForResponse((response) => response.url().includes('/staff-feed/poll'));
+                        await page.clock.fastForward(30000);
+                        await feedResponse;
+                        await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+                    }
                     if (viewport.width === 390 && path === '/ongoing-sessions') {
                         mkdirSync('storage/app/browser-audit', { recursive: true });
                         await page.screenshot({ path: `storage/app/browser-audit/notifications-${role}-${theme}.png` });

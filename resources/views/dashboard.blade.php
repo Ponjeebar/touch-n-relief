@@ -70,8 +70,8 @@
                                         <i class="bi bi-check2-all" aria-hidden="true"></i><span>Read all</span>
                                     </button>
                                 </div>
-                                <div class="dashboard-notifications-list" data-staff-notifications-list>
-                                    @forelse (collect($notifications ?? [])->take(6) as $note)
+                                <div class="dashboard-notifications-list" data-staff-notifications-list tabindex="0" role="region" aria-label="Recent notifications">
+                                    @forelse ($notifications ?? [] as $note)
                                         @php($type = $note['type'] ?? 'system')
                                         <a
                                             class="dashboard-note dashboard-note-{{ $type }} {{ ($note['is_read'] ?? false) ? 'note-read' : 'note-unread' }}"

@@ -83,7 +83,7 @@
                                         <i class="bi bi-check2-all" aria-hidden="true"></i><span>Read all</span>
                                     </button>
                                 </div>
-                                <div class="dashboard-notifications-list" data-staff-notifications-list>
+                                <div class="dashboard-notifications-list" data-staff-notifications-list tabindex="0" role="region" aria-label="Recent notifications">
                                     @forelse (collect($notifications ?? [])->take(4) as $note)
                                         @php($type = $note['type'] ?? 'system')
                                         <a

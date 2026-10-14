@@ -1,6 +1,6 @@
 @php
     $notificationFeed = app(\App\Services\NotificationFeedService::class);
-    $notifications = $notificationFeed->recentBookingNotifications(6);
+    $notifications = $notificationFeed->recentBookingNotifications();
     $unreadCount = $notificationFeed->unreadCount();
 @endphp
 
@@ -24,7 +24,7 @@
                 <i class="bi bi-check2-all" aria-hidden="true"></i><span>Read all</span>
             </button>
         </div>
-        <div class="dashboard-notifications-list" data-staff-notifications-list>
+        <div class="dashboard-notifications-list" data-staff-notifications-list tabindex="0" role="region" aria-label="Recent notifications">
             @forelse ($notifications as $note)
                 @php($type = $note['type'] ?? 'system')
                 <a
