@@ -45,6 +45,13 @@
     outline-offset: -2px;
 }
 
+[data-tour-demo="appointment"] .appt-payment-line,
+[data-tour-demo="appointment"] .appt-meta-value {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
 .tnr-tour-demo-label {
     display: block;
     width: max-content;

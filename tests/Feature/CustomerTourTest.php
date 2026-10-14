@@ -12,6 +12,22 @@ class CustomerTourTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_administrator_can_replay_appointment_training_without_enabling_tours_on_other_pages(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($admin)->get(route('appointments.index'))
+            ->assertOk()
+            ->assertSee('data-customer-tour-role="admin"', false)
+            ->assertSee('data-customer-tour-auto-start="0"', false)
+            ->assertSee('data-start-customer-tour', false);
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee('class="profile-dropdown-item" data-start-customer-tour', false)
+            ->assertDontSee('id="tnr-customer-tour-config"', false);
+    }
+
     public function test_customer_can_replay_the_landing_page_tour_while_guests_cannot(): void
     {
         $this->get(route('landing'))

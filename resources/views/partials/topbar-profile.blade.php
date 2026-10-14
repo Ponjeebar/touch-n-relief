@@ -56,7 +56,7 @@
                 <span>Activity Log</span>
             </a>
         @endif
-        @if ($u->isReceptionist())
+        @if ($u->isReceptionist() || ($u->isAdmin() && request()->routeIs('appointments.index')))
             <button type="button" class="profile-dropdown-item" data-start-customer-tour role="menuitem">
                 <span class="profile-dropdown-icon" aria-hidden="true"><i class="bi bi-signpost-split"></i></span>
                 <span>Take a tour</span>

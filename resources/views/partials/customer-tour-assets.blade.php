@@ -1,7 +1,8 @@
 @php
     $tourUser = auth()->user();
-    $tourRole = $tourUser?->isReceptionist() ? 'receptionist' : 'customer';
-    $tourAllowed = $tourUser?->isReceptionist() || ($tourUser?->isUser() && ! $tourUser->isWalkIn());
+    $adminAppointmentTour = $tourUser?->isAdmin() && request()->routeIs('appointments.index');
+    $tourRole = $adminAppointmentTour ? 'admin' : ($tourUser?->isReceptionist() ? 'receptionist' : 'customer');
+    $tourAllowed = $adminAppointmentTour || $tourUser?->isReceptionist() || ($tourUser?->isUser() && ! $tourUser->isWalkIn());
 
     if (! $tourAllowed) {
         return;
