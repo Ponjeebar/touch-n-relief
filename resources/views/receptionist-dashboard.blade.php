@@ -66,8 +66,8 @@
                             <aside class="dashboard-notifications hidden-section" id="dashboard-notifications" aria-label="Notifications panel">
                                 <div class="dashboard-notifications-head">
                                     <h3>Notifications</h3>
-                                    <button class="icon-btn slim" type="button" aria-label="Mark all as read" data-mark-dashboard-read="true" title="Mark all as read">
-                                        <i class="bi bi-check2-all"></i>
+                                    <button class="icon-btn slim notification-mark-all" type="button" aria-label="Mark all as read" data-mark-dashboard-read="true" title="Mark all as read">
+                                        <i class="bi bi-check2-all" aria-hidden="true"></i><span>Read all</span>
                                     </button>
                                 </div>
                                 <div class="dashboard-notifications-list" data-staff-notifications-list>

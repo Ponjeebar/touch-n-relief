@@ -548,6 +548,53 @@ body {
     font-size: 15px;
 }
 
+.dashboard-notifications-head {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+}
+
+.dashboard-notifications .dashboard-notifications-head .notification-mark-all {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    width: auto;
+    min-height: 40px;
+    flex-shrink: 0;
+    padding: 8px 10px;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.dashboard-notifications .notification-mark-all:disabled {
+    opacity: 1;
+    color: var(--muted);
+    cursor: default;
+}
+
+.dashboard-notifications .notification-mark-all:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.dashboard-notifications-list .dashboard-note {
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+.dashboard-notifications-list .dashboard-note-body {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .dashboard-notifications-list {
     display: grid;
     gap: 8px;

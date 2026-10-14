@@ -89,7 +89,7 @@
             badge.hidden = unreadCount === 0;
         });
 
-        document.querySelectorAll('[data-mark-dashboard-read="true"], [data-notif-mark-read]').forEach((btn) => {
+        document.querySelectorAll('[data-mark-dashboard-read="true"], [data-notif-mark-read], [data-mark-appointments-dropdown-read="true"]').forEach((btn) => {
             if (btn instanceof HTMLButtonElement) {
                 btn.disabled = unreadCount === 0;
             }

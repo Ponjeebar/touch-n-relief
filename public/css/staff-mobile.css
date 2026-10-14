@@ -111,7 +111,7 @@
         z-index: 1201;
     }
     .dashboard-notifications::before { display: none; }
-    .staff-mobile-header-actions #dashboard-notifications { top: 64px; }
+    .staff-mobile-header-actions .dashboard-notifications { top: 64px; }
 
     .staff-mobile-shortcuts {
         grid-template-columns: repeat(5, minmax(0, 1fr));

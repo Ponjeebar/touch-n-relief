@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\Receptionist;
 use App\Models\SpaBooking;
+use App\Models\StaffNotification;
 use App\Models\User;
 use App\Services\BookingRefundService;
 use App\Services\PaymentLedgerService;
@@ -157,6 +158,20 @@ class BrowserTestSeeder extends Seeder
             ], $details));
 
             app(PaymentLedgerService::class)->recordInitialPayment($booking);
+        }
+
+        foreach (User::query()->whereIn('role', [User::ROLE_ADMIN, User::ROLE_RECEPTIONIST])->get() as $staff) {
+            foreach (range(1, 6) as $index) {
+                StaffNotification::create([
+                    'staff_user_id' => $staff->id,
+                    'event_key' => 'browser:notification:'.$index,
+                    'type' => 'confirmed',
+                    'title' => 'Payment verified',
+                    'message' => 'Browser Customer | Aromatherapy (Special) | '.now()->format('M d, Y').' 8:00 PM',
+                    'url' => route('appointments.index'),
+                    'occurred_at' => now()->subMinutes($index),
+                ]);
+            }
         }
 
         foreach (range(0, 2) as $index) {
