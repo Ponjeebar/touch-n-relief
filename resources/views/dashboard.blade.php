@@ -477,6 +477,32 @@
         </div>
     </div>
     <script>
+        const notificationToggle = document.querySelector('[data-open-dashboard-notifications="true"]');
+        const notificationPanel = document.getElementById('dashboard-notifications');
+
+        function closeNotifications() {
+            notificationPanel?.classList.add('hidden-section');
+            notificationToggle?.setAttribute('aria-expanded', 'false');
+        }
+
+        notificationToggle?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (!notificationPanel) return;
+            const willOpen = notificationPanel.classList.contains('hidden-section');
+            notificationPanel.classList.toggle('hidden-section');
+            notificationToggle.setAttribute('aria-expanded', String(willOpen));
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!(event.target instanceof Element)) return;
+            if (notificationToggle?.contains(event.target) || notificationPanel?.contains(event.target)) return;
+            closeNotifications();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeNotifications();
+        });
+
         const statusToast = document.getElementById('status-toast');
         if (statusToast) {
             const closeBtn = statusToast.querySelector('.toast-close');
