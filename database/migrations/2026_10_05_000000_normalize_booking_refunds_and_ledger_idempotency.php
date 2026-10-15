@@ -9,32 +9,40 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('booking_refunds', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('spa_booking_id')->constrained()->cascadeOnDelete();
-            $table->string('payment_component', 30);
-            $table->string('processing_channel', 20);
-            $table->string('payment_method', 30)->nullable();
-            $table->string('gateway_payment_id', 100)->nullable();
-            $table->decimal('amount', 10, 2);
-            $table->string('status', 30);
-            $table->string('reference', 100)->unique();
-            $table->string('note', 500)->nullable();
-            $table->foreignId('requested_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('processed_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('requested_at');
-            $table->timestamp('processed_at')->nullable();
-            $table->timestamps();
+        if (! Schema::hasTable('booking_refunds')) {
+            Schema::create('booking_refunds', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('spa_booking_id')->constrained()->cascadeOnDelete();
+                $table->string('payment_component', 30);
+                $table->string('processing_channel', 20);
+                $table->string('payment_method', 30)->nullable();
+                $table->string('gateway_payment_id', 100)->nullable();
+                $table->decimal('amount', 10, 2);
+                $table->string('status', 30);
+                $table->string('reference', 100)->unique();
+                $table->string('note', 500)->nullable();
+                $table->foreignId('requested_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->foreignId('processed_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->timestamp('requested_at');
+                $table->timestamp('processed_at')->nullable();
+                $table->timestamps();
 
-            $table->index(['spa_booking_id', 'payment_component', 'status'], 'booking_refunds_component_status_index');
-            $table->index(['gateway_payment_id', 'status']);
-        });
+                $table->index(['spa_booking_id', 'payment_component', 'status'], 'booking_refunds_component_status_index');
+                $table->index(['gateway_payment_id', 'status']);
+            });
+        }
 
-        Schema::table('payment_ledger_entries', function (Blueprint $table): void {
-            $table->string('idempotency_key')->nullable()->after('spa_booking_id');
-            $table->foreignId('booking_refund_id')->nullable()->after('idempotency_key')
-                ->constrained('booking_refunds')->nullOnDelete();
-        });
+        if (! Schema::hasColumn('payment_ledger_entries', 'idempotency_key')) {
+            Schema::table('payment_ledger_entries', function (Blueprint $table): void {
+                $table->string('idempotency_key')->nullable()->after('spa_booking_id');
+            });
+        }
+        if (! Schema::hasColumn('payment_ledger_entries', 'booking_refund_id')) {
+            Schema::table('payment_ledger_entries', function (Blueprint $table): void {
+                $table->foreignId('booking_refund_id')->nullable()->after('idempotency_key')
+                    ->constrained('booking_refunds')->nullOnDelete();
+            });
+        }
 
         $now = now();
         DB::table('spa_bookings')
@@ -48,14 +56,21 @@ return new class extends Migration
                     if ($reference === '') {
                         $reference = 'RF-LEGACY-'.$booking->id;
                     }
-                    if (DB::table('booking_refunds')->where('reference', $reference)->exists()) {
+                    if (DB::table('booking_refunds')->where('reference', $reference)
+                        ->where('spa_booking_id', '!=', $booking->id)->exists()) {
                         $reference = mb_substr($reference, 0, 88).'-B'.$booking->id;
                     }
+
+                    // MySQL DDL can persist before a migration fails; reuse its backfill on retry.
+                    $refundId = DB::table('booking_refunds')
+                        ->where('spa_booking_id', $booking->id)
+                        ->where('reference', $reference)
+                        ->value('id');
 
                     $processedAt = (string) ($booking->refund_status ?? '') === 'processed'
                         ? ($booking->refunded_at ?? $booking->updated_at ?? $now)
                         : null;
-                    $refundId = DB::table('booking_refunds')->insertGetId([
+                    $refundId ??= DB::table('booking_refunds')->insertGetId([
                         'spa_booking_id' => $booking->id,
                         'payment_component' => 'initial_payment',
                         'processing_channel' => str_starts_with(strtolower($reference), 'ref_') ? 'paymongo' : 'manual',
@@ -76,11 +91,13 @@ return new class extends Migration
                     DB::table('payment_ledger_entries')
                         ->where('spa_booking_id', $booking->id)
                         ->where('entry_type', 'refund')
+                        ->whereNull('booking_refund_id')
                         ->update(['booking_refund_id' => $refundId]);
                 }
             });
 
         DB::table('payment_ledger_entries')
+            ->whereNull('idempotency_key')
             ->orderBy('id')
             ->chunkById(200, function ($entries): void {
                 foreach ($entries as $entry) {
@@ -93,11 +110,24 @@ return new class extends Migration
                 }
             });
 
-        Schema::table('payment_ledger_entries', function (Blueprint $table): void {
-            $table->dropUnique('payment_ledger_entries_spa_booking_id_entry_type_unique');
-            $table->unique('idempotency_key');
-            $table->unique('booking_refund_id');
-        });
+        // InnoDB needs a booking index before the composite unique index can be removed.
+        if (! Schema::hasIndex('payment_ledger_entries', 'payment_ledger_entries_spa_booking_id_index')) {
+            Schema::table('payment_ledger_entries', function (Blueprint $table): void {
+                $table->index('spa_booking_id');
+            });
+        }
+        if (Schema::hasIndex('payment_ledger_entries', 'payment_ledger_entries_spa_booking_id_entry_type_unique')) {
+            Schema::table('payment_ledger_entries', function (Blueprint $table): void {
+                $table->dropUnique('payment_ledger_entries_spa_booking_id_entry_type_unique');
+            });
+        }
+        foreach (['idempotency_key', 'booking_refund_id'] as $column) {
+            if (! Schema::hasIndex('payment_ledger_entries', 'payment_ledger_entries_'.$column.'_unique')) {
+                Schema::table('payment_ledger_entries', function (Blueprint $table) use ($column): void {
+                    $table->unique($column);
+                });
+            }
+        }
     }
 
     public function down(): void
