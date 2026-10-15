@@ -88,6 +88,13 @@
                         <div class="cr-list-tools">
                         </div>
                     </div>
+                    <details class="cr-status-explanation">
+                        <summary>How client statuses update</summary>
+                        <p><strong>Active:</strong> The most recent completed booking is dated within the last {{ max((int) config('touchnrelief.client_active_months', 12), 1) }} months, including the cutoff date. A recent completed visit makes an inactive client active again.</p>
+                        <p><strong>Inactive:</strong> No completed bookings, or the most recent completed booking is older than that window. Login, payment, cancellation, and No Show do not count as completed visits.</p>
+                        <p><strong>New:</strong> The client record was created within the last {{ max((int) config('touchnrelief.client_new_days', 30), 1) }} days. This is an additional tag, so a new client can also be Active or Inactive. The tag ends when that period passes.</p>
+                        <p>Statuses and filters are recalculated when this directory loads. Refresh after completing a visit or when a time boundary passes. Archived records are listed separately.</p>
+                    </details>
                     <div class="cr-mobile-search search">
                         <i class="bi bi-search" aria-hidden="true"></i>
                         <input id="client-records-mobile-search" type="search" placeholder="Search client name..." aria-label="Search client name">
@@ -127,8 +134,11 @@
                                         @if (($customer->is_new_user ?? false) && !$customer->isArchived())
                                             <span class="pill pill-new">New</span>
                                         @endif
+                                        @if (!$customer->isArchived())
+                                            <span class="pill {{ ($customer->is_active ?? false) ? 'pill-active' : 'pill-inactive' }}">{{ ($customer->is_active ?? false) ? 'Active' : 'Inactive' }}</span>
+                                        @endif
                                         @if (($customer->is_active ?? false) === false && !empty($customer->inactivity_duration) && !$customer->isArchived())
-                                            <span class="pill pill-inactive">{{ $customer->inactivity_duration }}</span>
+                                            <span class="pill pill-inactive">Inactive for {{ $customer->inactivity_duration }}</span>
                                         @endif
                                         @if ($customer->isArchived())
                                             <span class="pill pill-archived" title="{{ $customer->archive_reason ?? 'Archived' }}">Archived</span>

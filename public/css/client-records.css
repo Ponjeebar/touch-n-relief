@@ -6,6 +6,15 @@
     grid-template-rows: unset;
 }
 
+.cr-status-explanation {
+    margin: 0 16px 12px;
+    color: var(--cr-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+.cr-status-explanation summary { color: var(--text, #213730); cursor: pointer; font-weight: 700; }
+.cr-status-explanation p { margin: 8px 0 0; }
+
 :root {
     --cr-surface: #ffffff;
     --cr-border: #e7eef2;

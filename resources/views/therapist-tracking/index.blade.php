@@ -58,6 +58,11 @@
                         <div>
                             <strong>{{ $selectedServiceHoursYear }} service hours</strong>
                             <span>Completed session time against the {{ number_format($serviceHoursTarget) }} hour annual target.</span>
+                            <details class="tt-hours-explanation">
+                                <summary>How service hours and percentages are calculated</summary>
+                                <p>Hours are the recorded service durations from completed transactions dated January 1 to December 31, {{ $selectedServiceHoursYear }}, divided by 60. Unstarted, cancelled, and No Show appointments do not add service hours.</p>
+                                <p>Target progress = displayed service hours ÷ {{ number_format($serviceHoursTarget) }} target hours × 100, rounded to a whole percent and capped at 100%. Hours above the target remain in the total. This measures annual target progress, not attendance, shift utilization, or treatment quality.</p>
+                            </details>
                         </div>
                         <form method="GET" action="{{ route('therapist-tracking.index') }}">
                             <label for="service-hours-year">Reporting year</label>

@@ -2,14 +2,30 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Services\BackupRecoveryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use RuntimeException;
 use Tests\TestCase;
 
 class BackupRecoveryTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_failed_backup_download_returns_an_error_without_recording_success(): void
+    {
+        $this->mock(BackupRecoveryService::class, function ($mock): void {
+            $mock->shouldReceive('createJson')->once()->andThrow(new RuntimeException('Simulated backup generation failure'));
+        });
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($admin)->get(route('reporting.backup'))
+            ->assertRedirect(route('reporting.index'))
+            ->assertSessionHas('error', 'The backup could not be created. Please try again or contact the administrator.');
+
+        $this->assertDatabaseMissing('activity_logs', ['action' => 'report.backup']);
+    }
 
     public function test_generated_backup_uses_the_verified_recovery_format(): void
     {
