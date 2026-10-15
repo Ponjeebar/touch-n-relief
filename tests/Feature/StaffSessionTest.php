@@ -11,6 +11,32 @@ class StaffSessionTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_logout_returns_every_role_to_the_public_landing_page_and_clears_the_session(): void
+    {
+        foreach ([User::ROLE_USER, User::ROLE_RECEPTIONIST, User::ROLE_ADMIN] as $role) {
+            $user = User::factory()->create([
+                'role' => $role,
+                'staff_session_token' => $role === User::ROLE_USER ? null : 'logout-test-token',
+            ]);
+
+            $this->actingAs($user)->withSession([
+                EnsureCurrentStaffSession::SESSION_KEY => 'logout-test-token',
+                'logout_test_value' => 'must-be-removed',
+            ])->post(route('logout'))
+                ->assertRedirect(route('landing'))
+                ->assertSessionMissing('logout_test_value')
+                ->assertSessionMissing(EnsureCurrentStaffSession::SESSION_KEY);
+
+            $this->assertGuest();
+            $this->assertNull($user->fresh()->staff_session_token);
+            if ($role !== User::ROLE_USER) {
+                $this->assertDatabaseHas('activity_logs', ['user_id' => $user->id, 'action' => 'logout']);
+            }
+            $this->get(route('landing'))->assertOk();
+            $this->get(route('appointments.index'))->assertRedirect(route('login'));
+        }
+    }
+
     public function test_a_new_receptionist_login_replaces_the_previous_session(): void
     {
         $receptionist = User::factory()->create([
@@ -26,7 +52,7 @@ class StaffSessionTest extends TestCase
         $firstToken = (string) $receptionist->fresh()->staff_session_token;
         $this->assertNotSame('', $firstToken);
 
-        $this->post(route('logout'))->assertRedirect(route('login'));
+        $this->post(route('logout'))->assertRedirect(route('landing'));
         $receptionist->forceFill(['staff_session_token' => $firstToken])->save();
 
         $this->post(route('login.attempt'), [

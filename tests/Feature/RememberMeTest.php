@@ -39,6 +39,7 @@ class RememberMeTest extends TestCase
         $this->assertNotNull($rememberCookie);
         $this->withCookie($cookieName, $rememberCookie->getValue())
             ->post(route('logout'))
+            ->assertRedirect(route('landing'))
             ->assertCookieExpired($cookieName);
         $this->assertGuest();
     }

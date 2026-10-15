@@ -116,7 +116,7 @@ class CustomerTourTest extends TestCase
             ->assertOk()
             ->assertSee('data-customer-tour-auto-start="1"', false);
 
-        $this->post(route('logout'))->assertRedirect(route('login'));
+        $this->post(route('logout'))->assertRedirect(route('landing'));
 
         $this->post(route('login.attempt'), [
             'login' => $receptionist->email,
@@ -193,7 +193,7 @@ class CustomerTourTest extends TestCase
             ->assertOk()
             ->assertSee('data-customer-tour-auto-start="0"', false);
 
-        $this->post(route('logout'))->assertRedirect(route('login'));
+        $this->post(route('logout'))->assertRedirect(route('landing'));
 
         $this->post(route('login.attempt'), [
             'login' => $customer->email,
