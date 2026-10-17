@@ -99,6 +99,9 @@ class BookingRescheduleService
         $this->assertSlotAvailable($booking, $bookingDate, $normalizedSlot, forStaff: $forStaff);
 
         DB::transaction(function () use ($booking, $bookingDate, $normalizedSlot, $forStaff): void {
+            User::query()->whereKey($booking->user_id)->lockForUpdate()->firstOrFail();
+            $current = SpaBooking::query()->findOrFail($booking->id);
+            $this->slots->lockTherapistBookingsForUpdate((string) $current->therapist_name, $bookingDate);
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
 
             $canProceed = $forStaff ? $this->canStaffReschedule($locked) : $this->canReschedule($locked);

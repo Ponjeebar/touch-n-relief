@@ -10,6 +10,7 @@ use App\Models\SpaBooking;
 use App\Models\Therapist;
 use App\Models\User;
 use App\Services\BookingRefundService;
+use App\Services\PaymentLedgerService;
 use App\Services\SiteSettingsService;
 use App\Support\PaymentMethodCatalog;
 use Database\Seeders\SiteSettingsSeeder;
@@ -307,6 +308,25 @@ class PostgresBookingConcurrencyTest extends TestCase
             ->count());
     }
 
+    public function test_concurrent_distinct_payment_references_preserve_one_allocation_and_one_review_record(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_USER]);
+        $booking = SpaBooking::create(['user_id' => $customer->id, 'client_name' => $customer->name,
+            'booking_source' => 'online', 'service_name' => 'Foot Reflexology', 'therapist_name' => 'Concurrency Therapist',
+            'booking_date' => now()->addDay()->toDateString(), 'time_slot' => '10:00 AM', 'duration_minutes' => 45,
+            'amount' => 100, 'payment_amount' => 100, 'payment_method' => 'paymongo', 'payment_status' => 'pending', 'session_status' => 'confirmed']);
+        $this->assertSame(['accepted', 'accepted'], $this->runWorkflowWorkers('webhook-distinct', $booking->id, ['first', 'second']));
+        $review = DB::table('gateway_payment_reconciliations')->where('spa_booking_id', $booking->id)->sole();
+        $references = [$booking->fresh()->payment_transaction_id, $review->gateway_payment_id];
+        sort($references);
+        $this->assertSame(['pay_pg_first', 'pay_pg_second'], $references);
+        $this->assertSame(100.0, (float) $review->amount);
+        $this->assertSame(1, PaymentLedgerEntry::where('spa_booking_id', $booking->id)->count());
+        $this->assertSame(100.0, (float) PaymentLedgerEntry::where('spa_booking_id', $booking->id)->sum('amount'));
+        $this->assertDatabaseCount('booking_refunds', 0);
+        $this->assertDatabaseCount('transactions', 0);
+    }
+
     public function test_late_payment_and_replacement_booking_leave_one_slot_owner(): void
     {
         $customer = User::factory()->create(['role' => User::ROLE_USER]);
@@ -543,6 +563,104 @@ class PostgresBookingConcurrencyTest extends TestCase
         $this->assertSame(1, PaymentLedgerEntry::where('spa_booking_id', $booking->id)->count());
         $this->assertSame((float) $booking->amount, (float) PaymentLedgerEntry::where('spa_booking_id', $booking->id)->sum('amount'));
         $this->assertSame(1, DB::table('activity_logs')->where('subject_id', $booking->id)->where('action', 'session.started')->count());
+    }
+
+    public function test_actual_late_start_serializes_against_a_new_booking_for_the_same_client(): void
+    {
+        [$first, $second] = $this->runCustomerIntervalRace(false);
+        $this->assertSame('13:09', $first->fresh()->session_started_at?->format('H:i'));
+        $this->assertSame(['accepted', 'rejected'], $second);
+        $this->assertSame(1, SpaBooking::where('user_id', $first->user_id)->count());
+        $this->assertSame(1, PaymentLedgerEntry::where('spa_booking_id', $first->id)->count());
+        $this->assertSame(1, DB::table('activity_logs')->where('action', 'session.started')->where('subject_id', $first->id)->count());
+    }
+
+    public function test_concurrent_reschedules_cannot_overlap_the_same_client_on_different_therapists(): void
+    {
+        [$first, $results] = $this->runCustomerIntervalRace(true);
+        $this->assertSame(['accepted', 'rejected'], $results);
+        $bookings = SpaBooking::where('user_id', $first->user_id)->get();
+        $this->assertCount(1, $bookings->where('time_slot', '2:00 PM'));
+        $this->assertCount(1, $bookings->where('time_slot', '4:00 PM'));
+        $this->assertSame(2, PaymentLedgerEntry::whereIn('spa_booking_id', $bookings->pluck('id'))->count());
+    }
+
+    public function test_queued_cancellation_and_start_follow_one_customer_lock_order(): void
+    {
+        [$booking, $results] = $this->runCustomerIntervalRace(false, true);
+        $this->assertSame(['accepted', 'rejected'], $results);
+        $this->assertNotNull($booking->fresh()->cancelled_at);
+        $this->assertNull($booking->fresh()->session_started_at);
+        $this->assertDatabaseCount('transactions', 0);
+        $this->assertSame(1, PaymentLedgerEntry::where('spa_booking_id', $booking->id)->count());
+        $this->assertDatabaseMissing('activity_logs', ['action' => 'session.started', 'subject_id' => $booking->id]);
+    }
+
+    private function runCustomerIntervalRace(bool $reschedule, bool $cancel = false): array
+    {
+        $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $client = User::factory()->create(['role' => User::ROLE_USER, 'name' => 'Interval Audit Client', 'contact_number' => '09170000000']);
+        $therapists = collect(['Alpha', 'Beta'])->map(fn ($name) => Therapist::create(['therapist_code' => 'INTERVAL-'.$name, 'name' => 'Interval '.$name, 'is_active' => true, 'status' => 'available', 'work_on_off_day' => true]));
+        $first = SpaBooking::create(['user_id' => $client->id, 'client_name' => $client->name, 'service_name' => 'Swedish Massage', 'therapist_name' => $therapists[0]->name, 'booking_date' => '2026-10-19', 'time_slot' => $reschedule ? '12:00 PM' : '1:00 PM', 'duration_minutes' => 60, 'amount' => 100, 'payment_amount' => 100, 'payment_method' => 'cash_counter', 'payment_status' => 'paid', 'session_status' => 'confirmed']);
+        app(PaymentLedgerService::class)->recordInitialPayment($first);
+        $otherId = $therapists[1]->id;
+        if ($reschedule) {
+            $other = $first->replicate();
+            $other->therapist_name = $therapists[1]->name;
+            $other->time_slot = '4:00 PM';
+            $other->save();
+            app(PaymentLedgerService::class)->recordInitialPayment($other);
+            $otherId = $other->id;
+        }
+        $prefix = storage_path('framework/testing/client-interval-'.bin2hex(random_bytes(8)));
+        $paths = [$prefix.'-ready', $prefix.'-go', $prefix.'-entered'];
+        $environment = array_merge(array_filter(array_merge($_SERVER, $_ENV), 'is_scalar'), [
+            'APP_ENV' => 'testing', 'DB_CONNECTION' => 'pgsql', 'DB_URL' => '',
+            'DB_HOST' => config('database.connections.pgsql.host'), 'DB_PORT' => (string) config('database.connections.pgsql.port'),
+            'DB_DATABASE' => config('database.connections.pgsql.database'), 'DB_USERNAME' => config('database.connections.pgsql.username'), 'DB_PASSWORD' => config('database.connections.pgsql.password'),
+        ]);
+        $actions = $reschedule ? ['paused-reschedule', 'reschedule'] : ['paused-start', 'new-booking'];
+        if ($cancel) {
+            $actions = ['paused-cancel', 'plain-start'];
+        }
+        $processes = array_map(fn ($action) => new Process([PHP_BINARY, base_path('tests/Support/postgres-customer-interval-worker.php'), $action, (string) $first->id, (string) $otherId, (string) $staff->id, ...$paths], base_path(), $environment, null, 30), $actions);
+        try {
+            $processes[0]->start();
+            $this->waitForIntervalCheckpoint($paths[0]);
+            $processes[1]->start();
+            $this->waitForIntervalCheckpoint($paths[2]);
+            $deadline = microtime(true) + 2;
+            while ($processes[1]->isRunning() && microtime(true) < $deadline) {
+                usleep(10000);
+            }
+            touch($paths[1]);
+            foreach ($processes as $process) {
+                $process->wait();
+                $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+            }
+
+            return [$first, array_map(fn ($process) => trim($process->getOutput()), $processes)];
+        } finally {
+            foreach ($processes as $process) {
+                if ($process->isRunning()) {
+                    $process->stop(1);
+                }
+            }
+            foreach ($paths as $path) {
+                if (file_exists($path)) {
+                    unlink($path);
+                }
+            }
+        }
+    }
+
+    private function waitForIntervalCheckpoint(string $path): void
+    {
+        $deadline = microtime(true) + 12;
+        while (! file_exists($path) && microtime(true) < $deadline) {
+            usleep(10000);
+        }
+        $this->assertFileExists($path, 'The interval worker did not reach its checkpoint.');
     }
 
     private function gatewayRefundBooking(float $amount): SpaBooking

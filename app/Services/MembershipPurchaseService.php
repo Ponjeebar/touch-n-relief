@@ -16,12 +16,17 @@ class MembershipPurchaseService
         string $paymentId,
         ?string $paymentChannel = null,
         ?string $checkoutSessionId = null,
+        ?array $paymentEvidence = null,
     ): MembershipPurchase {
-        return DB::transaction(function () use ($purchase, $paymentId, $paymentChannel, $checkoutSessionId): MembershipPurchase {
+        return DB::transaction(function () use ($purchase, $paymentId, $paymentChannel, $checkoutSessionId, $paymentEvidence): MembershipPurchase {
             User::query()->whereKey($purchase->user_id)->lockForUpdate()->firstOrFail();
             $locked = MembershipPurchase::query()->lockForUpdate()->findOrFail($purchase->id);
 
             if ($locked->payment_status === PaymentMethodCatalog::STATUS_PAID) {
+                if (str_starts_with((string) $locked->payment_transaction_id, 'pay_') && str_starts_with($paymentId, 'pay_') && $paymentId !== $locked->payment_transaction_id) {
+                    app(GatewayPaymentReconciliationService::class)->record($locked, $paymentId, $paymentEvidence);
+                }
+
                 return $locked;
             }
 

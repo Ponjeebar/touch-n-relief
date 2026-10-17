@@ -81,6 +81,7 @@ class BookingCancellationService
     public function staffCancel(SpaBooking $booking, ?string $note = null): void
     {
         DB::transaction(function () use ($booking, $note): void {
+            User::query()->whereKey($booking->user_id)->lockForUpdate()->first();
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
 
             if (! $this->canStaffCancel($locked)) {
@@ -115,6 +116,7 @@ class BookingCancellationService
         $reason = $this->resolveReasonText($reasonCode, $otherText);
 
         return DB::transaction(function () use ($booking, $reason): SpaBooking {
+            User::query()->whereKey($booking->user_id)->lockForUpdate()->first();
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
 
             if (! $this->canCancel($locked)) {

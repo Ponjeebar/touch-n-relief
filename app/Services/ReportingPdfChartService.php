@@ -17,6 +17,9 @@ class ReportingPdfChartService
         $plotHeight = $height - $top - $bottom;
         $numbers = $this->numbers($values, count($labels));
         $maximum = max(array_merge($numbers, [1.0]));
+        $minimum = min(array_merge($numbers, [0.0]));
+        $range = $maximum - $minimum;
+        $zeroY = $top + $plotHeight * $maximum / $range;
         $count = max(count($labels), 1);
         $slotWidth = $plotWidth / $count;
         $barWidth = max(min($slotWidth * 0.62, 34), 2);
@@ -25,16 +28,16 @@ class ReportingPdfChartService
         $svg = $this->startSvg($width, $height);
         for ($step = 0; $step <= 4; $step++) {
             $y = $top + ($plotHeight * $step / 4);
-            $value = $maximum * (1 - $step / 4);
+            $value = $maximum - $range * $step / 4;
             $svg .= sprintf('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="#dce8e5" stroke-width="1"/>', $left, $y, $width - $right, $y);
             $svg .= sprintf('<text x="%d" y="%.1f" text-anchor="end" font-size="9" fill="#647680">%s</text>', $left - 7, $y + 3, $this->moneyTick($value));
         }
 
         foreach ($labels as $index => $label) {
             $value = $numbers[$index] ?? 0;
-            $barHeight = $maximum > 0 ? ($value / $maximum) * $plotHeight : 0;
+            $barHeight = abs($value) / $range * $plotHeight;
             $x = $left + ($slotWidth * $index) + (($slotWidth - $barWidth) / 2);
-            $y = $top + $plotHeight - $barHeight;
+            $y = $value < 0 ? $zeroY : $zeroY - $barHeight;
             $svg .= sprintf('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" rx="2" fill="#0c9aa6"/>', $x, $y, $barWidth, $barHeight);
             if ($index % $labelEvery === 0 || $index === count($labels) - 1) {
                 $svg .= sprintf('<text x="%.1f" y="%d" text-anchor="middle" font-size="8" fill="#52666f">%s</text>', $x + $barWidth / 2, $height - 18, $this->escape((string) $label));
@@ -60,17 +63,22 @@ class ReportingPdfChartService
         $height = max(110, $top + max(count($labels), 1) * $rowHeight + $bottom);
         $numbers = $this->numbers($values, count($labels));
         $maximum = max(array_merge($numbers, [1.0]));
+        $minimum = min(array_merge($numbers, [0.0]));
+        $range = $maximum - $minimum;
         $plotWidth = $width - $labelWidth - $right;
+        $zeroX = $labelWidth - $minimum / $range * $plotWidth;
         $colors = ['#04724d', '#0c9aa6', '#4f6d8c', '#2f9d62', '#c95a7b', '#f0a74d', '#7f8c8d', '#8e44ad'];
         $svg = $this->startSvg($width, $height);
 
         foreach ($labels as $index => $label) {
             $value = $numbers[$index] ?? 0;
             $y = $top + ($index * $rowHeight);
-            $barWidth = $maximum > 0 ? ($value / $maximum) * $plotWidth : 0;
+            $barWidth = abs($value) / $range * $plotWidth;
+            $barX = $value < 0 ? $zeroX - $barWidth : $zeroX;
             $svg .= sprintf('<text x="%d" y="%.1f" text-anchor="end" font-size="9" fill="#425761">%s</text>', $labelWidth - 8, $y + 14, $this->escape((string) $label));
             $svg .= sprintf('<rect x="%d" y="%.1f" width="%d" height="17" rx="3" fill="#eef4f4"/>', $labelWidth, $y, $plotWidth);
-            $svg .= sprintf('<rect x="%d" y="%.1f" width="%.1f" height="17" rx="3" fill="%s"/>', $labelWidth, $y, $barWidth, $colors[$index % count($colors)]);
+            $svg .= sprintf('<rect x="%.1f" y="%.1f" width="%.1f" height="17" rx="3" fill="%s"/>', $barX, $y, $barWidth, $colors[$index % count($colors)]);
+            $svg .= sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#647680"/>', $zeroX, $y, $zeroX, $y + 17);
             $svg .= sprintf('<text x="%d" y="%.1f" font-size="9" fill="#16382d">PHP %s</text>', $width - $right + 8, $y + 13, number_format($value, 2));
         }
 
@@ -91,7 +99,7 @@ class ReportingPdfChartService
     {
         $numbers = [];
         for ($index = 0; $index < $count; $index++) {
-            $numbers[] = max((float) ($values[$index] ?? 0), 0);
+            $numbers[] = (float) ($values[$index] ?? 0);
         }
 
         return $numbers;

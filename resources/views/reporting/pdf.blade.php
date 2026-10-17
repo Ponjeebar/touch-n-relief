@@ -53,12 +53,12 @@
             'label' => (string) $label,
             'value' => (float) ($trendData[$index] ?? 0),
         ]);
-        $activeTrendRows = $trendRows->filter(fn ($row) => $row['value'] > 0)->values();
+        $activeTrendRows = $trendRows->filter(fn ($row) => abs($row['value']) > 0.004)->values();
         $serviceRows = collect($serviceLabels)->map(fn ($label, $index) => [
             'label' => (string) $label,
             'value' => (float) ($serviceTotals[$index] ?? 0),
         ]);
-        $activeServiceRows = $serviceRows->filter(fn ($row) => $row['value'] > 0)->values();
+        $activeServiceRows = $serviceRows->filter(fn ($row) => abs($row['value']) > 0.004)->values();
         $therapistRows = collect($therapistHoursBreakdown ?? []);
         $activeTherapistRows = $therapistRows
             ->filter(fn ($therapist) => (float) ($therapist['hours'] ?? 0) > 0)
@@ -185,6 +185,17 @@
             </tbody>
         </table>
     </div>
+    @endif
+    @if (! empty($gatewayReconciliations))
+        <div class="section">
+            <h2>Gateway payments requiring review</h2>
+            <p>Unallocated payments are excluded from sales. Verify gateway records before any payout.</p>
+            <table class="data"><thead><tr><th>Received</th><th>Booking / membership</th><th>Client</th><th>Gateway reference</th><th>Amount</th></tr></thead><tbody>
+            @foreach ($gatewayReconciliations as $entry)
+                <tr><td>{{ $entry['receivedAt'] }}</td><td>{{ $entry['subject'] }}</td><td>{{ $entry['client'] }}</td><td>{{ $entry['reference'] }}</td><td>{{ $entry['amount'] === null ? 'Requires verification' : $entry['currency'].' '.number_format($entry['amount'], 2) }}</td></tr>
+            @endforeach
+            </tbody></table>
+        </div>
     @endif
     <div class="footer">TOUCHnRELIEF Appointment and Record Management System</div>
 </body>

@@ -720,6 +720,7 @@ html[data-theme="dark"] .rep-period-options button[aria-pressed="true"] {
 
 .rep-data-panel,
 .rep-calculation-notes {
+    min-width: 0;
     padding: 16px;
     border: 1px solid var(--rep-border);
     border-radius: 12px;

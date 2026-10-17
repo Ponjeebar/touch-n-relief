@@ -41,10 +41,11 @@ if (! file_exists($barrier)) {
 }
 
 try {
-    if ($action === 'webhook' || ($action === 'late-payment-race' && $actor === 'webhook')) {
+    if (in_array($action, ['webhook', 'webhook-distinct'], true) || ($action === 'late-payment-race' && $actor === 'webhook')) {
         $booking = SpaBooking::query()->findOrFail((int) $recordId);
+        $paymentId = $action === 'webhook-distinct' ? 'pay_pg_'.$actor : 'pay_pg_replay';
         $paymongo = Mockery::mock(PaymongoService::class);
-        $paymongo->shouldReceive('resolvePaymentIdForBooking')->zeroOrMoreTimes()->andReturn('pay_pg_replay');
+        $paymongo->shouldReceive('resolvePaymentIdForBooking')->zeroOrMoreTimes()->andReturn($paymentId);
         $paymongo->shouldReceive('isConfigured')->zeroOrMoreTimes()->andReturnTrue();
         $paymongo->shouldReceive('verifyWebhookSignature')->once()->andReturnTrue();
         $paymongo->shouldReceive('resolvePaymentChannelForPaymentId')->zeroOrMoreTimes()->andReturn('gcash');
@@ -57,7 +58,7 @@ try {
         $payload = json_encode(['data' => ['attributes' => [
             'type' => 'payment.paid',
             'data' => [
-                'id' => 'pay_pg_replay',
+                'id' => $paymentId,
                 'type' => 'payment',
                 'attributes' => [
                     'status' => 'paid',

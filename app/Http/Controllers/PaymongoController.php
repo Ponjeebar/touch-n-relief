@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\MembershipPurchase;
 use App\Models\SpaBooking;
 use App\Models\Therapist;
+use App\Models\User;
 use App\Services\BookingRefundService;
 use App\Services\BookingSlotService;
+use App\Services\GatewayPaymentReconciliationService;
 use App\Services\MembershipPurchaseService;
 use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
@@ -411,7 +413,10 @@ class PaymongoController extends Controller
                     $purchase,
                     $paymentId,
                     $this->paymongo->resolvePaymentChannelForPaymentId($paymentId),
+                    paymentEvidence: $payment,
                 );
+            } else {
+                app(GatewayPaymentReconciliationService::class)->record($purchase, $paymentId, $payment, 'payment_evidence_mismatch');
             }
 
             return;
@@ -577,6 +582,8 @@ class PaymongoController extends Controller
     private function markMembershipPaid(MembershipPurchase $purchase, array $session): void
     {
         if (! $this->memberships->evidenceMatches($purchase, $session)) {
+            app(GatewayPaymentReconciliationService::class)->record($purchase, $this->paymongo->extractPaidPaymentIdFromSession($session), $session, 'payment_evidence_mismatch');
+
             return;
         }
 
@@ -585,15 +592,12 @@ class PaymongoController extends Controller
             $this->paymongo->extractPaidPaymentIdFromSession($session),
             $this->paymongo->extractPaymentChannelFromSession($session),
             (string) ($session['id'] ?? $purchase->paymongo_checkout_session_id),
+            $session,
         );
     }
 
     private function markBookingPaid(SpaBooking $booking, array $session): void
     {
-        if (! $this->paymentEvidenceMatchesBooking($booking, $session)) {
-            return;
-        }
-
         $paymentId = $this->paymongo->extractPaidPaymentIdFromSession($session);
         $sessionId = (string) ($session['id'] ?? $booking->paymongo_checkout_session_id);
         $channel = $this->paymongo->extractPaymentChannelFromSession($session);
@@ -603,6 +607,7 @@ class PaymongoController extends Controller
             $paymentId,
             $sessionId !== '' ? $sessionId : null,
             $channel !== '' ? $channel : null,
+            $session,
         );
     }
 
@@ -613,107 +618,121 @@ class PaymongoController extends Controller
         ?string $channel = null,
         ?array $payment = null,
     ): void {
-        $booking->refresh();
+        DB::transaction(function () use ($booking, $paymentId, $sessionId, $channel, $payment): void {
+            User::query()->whereKey($booking->user_id)->lockForUpdate()->firstOrFail();
+            $booking = SpaBooking::query()->findOrFail($booking->id);
+            $this->slots->lockTherapistBookingsForUpdate((string) $booking->therapist_name, $booking->booking_date->format('Y-m-d'));
+            $booking = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
+            if (in_array($booking->payment_status, [PaymentMethodCatalog::STATUS_PAID, PaymentMethodCatalog::STATUS_REFUNDED], true)
+                && str_starts_with((string) $booking->payment_transaction_id, 'pay_')
+                && str_starts_with($paymentId, 'pay_') && $paymentId !== $booking->payment_transaction_id) {
+                app(GatewayPaymentReconciliationService::class)->record($booking, $paymentId, $payment);
 
-        if ($booking->payment_status === PaymentMethodCatalog::STATUS_REFUNDED
-            || $booking->refund_status === BookingRefundService::STATUS_PROCESSED) {
-            Log::info('Ignored PayMongo paid event for an already refunded booking.', [
-                'booking_id' => $booking->id,
-                'payment_id' => $paymentId,
-            ]);
-
-            return;
-        }
-
-        if ($payment !== null && ! $this->paymentEvidenceMatchesBooking($booking, $payment)) {
-            return;
-        }
-
-        $storedPaymentId = trim((string) ($booking->payment_transaction_id ?? ''));
-        $resolvedPaymentId = str_starts_with($paymentId, 'pay_') ? $paymentId : '';
-
-        if ($channel === null || $channel === '') {
-            $channel = $resolvedPaymentId !== ''
-                ? $this->paymongo->resolvePaymentChannelForPaymentId($resolvedPaymentId)
-                : '';
-        }
-
-        $paymentMethod = PaymentMethodCatalog::normalizePaymongoChannel($channel !== '' ? $channel : $booking->payment_method);
-
-        if ($booking->payment_status === PaymentMethodCatalog::STATUS_PAID) {
-            $updates = [];
-
-            if ($resolvedPaymentId !== '' && ! str_starts_with($storedPaymentId, 'pay_')) {
-                $updates['payment_transaction_id'] = $resolvedPaymentId;
+                return;
             }
 
-            if ($channel !== '' && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO) {
-                $updates['payment_method'] = $paymentMethod;
+            if ($booking->payment_status === PaymentMethodCatalog::STATUS_REFUNDED
+                || $booking->refund_status === BookingRefundService::STATUS_PROCESSED) {
+                Log::info('Ignored PayMongo paid event for an already refunded booking.', [
+                    'booking_id' => $booking->id,
+                    'payment_id' => $paymentId,
+                ]);
+
+                return;
             }
 
-            if ($updates !== []) {
-                $booking->forceFill($updates)->save();
+            if ($payment !== null && ! $this->paymentEvidenceMatchesBooking($booking, $payment)) {
+                app(GatewayPaymentReconciliationService::class)->record($booking, $paymentId, $payment, 'payment_evidence_mismatch');
+
+                return;
             }
 
-            $paidBooking = $booking->fresh();
-            $this->paymentLedger->recordInitialPayment($paidBooking);
+            $storedPaymentId = trim((string) ($booking->payment_transaction_id ?? ''));
+            $resolvedPaymentId = str_starts_with($paymentId, 'pay_') ? $paymentId : '';
 
-            if ($paidBooking->cancelled_at !== null
-                && ! in_array($paidBooking->refund_status, [
-                    BookingRefundService::STATUS_PENDING,
-                    BookingRefundService::STATUS_PROCESSED,
-                ], true)) {
-                $this->refunds->processRefund($paidBooking);
+            if ($channel === null || $channel === '') {
+                $channel = $resolvedPaymentId !== ''
+                    ? $this->paymongo->resolvePaymentChannelForPaymentId($resolvedPaymentId)
+                    : '';
             }
 
-            return;
-        }
+            $paymentMethod = PaymentMethodCatalog::normalizePaymongoChannel($channel !== '' ? $channel : $booking->payment_method);
 
-        $paidValues = [
-            'payment_status' => PaymentMethodCatalog::STATUS_PAID,
-            'payment_method' => $paymentMethod,
-            'payment_transaction_id' => $resolvedPaymentId !== '' ? $resolvedPaymentId : $booking->payment_transaction_id,
-            'paymongo_checkout_session_id' => $sessionId ?? $booking->paymongo_checkout_session_id,
-        ];
+            if ($booking->payment_status === PaymentMethodCatalog::STATUS_PAID) {
+                $updates = [];
 
-        $mustRefund = DB::transaction(function () use ($booking, $paidValues): bool {
-            // Use the same therapist-first lock order as booking creation before the final decision.
-            $this->slots->lockTherapistBookingsForUpdate(
-                (string) $booking->therapist_name,
-                $booking->booking_date->format('Y-m-d'),
-            );
+                if ($resolvedPaymentId !== '' && ! str_starts_with($storedPaymentId, 'pay_')) {
+                    $updates['payment_transaction_id'] = $resolvedPaymentId;
+                }
 
-            $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
+                if ($channel !== '' && $booking->payment_method === PaymentMethodCatalog::METHOD_PAYMONGO) {
+                    $updates['payment_method'] = $paymentMethod;
+                }
 
-            if ($locked->payment_status === PaymentMethodCatalog::STATUS_PAID) {
-                return false;
+                if ($updates !== []) {
+                    $booking->forceFill($updates)->save();
+                }
+
+                $paidBooking = $booking->fresh();
+                $this->paymentLedger->recordInitialPayment($paidBooking);
+
+                if ($paidBooking->cancelled_at !== null
+                    && ! in_array($paidBooking->refund_status, [
+                        BookingRefundService::STATUS_PENDING,
+                        BookingRefundService::STATUS_PROCESSED,
+                    ], true)) {
+                    $this->refunds->processRefund($paidBooking);
+                }
+
+                return;
             }
 
-            $holdExpired = $locked->isPaymentHoldExpired();
-            $terminal = $this->bookingIsTerminal($locked);
-            $unserviceable = $terminal
-                || ($holdExpired && ! $this->latePaymentCanBeAccepted($locked));
-            if ($unserviceable && ! $terminal) {
-                $paidValues['cancelled_at'] = now();
-                $paidValues['session_status'] = SpaBooking::STATUS_CANCELLED;
-                $paidValues['cancellation_reason'] = 'Automatically cancelled because the verified payment arrived after the appointment could no longer be served.';
+            $paidValues = [
+                'payment_status' => PaymentMethodCatalog::STATUS_PAID,
+                'payment_method' => $paymentMethod,
+                'payment_transaction_id' => $resolvedPaymentId !== '' ? $resolvedPaymentId : $booking->payment_transaction_id,
+                'paymongo_checkout_session_id' => $sessionId ?? $booking->paymongo_checkout_session_id,
+            ];
+
+            $mustRefund = DB::transaction(function () use ($booking, $paidValues): bool {
+                // Use the same therapist-first lock order as booking creation before the final decision.
+                $this->slots->lockTherapistBookingsForUpdate(
+                    (string) $booking->therapist_name,
+                    $booking->booking_date->format('Y-m-d'),
+                );
+
+                $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
+
+                if ($locked->payment_status === PaymentMethodCatalog::STATUS_PAID) {
+                    return false;
+                }
+
+                $holdExpired = $locked->isPaymentHoldExpired();
+                $terminal = $this->bookingIsTerminal($locked);
+                $unserviceable = $terminal
+                    || ($holdExpired && ! $this->latePaymentCanBeAccepted($locked));
+                if ($unserviceable && ! $terminal) {
+                    $paidValues['cancelled_at'] = now();
+                    $paidValues['session_status'] = SpaBooking::STATUS_CANCELLED;
+                    $paidValues['cancellation_reason'] = 'Automatically cancelled because the verified payment arrived after the appointment could no longer be served.';
+                }
+
+                $locked->forceFill($paidValues)->save();
+
+                return $unserviceable;
+            });
+
+            $this->paymentLedger->recordInitialPayment($booking->fresh());
+
+            if ($mustRefund) {
+                $refunded = $this->refunds->processRefund($booking->fresh());
+
+                Log::warning('Late PayMongo payment could not be applied to a serviceable appointment.', [
+                    'booking_id' => $booking->id,
+                    'refund_status' => $refunded->refund_status,
+                ]);
             }
-
-            $locked->forceFill($paidValues)->save();
-
-            return $unserviceable;
         });
-
-        $this->paymentLedger->recordInitialPayment($booking->fresh());
-
-        if ($mustRefund) {
-            $refunded = $this->refunds->processRefund($booking->fresh());
-
-            Log::warning('Late PayMongo payment could not be applied to a serviceable appointment.', [
-                'booking_id' => $booking->id,
-                'refund_status' => $refunded->refund_status,
-            ]);
-        }
     }
 
     private function latePaymentCanBeAccepted(SpaBooking $booking): bool

@@ -28,6 +28,7 @@ class BackupRecoveryService
         'refund_confirmations',
         'booking_refunds',
         'payment_ledger_entries',
+        'gateway_payment_reconciliations',
         'transactions',
         'registrations',
         'social_accounts',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Customer;
+use App\Models\GatewayPaymentReconciliation;
 use App\Models\MembershipPlan;
 use App\Models\MembershipPurchase;
 use App\Models\PaymentLedgerEntry;
@@ -11,6 +12,7 @@ use App\Models\Receptionist;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\Therapist;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Rules\PersonName;
 use App\Services\ActivityLogger;
@@ -599,6 +601,12 @@ class DashboardController extends Controller
 
         try {
             $result = DB::transaction(function () use ($request, $spaBooking, $sessions, $paymentLedger, $validated): array {
+                User::query()->whereKey($spaBooking->user_id)->lockForUpdate()->firstOrFail();
+                $current = SpaBooking::query()->findOrFail($spaBooking->id);
+                app(BookingSlotService::class)->lockTherapistBookingsForUpdate(
+                    (string) $current->therapist_name,
+                    $current->booking_date->format('Y-m-d'),
+                );
                 $booking = SpaBooking::query()->with('user')->lockForUpdate()->findOrFail($spaBooking->id);
 
                 if ($booking->session_started_at !== null || $booking->session_status === SpaBooking::STATUS_IN_SESSION) {
@@ -754,6 +762,7 @@ class DashboardController extends Controller
 
         try {
             $collected = DB::transaction(function () use ($spaBooking, $validated, $request, $paymentLedger, $sessions): SpaBooking {
+                User::query()->whereKey($spaBooking->user_id)->lockForUpdate()->firstOrFail();
                 $booking = SpaBooking::query()->lockForUpdate()->findOrFail($spaBooking->id);
 
                 if ($sessions->isBalanceCollectionClosed($booking)) {
@@ -1299,46 +1308,54 @@ class DashboardController extends Controller
     public function updateService(Request $request, SpaService $spaService, BookingSlotService $slots): RedirectResponse
     {
         $validated = $this->validateServiceRequest($request, $spaService);
-        $oldName = (string) $spaService->name;
 
-        $spaService->update([
-            'name' => $validated['name'],
-            'price_amount' => $validated['price_amount'],
-            'duration_minutes' => $validated['duration_minutes'],
-            'best_for' => $validated['best_for'],
-            'description' => $validated['description'],
-            'image' => $validated['image'] ?? null,
-            'offering_type' => $validated['offering_type'] ?? (string) ($spaService->offering_type ?: 'service'),
-            'member_price_amount' => $validated['member_price_amount'] ?? null,
-            'inclusions' => $validated['inclusions'] ?? null,
-            'prenatal_only' => $request->boolean('prenatal_only'),
-        ]);
+        return DB::transaction(function () use ($request, $spaService, $slots, $validated): RedirectResponse {
+            $spaService = SpaService::query()->lockForUpdate()->findOrFail($spaService->id);
+            $oldName = (string) $spaService->name;
 
-        if ($oldName !== $spaService->name) {
-            DB::table('service_time_slots')
-                ->where('service_name', $oldName)
-                ->update(['service_name' => $spaService->name]);
+            $spaService->update([
+                'name' => $validated['name'],
+                'price_amount' => $validated['price_amount'],
+                'duration_minutes' => $validated['duration_minutes'],
+                'best_for' => $validated['best_for'],
+                'description' => $validated['description'],
+                'image' => $validated['image'] ?? null,
+                'offering_type' => $validated['offering_type'] ?? (string) ($spaService->offering_type ?: 'service'),
+                'member_price_amount' => $validated['member_price_amount'] ?? null,
+                'inclusions' => $validated['inclusions'] ?? null,
+                'prenatal_only' => $request->boolean('prenatal_only'),
+            ]);
 
-            SpaBooking::query()
-                ->where('service_name', $oldName)
-                ->update(['service_name' => $spaService->name]);
-        }
+            if ($oldName !== $spaService->name) {
+                DB::table('service_time_slots')
+                    ->where('service_name', $oldName)
+                    ->update(['service_name' => $spaService->name]);
 
-        if ($slots->tablesReady() && count($slots->slotMapByService()[$spaService->name] ?? []) === 0) {
-            $slots->attachDefaultSlotsForService($spaService->name);
-        }
+                DB::table('service_slot_date_overrides')
+                    ->where('service_name', $oldName)
+                    ->update(['service_name' => $spaService->name]);
 
-        ActivityLogger::log(
-            'service.updated',
-            'Updated service '.$spaService->name,
-            ['service_name' => $spaService->name, 'previous_name' => $oldName],
-            subject: $spaService,
-            request: $request,
-        );
+                SpaBooking::query()
+                    ->where('service_name', $oldName)
+                    ->update(['service_name' => $spaService->name]);
+            }
 
-        return redirect()
-            ->route('services.index')
-            ->with('status', 'Service updated successfully.');
+            if ($slots->tablesReady() && count($slots->slotMapByService()[$spaService->name] ?? []) === 0) {
+                $slots->attachDefaultSlotsForService($spaService->name);
+            }
+
+            ActivityLogger::log(
+                'service.updated',
+                'Updated service '.$spaService->name,
+                ['service_name' => $spaService->name, 'previous_name' => $oldName],
+                subject: $spaService,
+                request: $request,
+            );
+
+            return redirect()
+                ->route('services.index')
+                ->with('status', 'Service updated successfully.');
+        });
     }
 
     public function serviceTimeSlotsData(Request $request, SpaService $spaService, BookingSlotService $slots): JsonResponse
@@ -1758,49 +1775,58 @@ class DashboardController extends Controller
 
     public function updateTherapist(Request $request, string $therapistCode): JsonResponse
     {
-        $therapist = Therapist::query()->where('therapist_code', $therapistCode)->firstOrFail();
+        return DB::transaction(function () use ($request, $therapistCode): JsonResponse {
+            $therapist = Therapist::query()->where('therapist_code', $therapistCode)->lockForUpdate()->firstOrFail();
 
-        $validated = $this->validateTherapistProfile($request, $therapist->id);
+            $validated = $this->validateTherapistProfile($request, $therapist->id);
+            if ($validated['name'] !== $therapist->name && SpaBooking::where('therapist_name', $therapist->name)->exists()) {
+                throw ValidationException::withMessages(['name' => 'This name is linked to appointment records and cannot be changed. You can edit the other profile details.']);
+            }
+            if (! $this->therapistIsActiveFromRequest($request, defaultActive: (bool) $therapist->is_active)
+                && SpaBooking::query()->blocksAvailability()->where('therapist_name', $therapist->name)->exists()) {
+                throw ValidationException::withMessages(['is_active' => 'Resolve this therapist\'s reserved appointments and active sessions before deactivating the profile.']);
+            }
 
-        if ($request->hasFile('photo_file')) {
-            $path = $request->file('photo_file')->store('therapists', media_storage_disk());
-            $therapist->photo_url = public_storage_url($path, false);
-            $therapist->landing_photo = null;
-        }
+            if ($request->hasFile('photo_file')) {
+                $path = $request->file('photo_file')->store('therapists', media_storage_disk());
+                $therapist->photo_url = public_storage_url($path, false);
+                $therapist->landing_photo = null;
+            }
 
-        $name = (string) $validated['name'];
-        $parts = collect(preg_split('/\s+/', trim($name)) ?: [])->filter()->values();
-        $initials = strtoupper(substr((string) ($parts[0] ?? $name), 0, 1).substr((string) ($parts->last() ?? ''), 0, 1));
+            $name = (string) $validated['name'];
+            $parts = collect(preg_split('/\s+/', trim($name)) ?: [])->filter()->values();
+            $initials = strtoupper(substr((string) ($parts[0] ?? $name), 0, 1).substr((string) ($parts->last() ?? ''), 0, 1));
 
-        $therapist->name = $name;
-        $therapist->role = $validated['role'] ?? null;
-        $therapist->bio = $validated['bio'] ?? null;
-        $therapist->contact_number = $validated['contact_number'] ?? null;
-        $therapist->address = $validated['address'] ?? null;
-        $therapist->email = $validated['email'] ?? null;
-        $therapist->birthday = $validated['birthday'] ?? null;
-        $therapist->avatar_initials = $initials !== '' ? $initials : 'TT';
-        $therapist->specializations = $this->parseCommaList($validated['specializations'] ?? '');
-        $therapist->certifications = $this->parseCommaList($validated['certifications'] ?? '');
-        $therapist->accent_color = $validated['accent_color'] ?? $therapist->accent_color;
-        $therapist->is_active = $this->therapistIsActiveFromRequest($request, defaultActive: (bool) $therapist->is_active);
-        if (isset($validated['sort_order'])) {
-            $therapist->sort_order = (int) $validated['sort_order'];
-        }
-        $therapist->save();
+            $therapist->name = $name;
+            $therapist->role = $validated['role'] ?? null;
+            $therapist->bio = $validated['bio'] ?? null;
+            $therapist->contact_number = $validated['contact_number'] ?? null;
+            $therapist->address = $validated['address'] ?? null;
+            $therapist->email = $validated['email'] ?? null;
+            $therapist->birthday = $validated['birthday'] ?? null;
+            $therapist->avatar_initials = $initials !== '' ? $initials : 'TT';
+            $therapist->specializations = $this->parseCommaList($validated['specializations'] ?? '');
+            $therapist->certifications = $this->parseCommaList($validated['certifications'] ?? '');
+            $therapist->accent_color = $validated['accent_color'] ?? $therapist->accent_color;
+            $therapist->is_active = $this->therapistIsActiveFromRequest($request, defaultActive: (bool) $therapist->is_active);
+            if (isset($validated['sort_order'])) {
+                $therapist->sort_order = (int) $validated['sort_order'];
+            }
+            $therapist->save();
 
-        ActivityLogger::log(
-            'therapist.updated',
-            'Updated therapist '.$therapist->name,
-            ['therapist_code' => $therapist->therapist_code, 'name' => $therapist->name],
-            subject: $therapist,
-            request: $request,
-        );
+            ActivityLogger::log(
+                'therapist.updated',
+                'Updated therapist '.$therapist->name,
+                ['therapist_code' => $therapist->therapist_code, 'name' => $therapist->name],
+                subject: $therapist,
+                request: $request,
+            );
 
-        return response()->json([
-            'ok' => true,
-            'therapist' => $therapist->fresh()->toTrackingArray(),
-        ]);
+            return response()->json([
+                'ok' => true,
+                'therapist' => $therapist->fresh()->toTrackingArray(),
+            ]);
+        });
     }
 
     /**
@@ -1857,27 +1883,32 @@ class DashboardController extends Controller
 
     public function destroyTherapist(string $therapistCode): JsonResponse
     {
-        $therapist = Therapist::query()->where('therapist_code', $therapistCode)->firstOrFail();
+        return DB::transaction(function () use ($therapistCode): JsonResponse {
+            $therapist = Therapist::query()->where('therapist_code', $therapistCode)->lockForUpdate()->firstOrFail();
+            if (SpaBooking::where('therapist_name', $therapist->name)->exists() || Transaction::where('therapist_id', $therapist->id)->exists()) {
+                throw ValidationException::withMessages(['therapist' => 'This therapist has appointment or service records. Retain the profile and deactivate it once reserved appointments are resolved.']);
+            }
 
-        $photoUrl = trim((string) ($therapist->photo_url ?? ''));
-        if ($photoUrl !== '') {
-            $photoPath = parse_url($photoUrl, PHP_URL_PATH);
-            if (is_string($photoPath)) {
-                $marker = str_contains($photoPath, '/media/') ? '/media/' : '/storage/';
-                $markerPosition = strpos($photoPath, $marker);
-                $relative = $markerPosition === false
-                    ? ''
-                    : ltrim(substr($photoPath, $markerPosition + strlen($marker)), '/');
+            $photoUrl = trim((string) ($therapist->photo_url ?? ''));
+            if ($photoUrl !== '') {
+                $photoPath = parse_url($photoUrl, PHP_URL_PATH);
+                if (is_string($photoPath)) {
+                    $marker = str_contains($photoPath, '/media/') ? '/media/' : '/storage/';
+                    $markerPosition = strpos($photoPath, $marker);
+                    $relative = $markerPosition === false
+                        ? ''
+                        : ltrim(substr($photoPath, $markerPosition + strlen($marker)), '/');
 
-                if ($relative !== '') {
-                    Storage::disk(media_storage_disk())->delete($relative);
+                    if ($relative !== '') {
+                        Storage::disk(media_storage_disk())->delete($relative);
+                    }
                 }
             }
-        }
 
-        $therapist->delete();
+            $therapist->delete();
 
-        return response()->json(['ok' => true]);
+            return response()->json(['ok' => true]);
+        });
     }
 
     public function clientRecords(Request $request): View
@@ -2347,7 +2378,7 @@ class DashboardController extends Controller
                 'label' => (string) $label,
                 'total' => (float) ($payload['serviceTotals'][$index] ?? 0),
             ])
-            ->filter(fn (array $row): bool => $row['total'] > 0)
+            ->filter(fn (array $row): bool => abs($row['total']) > 0.004)
             ->values();
         $payload['serviceRevenueChart'] = $charts->serviceRevenue(
             $serviceChartRows->pluck('label')->all(),
@@ -2467,6 +2498,11 @@ class DashboardController extends Controller
     {
         $current = (int) now()->year;
         $minYear = $current;
+
+        $firstCollection = DB::table('payment_ledger_entries')->min('occurred_at');
+        if ($firstCollection !== null) {
+            $minYear = min($minYear, (int) Carbon::parse((string) $firstCollection)->year);
+        }
 
         if (Schema::hasTable('transactions')) {
             $min = DB::table('transactions')->min('date');
@@ -2684,6 +2720,17 @@ class DashboardController extends Controller
         $context = $this->resolveReportingContext($period, $periodValue, $dateFrom, $dateTo);
         $rangeStart = $context['start'];
         $rangeEnd = $context['end'];
+        $gatewayReconciliations = GatewayPaymentReconciliation::query()
+            ->with(['booking.user:id,name', 'membership.user:id,name'])
+            ->where('status', 'open')->whereDate('received_at', '>=', $rangeStart)->whereDate('received_at', '<=', $rangeEnd)
+            ->orderBy('received_at')->get()->map(fn ($record) => [
+                'receivedAt' => $record->received_at->format('Y-m-d H:i:s'),
+                'reference' => $record->gateway_payment_id, 'allocatedReference' => $record->allocated_payment_id,
+                'subject' => $record->spa_booking_id ? 'RCP-'.str_pad((string) $record->spa_booking_id, 5, '0', STR_PAD_LEFT) : 'MEM-'.str_pad((string) $record->membership_purchase_id, 5, '0', STR_PAD_LEFT),
+                'client' => $record->booking?->user?->name ?: ($record->booking?->client_name ?: ($record->membership?->user?->name ?: 'Unknown client')),
+                'amount' => $record->amount !== null ? (float) $record->amount : null,
+                'currency' => $record->currency, 'reason' => $record->reason,
+            ])->all();
         $periodValue = $context['value'];
         $selectionLabel = $context['selectionLabel'];
         $selectionBadge = $context['badge'];
@@ -2978,6 +3025,7 @@ class DashboardController extends Controller
             ->map(fn (string $service) => (float) ($totalsByService[$service] ?? 0))
             ->values();
         $serviceTotalSum = (float) $serviceTotals->sum(fn ($value) => max((float) $value, 0));
+        $serviceChartType = $serviceTotals->contains(fn ($value) => (float) $value < 0) ? 'bar' : 'doughnut';
         $colors = collect(['#0c9aa6', '#04724d', '#4f6d8c', '#2f9d62', '#c95a7b', '#f0a74d', '#7f8c8d', '#8e44ad']);
         $serviceSegments = [];
         $acc = 0.0;
@@ -3139,6 +3187,9 @@ class DashboardController extends Controller
         return [
             'period' => $period,
             'periodValue' => $periodValue,
+            'gatewayReconciliations' => $gatewayReconciliations,
+            'unallocatedGatewayAmount' => round(collect($gatewayReconciliations)->where('currency', 'PHP')->sum('amount'), 2),
+            'serviceChartType' => $serviceChartType,
             'periodValueLabel' => $selectionLabel,
             'dateFrom' => $rangeStart,
             'dateTo' => $rangeEnd,

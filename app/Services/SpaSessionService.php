@@ -6,6 +6,7 @@ use App\Models\BookingRefund;
 use App\Models\SpaBooking;
 use App\Models\Therapist;
 use App\Models\Transaction;
+use App\Models\User;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -258,6 +259,7 @@ class SpaSessionService
     public function autoCompleteIfExpired(SpaBooking $booking, ?Carbon $now = null): bool
     {
         return DB::transaction(function () use ($booking, $now): bool {
+            User::query()->whereKey($booking->user_id)->lockForUpdate()->first();
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
 
             if (! $this->hasExpired($locked, $now)
@@ -292,7 +294,7 @@ class SpaSessionService
             ->whereNotNull('session_started_at')
             ->orderBy('id')
             ->each(function (SpaBooking $booking) use ($now, $completed): void {
-                if ($this->autoCompleteIfExpired($booking, $now)) {
+                if ($this->hasExpired($booking, $now) && $booking->isFullyPaid() && $this->autoCompleteIfExpired($booking, $now)) {
                     $completed->push($booking->fresh(['user']));
                 }
             });
@@ -499,6 +501,7 @@ class SpaSessionService
     public function complete(SpaBooking $booking): void
     {
         DB::transaction(function () use ($booking): void {
+            User::query()->whereKey($booking->user_id)->lockForUpdate()->first();
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
 
             if ($locked->isCancelled()) {

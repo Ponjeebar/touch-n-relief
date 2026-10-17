@@ -1061,6 +1061,11 @@
                                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                                     credentials: 'same-origin',
                                 });
+                                if (!res.ok) {
+                                    const error = await res.json().catch(() => ({}));
+                                    window.alert(error.message || 'The therapist could not be updated. Your changes were not saved.');
+                                    return;
+                                }
                                 if (res.ok) {
                                     if (ttManageView) {
                                         window.location.reload();
@@ -1075,7 +1080,8 @@
                                     }
                                 }
                             } catch (_err) {
-                                // Keep local update even if save request fails.
+                                window.alert('The therapist could not be updated. Please try again.');
+                                return;
                             }
                         } else if (ttStoreUrl) {
                             // Reserved for future full server-side create flow.
@@ -1161,6 +1167,8 @@
                             body: JSON.stringify({ _method: 'DELETE' }),
                         });
                         if (!res.ok) {
+                            const error = await res.json().catch(() => ({}));
+                            window.alert(error.message || 'The therapist could not be deleted.');
                             return;
                         }
                     } catch (_err) {

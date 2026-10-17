@@ -74,6 +74,9 @@ Schedule::command('appointments:send-reminders')
 Schedule::command('appointments:process-no-shows')
     ->cron((string) config('touchnrelief.schedules.automatic_no_shows', '* * * * *'))
     ->withoutOverlapping();
+Schedule::command('appointments:complete-expired-sessions')
+    ->everyMinute()
+    ->withoutOverlapping();
 Schedule::command('clients:archive-inactive')
     ->dailyAt((string) config('touchnrelief.schedules.client_archive_time', '02:15'))
     ->withoutOverlapping();

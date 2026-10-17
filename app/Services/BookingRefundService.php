@@ -81,6 +81,7 @@ class BookingRefundService
     public function processRefund(SpaBooking $booking): SpaBooking
     {
         return DB::transaction(function () use ($booking): SpaBooking {
+            User::query()->whereKey($booking->user_id)->lockForUpdate()->first();
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
             $this->assertNoOpenRefundDispute($locked);
             $this->importLegacyRefund($locked);
@@ -128,6 +129,7 @@ class BookingRefundService
     public function completeManualRefund(SpaBooking $booking, ?string $staffNote = null, ?int $staffId = null, array $confirmation = []): SpaBooking
     {
         return DB::transaction(function () use ($booking, $staffNote, $staffId, $confirmation): SpaBooking {
+            User::query()->whereKey($booking->user_id)->lockForUpdate()->first();
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
             $this->assertNoOpenRefundDispute($locked);
             $this->importLegacyRefund($locked);
@@ -194,19 +196,21 @@ class BookingRefundService
                 ? BookingRefund::query()->where('reference', $refundId)->first()
                 : null;
             $booking = $refund instanceof BookingRefund
-                ? SpaBooking::query()->lockForUpdate()->find($refund->spa_booking_id)
+                ? SpaBooking::query()->find($refund->spa_booking_id)
                 : null;
             if (! $booking instanceof SpaBooking && $paymentId !== '') {
                 $booking = SpaBooking::query()->where('payment_transaction_id', $paymentId)
-                    ->lockForUpdate()->latest('id')->first();
+                    ->latest('id')->first();
             }
             if (! $booking instanceof SpaBooking && $refundId !== '') {
-                $booking = SpaBooking::query()->where('refund_reference', $refundId)->lockForUpdate()->first();
+                $booking = SpaBooking::query()->where('refund_reference', $refundId)->first();
             }
             if (! $booking instanceof SpaBooking) {
                 return;
             }
 
+            User::query()->whereKey($booking->user_id)->lockForUpdate()->first();
+            $booking = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
             $this->importLegacyRefund($booking);
             $refund = BookingRefund::query()->where('reference', $refundId)->lockForUpdate()->first();
             if ($refund instanceof BookingRefund && ($refund->spa_booking_id !== $booking->id

@@ -104,6 +104,14 @@ class ReportingSpreadsheetService
             }
         }
 
+        if (! empty($report['gatewayReconciliations'])) {
+            $this->blankRow();
+            $this->section('Gateway payments requiring review', 2);
+            $this->row([['Unallocated payments are excluded from sales; verify gateway records before payout.', 'String', 'Note', 2]]);
+            foreach ($report['gatewayReconciliations'] as $entry) {
+                $this->row([[$entry['reference'], 'String', 'Text'], [$entry['amount'] === null ? 'Requires verification' : $entry['currency'].' '.number_format($entry['amount'], 2), 'String', 'Text'], [$entry['subject'].' - '.$entry['client'], 'String', 'Text']]);
+            }
+        }
         $this->endWorksheet(freezeRows: 4, selected: true);
     }
 

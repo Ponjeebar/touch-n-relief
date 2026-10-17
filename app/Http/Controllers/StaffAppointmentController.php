@@ -277,6 +277,7 @@ class StaffAppointmentController extends Controller
 
         $serviceRow = SpaService::query()->where('name', $validated['service'])->first();
         $createdBooking = null;
+        $this->slots->syncExpiredSessions();
 
         try {
             DB::transaction(function () use ($request, $validated, $therapistNames, $staff, $serviceRow, $hasPaymentFields, $isImmediate, &$createdBooking): void {
@@ -315,6 +316,8 @@ class StaffAppointmentController extends Controller
                         $validated['client_sex'] ?? null,
                     );
                 }
+
+                User::query()->whereKey($client->id)->lockForUpdate()->firstOrFail();
 
                 $durationMinutes = max(
                     (int) ($serviceRow?->duration_minutes ?? app(SpaServiceCatalog::class)->durationMinutesFor($validated['service'])),
@@ -573,6 +576,7 @@ class StaffAppointmentController extends Controller
 
         try {
             DB::transaction(function () use ($spaBooking, $validated, &$result): void {
+                User::query()->whereKey($spaBooking->user_id)->lockForUpdate()->firstOrFail();
                 $spaBooking->refresh();
 
                 if (trim((string) $spaBooking->therapist_name) === '') {
@@ -905,6 +909,8 @@ class StaffAppointmentController extends Controller
         $staff = $this->ensureStaff($request);
         $validated = $request->validate(['action' => ['required', 'in:report,resolve'], 'note' => ['required', 'string', 'max:1000'], 'dispute_version' => ['required', 'string', 'regex:/^\d+$/', 'max:20']]);
         DB::transaction(function () use ($refundConfirmation, $validated, $staff, $request): void {
+            $booking = SpaBooking::query()->findOrFail($refundConfirmation->spa_booking_id);
+            User::query()->whereKey($booking->user_id)->lockForUpdate()->first();
             SpaBooking::query()->lockForUpdate()->findOrFail($refundConfirmation->spa_booking_id);
             $record = RefundConfirmation::query()->lockForUpdate()->findOrFail($refundConfirmation->id);
             $open = $record->disputed_at !== null && $record->resolved_at === null;

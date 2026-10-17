@@ -308,12 +308,23 @@
                         <p class="rep-table-empty" id="repLedgerEmpty" hidden>No ledger entries match the selected filters.</p>
                     </article>
 
+                    <article class="rep-data-panel rep-ledger-panel" id="gateway-reconciliation">
+                        <h3>Gateway payments requiring review</h3>
+                        <p>Payments received in this period that are not allocated to a booking or membership. These are excluded from sales totals. Verify the gateway records before any payout.</p>
+                        <p>Known PHP amounts awaiting review: <strong id="repUnallocatedGatewayAmount">{{ number_format($unallocatedGatewayAmount ?? 0, 2) }}</strong></p>
+                        <div class="rep-table-wrap">
+                            <table><thead><tr><th>Received</th><th>Booking / membership</th><th>Client</th><th>Gateway reference</th><th>Amount</th><th>Reason</th></tr></thead><tbody id="repGatewayReviewRows"></tbody></table>
+                        </div>
+                        <p class="rep-table-empty" id="repGatewayReviewEmpty">No gateway payments require review for this period.</p>
+                    </article>
+
                     <details class="rep-calculation-notes">
                         <summary>How this report is calculated</summary>
                         <ul>
                             <li>Gross collections include verified initial, balance, and membership payments collected in the selected period.</li>
                             <li>Net collections equal gross collections minus processed refunds.</li>
                             <li>Pending payments and outstanding balances are excluded from collected sales.</li>
+                            <li>Unallocated gateway payments are listed separately for reconciliation and are not booked service or membership sales.</li>
                             <li>Payments retained for no-show appointments are classified as no-show fee sales. Their unpaid balances are not treated as collectible.</li>
                             <li>PayMongo processing fees and payout timing are not deducted because fee data is not imported into this report.</li>
                             <li>Service hours use completed appointment dates; financial figures use payment collection time.</li>
@@ -701,8 +712,8 @@
             const bestServiceTotal = st.length ? Math.max(...st.map((x) => Number(x) || 0), 0) : 0;
             const bestServiceIdx = st.findIndex((x) => (Number(x) || 0) === bestServiceTotal);
             const bestService = bestServiceIdx >= 0 ? (sl[bestServiceIdx] || '—') : '—';
-            setText('bestDay', bestPeriod || '—');
-            setText('bestService', bestService || '—');
+            setText('bestDay', max > 0 ? (bestPeriod || '—') : 'No positive sales');
+            setText('bestService', bestServiceTotal > 0 ? (bestService || '—') : 'No positive sales');
         }
 
         function renderPieLegend(legendEl, serviceLabels, serviceTotals) {
@@ -732,7 +743,9 @@
             const td = Array.isArray(trendData) ? trendData : [];
             const sl = Array.isArray(serviceLabels) ? serviceLabels : [];
             const st = Array.isArray(serviceTotals) ? serviceTotals : [];
-            const chartTotals = st.map((value) => Math.max(Number(value) || 0, 0));
+            const hasNegativeTotals = st.some((value) => Number(value) < 0);
+            const chartItems = sl.map((label, index) => ({ label, value: Number(st[index]) || 0, color: pieColors[index % pieColors.length] }))
+                .filter((item) => !hasNegativeTotals || item.value !== 0);
             const trendEl = document.getElementById('salesTrendChart');
             const trendFallback = document.getElementById('trendFallback');
             const trendFallbackBars = document.getElementById('trendFallbackBars');
@@ -804,19 +817,38 @@
                 });
             } else if (trendFallback && trendFallbackBars) {
                 trendFallback.style.display = '';
+                const negativeTrend = td.some((value) => Number(value) < 0);
+                trendFallbackBars.style.display = negativeTrend ? 'block' : '';
+                trendFallbackBars.style.overflowY = negativeTrend ? 'auto' : '';
                 trendFallbackBars.style.setProperty('--bars', String(tl.length));
-                trendFallbackBars.innerHTML = buildTrendFallbackHtml(tl, td);
+                if (negativeTrend) {
+                    trendFallback.removeAttribute('aria-hidden');
+                    trendFallbackBars.replaceChildren();
+                    tl.forEach((label, index) => {
+                        const row = document.createElement('div');
+                        row.className = 'rep-legend-row';
+                        const name = document.createElement('span');
+                        name.textContent = label;
+                        const value = document.createElement('strong');
+                        value.textContent = money(td[index] ?? 0);
+                        row.append(name, value);
+                        trendFallbackBars.append(row);
+                    });
+                } else {
+                    trendFallbackBars.innerHTML = buildTrendFallbackHtml(tl, td);
+                }
             }
 
             if (pieEl && window.Chart) {
                 if (pieFallback) pieFallback.style.display = 'none';
                 pieChart = new Chart(pieEl, {
-                    type: 'doughnut',
+                    type: hasNegativeTotals ? 'bar' : 'doughnut',
                     data: {
-                        labels: sl,
+                        labels: chartItems.map((item) => item.label),
                         datasets: [{
-                            data: chartTotals,
-                            backgroundColor: sl.map((_, i) => pieColors[i % pieColors.length]),
+                            data: chartItems.map((item) => item.value),
+                            backgroundColor: chartItems.map((item) => item.color),
+                            ...(hasNegativeTotals ? { maxBarThickness: 28 } : {}),
                             borderWidth: 0
                         }]
                     },
@@ -836,12 +868,17 @@
                                 }
                             }
                         },
-                        cutout: '68%'
+                        ...(hasNegativeTotals ? {
+                            indexAxis: 'y',
+                            scales: { x: { beginAtZero: true }, y: { ticks: { autoSkip: false } } }
+                        } : { cutout: '68%' })
                     }
                 });
             } else if (pieFallback) {
-                pieFallback.style.display = '';
+                pieFallback.style.display = hasNegativeTotals ? 'none' : '';
             }
+
+            pieEl?.setAttribute('aria-label', hasNegativeTotals ? 'Sales mix including negative refund totals' : 'Sales mix pie chart');
 
             renderPieLegend(legendEl, sl, st);
         }
@@ -921,7 +958,7 @@
 
             const pieEmpty = document.getElementById('pieEmptyState');
             if (pieEmpty) {
-                pieEmpty.style.display = (d.serviceTotalSum ?? 0) <= 0 ? '' : 'none';
+                pieEmpty.style.display = (d.serviceTotals || []).some((value) => Number(value) !== 0) ? 'none' : '';
             }
 
             updatePieFallbackStyle(d.serviceSegments || []);
@@ -932,6 +969,11 @@
             applyInsights(trendLabels, trendData, serviceLabels, serviceTotals);
             renderCharts(trendLabels, trendData, serviceLabels, serviceTotals);
             updateExportLink(d.period || currentPeriod, d.periodValue || currentPeriodValue);
+            setText('repUnallocatedGatewayAmount', money(d.unallocatedGatewayAmount ?? 0));
+            const reviewBody = document.getElementById('repGatewayReviewRows');
+            reviewBody.replaceChildren();
+            (d.gatewayReconciliations || []).forEach((row) => appendTableRow(reviewBody, [row.receivedAt, row.subject, row.client, row.reference, row.amount === null ? 'Amount requires verification' : `${row.currency} ${Number(row.amount).toFixed(2)}`, row.reason === 'distinct_paid_reference' ? 'Separate payment reference' : 'Payment details require verification']));
+            document.getElementById('repGatewayReviewEmpty').hidden = (d.gatewayReconciliations || []).length > 0;
         }
 
         async function loadReporting(period, periodValue, updateHistory = true) {

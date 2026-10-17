@@ -56,7 +56,8 @@ class BookingSlotService
      */
     public function syncExpiredSessions(): void
     {
-        if ($this->sessionsSynced) {
+        // Global completion must not acquire unrelated booking locks inside a slot transaction.
+        if ($this->sessionsSynced || DB::transactionLevel() > 0) {
             return;
         }
 
