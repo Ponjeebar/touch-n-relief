@@ -19,7 +19,7 @@
     <div class="app-shell">
         <div class="dashboard">
             <aside class="sidebar">
-                <div class="brand">
+                <a class="brand" href="{{ auth()->user()->isAdmin() ? route('dashboard') : route('receptionist.dashboard') }}" aria-label="TOUCHnRELIEF dashboard">
                     <span class="brand-logo" aria-hidden="false">
                         <img src="{{ asset('images/dashboard/logo.png') }}" alt="TOUCHnRELIEF logo" class="brand-logo-img">
                     </span>
@@ -27,7 +27,7 @@
                         <span class="brand-text">TOUCHnRELIEF</span>
                         <span class="brand-subtext">Appointment and Record Management System</span>
                     </span>
-                </div>
+                </a>
                 @include('partials.sidebar-nav', ['active' => 'landing-settings'])
                 <div class="sidebar-footer">
                     <form method="POST" action="{{ route('logout') }}">

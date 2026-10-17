@@ -75,6 +75,16 @@ body {
     gap: 8px;
 }
 
+.sidebar a.brand {
+    color: #fff;
+    text-decoration: none;
+}
+
+.sidebar a.brand:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+}
+
 .brand-copy {
     display: flex;
     flex-direction: column;
