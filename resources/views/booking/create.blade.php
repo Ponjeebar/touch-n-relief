@@ -47,7 +47,7 @@
                     <div class="booking-head-copy">
                         <p class="booking-eyebrow">Appointment Booking</p>
                         <h1>Secure Your Wellness Session</h1>
-                        <p>Choose your date, service, therapist, and available time. Each step unlocks after you complete the one before it.</p>
+                        <p>Choose your service, therapist, then date and available time. Each step unlocks after you complete the one before it.</p>
                     </div>
                 </div>
             </section>
@@ -83,22 +83,18 @@
                 );
                 $bookingHasTherapist = collect($therapists)->contains(
                     fn ($therapist) => ($therapist['name'] ?? '') === $bookingInitialTherapist
-                        && ! empty($therapist['is_bookable'])
+                        && (blank($bookingInitialDate) || ! empty($therapist['is_bookable']))
                 );
-                $bookingInitialStep = blank($bookingInitialDate)
-                    ? 'date'
-                    : (! $bookingHasService
-                        ? 'service'
-                        : (! $bookingHasTherapist ? 'therapist' : 'time'));
-                $bookingServiceEnabled = filled($bookingInitialDate);
-                $bookingTherapistEnabled = $bookingServiceEnabled && $bookingHasService;
-                $bookingStepOrder = ['date', 'service', 'therapist', 'time'];
+                $bookingInitialStep = ! $bookingHasService ? 'service' : (! $bookingHasTherapist ? 'therapist' : 'schedule');
+                $bookingServiceEnabled = true;
+                $bookingTherapistEnabled = $bookingHasService;
+                $bookingStepOrder = ['service', 'therapist', 'schedule'];
                 $bookingInitialStepIndex = array_search($bookingInitialStep, $bookingStepOrder, true);
             @endphp
             <div class="booking-layout">
             <div class="booking-grid booking-mobile-wizard-ready" id="booking-grid" data-mobile-step="{{ $bookingInitialStep }}">
                 <div class="booking-mobile-progress" aria-label="Booking progress">
-                    <button type="button" class="booking-mobile-back" id="booking-mobile-back" aria-label="Go to the previous booking step" @if ($bookingInitialStep === 'date') hidden @endif>
+                    <button type="button" class="booking-mobile-back" id="booking-mobile-back" aria-label="Go to the previous booking step" @if ($bookingInitialStep === 'service') hidden @endif>
                         <i class="bi bi-arrow-left" aria-hidden="true"></i>
                         Back
                     </button>
@@ -112,17 +108,13 @@
                                 ])
                                 @if ($bookingStep === $bookingInitialStep) aria-current="step" @endif
                             >
-                                <span>{{ $bookingStepIndex + 1 }}</span>{{ ucfirst($bookingStep) }}
+                                <span>{{ $bookingStep === 'schedule' ? 'Date and time' : ucfirst($bookingStep) }}</span>
                             </li>
                         @endforeach
                     </ol>
                 </div>
-                <section class="booking-panel booking-panel-schedule {{ in_array($bookingInitialStep, ['date', 'time'], true) ? 'is-mobile-active' : '' }}" id="booking-panel-schedule">
-                    <h2>
-                        <span class="booking-heading-desktop">1. Your Schedule</span>
-                        <span class="booking-heading-mobile booking-heading-mobile-date">1. Choose a Date</span>
-                        <span class="booking-heading-mobile booking-heading-mobile-time">4. Choose a Time</span>
-                    </h2>
+                <section class="booking-panel booking-panel-schedule {{ $bookingInitialStep === 'schedule' ? 'is-mobile-active' : '' }}" id="booking-panel-schedule">
+                    <h2>Choose a Date and Time</h2>
                     <form id="booking-form" method="POST" action="{{ route('booking.store') }}" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="payment_method" id="payment_method" value="paymongo">
@@ -166,8 +158,8 @@
                     id="booking-panel-service"
                     aria-disabled="{{ $bookingServiceEnabled ? 'false' : 'true' }}"
                 >
-                    <h2>2. Choose a Service</h2>
-                    <p class="booking-panel-lock-hint" id="service-lock-hint">Select a date first to choose a service.</p>
+                    <h2>Choose a Service</h2>
+                    <p class="booking-panel-lock-hint" id="service-lock-hint">Choose a service to begin.</p>
                     <div class="service-list" id="service-list">
                         @php $bookingServices = collect($services)->where('offering_type', 'service'); @endphp
                         <p class="booking-service-group-title">Individual services</p>
@@ -182,7 +174,7 @@
                                     value="{{ $service['name'] }}"
                                     form="booking-form"
                                     {{ $active ? 'checked' : '' }}
-                                    disabled
+                                    @disabled(! $bookingServiceEnabled)
                                 >
                                 <span class="service-main">
                                     <span class="service-name">{{ $service['name'] }}</span>
@@ -202,7 +194,7 @@
                             @foreach ($bookingPackages as $service)
                                 @php $active = (old('service', $selectedServiceName) ?? '') === $service['name']; @endphp
                                 <label class="service-item service-item-package {{ $active ? 'active' : '' }}">
-                                    <input type="radio" name="service" value="{{ $service['name'] }}" form="booking-form" {{ $active ? 'checked' : '' }} disabled>
+                                    <input type="radio" name="service" value="{{ $service['name'] }}" form="booking-form" {{ $active ? 'checked' : '' }} @disabled(! $bookingServiceEnabled)>
                                     <span class="service-main">
                                         <span class="service-name">{{ $service['name'] }}</span>
                                         <span class="service-meta">{{ $service['duration'] }} &middot; {{ $service['inclusions'] }}</span>
@@ -230,7 +222,7 @@
                     id="booking-panel-therapist"
                     aria-disabled="{{ $bookingTherapistEnabled ? 'false' : 'true' }}"
                 >
-                    <h2>3. Choose Your Therapist</h2>
+                    <h2>Choose Your Therapist</h2>
                     <p class="booking-panel-lock-hint" id="therapist-lock-hint">Select a service first to choose a therapist.</p>
                     <p class="booking-therapist-hint" id="booking-therapist-hint" hidden></p>
                     <div class="therapist-list" id="therapist-list">
@@ -238,7 +230,7 @@
                             @php
                                 $therapistActive = (old('therapist', $selectedTherapistName) ?? '') === $therapist['name'];
                                 $therapistPhoto = $therapist['photo_url'] ?? asset('images/landing/therapist/' . ($therapist['photo'] ?? ''));
-                                $isBookable = ! empty($therapist['is_bookable']);
+                                $isBookable = blank($bookingInitialDate) || ! empty($therapist['is_bookable']);
                                 $unavailableLabel = $therapist['unavailable_label'] ?? null;
                                 $availabilityStatus = $therapist['availability_status'] ?? 'available';
                             @endphp
@@ -255,7 +247,7 @@
                                     value="{{ $therapist['name'] }}"
                                     form="booking-form"
                                     {{ $therapistActive && $isBookable ? 'checked' : '' }}
-                                    disabled
+                                    @disabled(! $bookingTherapistEnabled || ! $isBookable)
                                 >
                                 <img
                                     class="therapist-item-photo"
@@ -517,8 +509,8 @@
             var panelSchedule = document.getElementById('booking-panel-schedule');
             var mobileBackButton = document.getElementById('booking-mobile-back');
             var mobileProgressItems = Array.from(document.querySelectorAll('[data-booking-progress]'));
-            var mobileSteps = ['date', 'service', 'therapist', 'time'];
-            var currentMobileStep = 'date';
+            var mobileSteps = ['service', 'therapist', 'schedule'];
+            var currentMobileStep = 'service';
 
             var modal = document.getElementById('bkConfirmModal');
             var sumService = document.getElementById('bkSumService');
@@ -586,10 +578,9 @@
             }
 
             function suggestedMobileStep() {
-                if (!(dateInput && dateInput.value)) return 'date';
                 if (!selectedService()) return 'service';
                 if (!selectedTherapist()) return 'therapist';
-                return 'time';
+                return 'schedule';
             }
 
             function panelForMobileStep(step) {
@@ -614,6 +605,20 @@
 
             function showMobileStep(step, direction) {
                 if (!bookingGrid || mobileSteps.indexOf(step) === -1) return;
+                if (step === 'therapist' && dateInput?.value) {
+                    dateInput.value = '';
+                    lastDateValue = '';
+                    datePickerWasOpened = false;
+                    hiddenSlot.value = '';
+                    oldSlot = '';
+                    therapistScheduleDateKey = '';
+                    resetAvailabilityCache();
+                    document.querySelectorAll('.therapist-item').forEach(function (item) {
+                        applyTherapistScheduleEntry(item, { bookable: true });
+                    });
+                    syncTherapistRecommendations();
+                    renderSlots();
+                }
                 var previousStep = currentMobileStep;
                 currentMobileStep = step;
                 bookingGrid.dataset.mobileStep = step;
@@ -645,29 +650,9 @@
                 if (activeIndex <= 0) return;
 
                 var previousStep = mobileSteps[activeIndex - 1];
-                if (previousStep === 'date') {
-                    dateInput.value = '';
-                    lastDateValue = '';
-                    datePickerWasOpened = false;
-                    clearServiceSelection();
-                    clearTherapistSelection();
-                    hiddenSlot.value = '';
-                    oldSlot = '';
-                    resetAvailabilityCache();
-                    syncBookingSteps();
-                    renderSlots();
-                }
 
                 showMobileStep(previousStep, 'back');
             });
-
-            function clearServiceSelection() {
-                serviceInputs.forEach(function (input) {
-                    input.checked = false;
-                    delete input.dataset.uncheck;
-                });
-                paintServiceCards();
-            }
 
             function clearTherapistSelection() {
                 therapistInputs.forEach(function (input) {
@@ -710,7 +695,7 @@
                         input.checked = false;
                         input.disabled = true;
                     } else {
-                        input.disabled = !(dateInput && dateInput.value) || !selectedService();
+                        input.disabled = !selectedService();
                     }
                 }
             }
@@ -743,6 +728,7 @@
                     .then(function (res) { return res.ok ? res.json() : null; })
                     .then(function (data) {
                         if (!data || !data.therapists) return null;
+                        if (!dateInput || dateInput.value !== dateKey) return null;
                         therapistScheduleDateKey = dateKey;
                         applyTherapistScheduleMap(data.therapists);
                         return data.therapists;
@@ -754,13 +740,13 @@
                 var hasDate = !!(dateInput && dateInput.value);
                 var hasService = !!selectedService();
 
-                setPanelInteractive(panelService, hasDate, serviceInputs);
-                setPanelInteractive(panelTherapist, hasDate && hasService, therapistInputs);
+                setPanelInteractive(panelService, true, serviceInputs);
+                setPanelInteractive(panelTherapist, hasService, therapistInputs);
 
                 var serviceLockHint = document.getElementById('service-lock-hint');
                 var therapistLockHint = document.getElementById('therapist-lock-hint');
-                if (serviceLockHint) serviceLockHint.hidden = hasDate;
-                if (therapistLockHint) therapistLockHint.hidden = hasDate && hasService;
+                if (serviceLockHint) serviceLockHint.hidden = true;
+                if (therapistLockHint) therapistLockHint.hidden = hasService;
 
                 if (!hasDate) {
                     if (hiddenSlot) hiddenSlot.value = '';
@@ -1023,7 +1009,7 @@
                     var showBadge = anyMatch && row.match && !row.unavailable;
 
                     row.item.classList.toggle('active', isSelected);
-                    row.input.disabled = row.unavailable || !(dateInput && dateInput.value) || !selectedService();
+                    row.input.disabled = row.unavailable || !selectedService();
 
                     if (selected) {
                         row.item.classList.toggle('is-dimmed', !isSelected);
@@ -1342,7 +1328,10 @@
             }
 
             function onServiceSelectionChange() {
+                clearTherapistSelection();
                 hiddenSlot.value = '';
+                oldSlot = '';
+                resetAvailabilityCache();
                 paintServiceCards();
                 syncBookingSteps();
                 syncTherapistRecommendations();
@@ -1383,27 +1372,30 @@
                         return;
                     }
                     input.checked = !input.checked;
+                    hiddenSlot.value = '';
+                    oldSlot = '';
+                    resetAvailabilityCache();
                     applyTherapistCardStates();
                     renderSlots();
                     if (input.checked) {
-                        showMobileStep('time', 'forward');
+                        showMobileStep('schedule', 'forward');
                     }
                 });
             });
 
             therapistInputs.forEach(function (input) {
                 input.addEventListener('change', function () {
+                    hiddenSlot.value = '';
+                    oldSlot = '';
+                    resetAvailabilityCache();
                     applyTherapistCardStates();
                     renderSlots();
+                    if (input.checked) showMobileStep('schedule', 'forward');
                 });
             });
 
-            function refreshForDateSelection(clearSelectedTime, clearDependentSelections) {
+            function refreshForDateSelection(clearSelectedTime) {
                 if (!dateInput) return;
-                if (clearDependentSelections) {
-                    clearServiceSelection();
-                    clearTherapistSelection();
-                }
                 if (clearSelectedTime && hiddenSlot) {
                     hiddenSlot.value = '';
                     oldSlot = '';
@@ -1412,12 +1404,19 @@
                 resetAvailabilityCache();
                 syncBookingSteps();
                 renderSlots();
-                if (dateInput.value) {
-                    showMobileStep('service', 'forward');
+                var requestedDate = dateInput.value;
+                if (!requestedDate) {
+                    document.querySelectorAll('.therapist-item').forEach(function (item) {
+                        applyTherapistScheduleEntry(item, { bookable: true });
+                    });
                 }
-                fetchTherapistSchedule(dateInput.value, true).finally(function () {
+                fetchTherapistSchedule(requestedDate, true).finally(function () {
+                    if (dateInput.value !== requestedDate) return;
                     syncTherapistRecommendations();
                     renderSlots();
+                    if (requestedDate && !selectedTherapist()) {
+                        showBookingToast('Choose a therapist available on this date, or select another date.');
+                    }
                 });
             }
 
@@ -1426,10 +1425,9 @@
             });
 
             dateInput?.addEventListener('change', function () {
-                var dateChanged = dateInput.value !== lastDateValue;
                 lastDateValue = dateInput.value;
                 datePickerWasOpened = false;
-                refreshForDateSelection(true, dateChanged);
+                refreshForDateSelection(true);
             });
 
             dateInput?.addEventListener('blur', function () {
@@ -1437,12 +1435,12 @@
                 datePickerWasOpened = false;
                 var sameDateReselected = dateInput.value === lastDateValue;
                 lastDateValue = dateInput.value;
-                refreshForDateSelection(sameDateReselected, !sameDateReselected);
+                refreshForDateSelection(sameDateReselected);
             });
 
             window.addEventListener('pageshow', function (event) {
                 if (!event.persisted || !dateInput?.value) return;
-                refreshForDateSelection(true, false);
+                refreshForDateSelection(true);
             });
 
             form?.addEventListener('submit', function (e) {

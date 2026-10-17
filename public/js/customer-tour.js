@@ -191,10 +191,9 @@
         return [
             introduction('Booking walkthrough', 'Complete each choice in order. The system prevents incompatible services, therapists, and time slots from being submitted.'),
             step(['.booking-return-link'], 'Return safely', 'Go back without creating a booking.', 'bottom', 'start'),
-            step(['#booking_date'], '1. Choose a date', withExample('Select an available date to enable service choices.', 'Choosing Sep 30 loads services and therapist schedules for Sep 30 only.')),
-            step(['#booking-panel-service'], '2. Choose a service or package', withExample('Review the duration, inclusions, and price because they determine the schedule and payment amount.', 'A 120-minute THERA package needs a longer open schedule than a 45-minute service.')),
-            step(['#booking-panel-therapist'], '3. Choose a therapist', withExample('Recommended specialists are highlighted, but any bookable therapist may be selected.', 'A greyed-out therapist is unavailable for the current combination and cannot be selected.')),
-            step(['#time-slots', '.booking-field-time'], '4. Choose a time', withExample('Use the legend to distinguish available, busy, fully booked, and conflicting slots.', 'If you already have a 3:00 PM booking, that slot is marked as your appointment.')),
+            step(['#booking-panel-service'], 'Choose a service or package', withExample('Review the duration, inclusions, and price before choosing a therapist.', 'A 120-minute package needs a longer open schedule than a 45-minute service.')),
+            step(['#booking-panel-therapist'], 'Choose a therapist', 'Choose your therapist, then select a date. Availability is checked for the selected date.'),
+            step(['#booking-panel-schedule'], 'Choose a date and time', withExample('Select a date to load the therapist schedule and available time slots. If the therapist is unavailable that day, change the date or go back to choose another therapist.', 'A slot overlapping your existing appointment cannot be selected.')),
             step(['#notes'], 'Add useful notes', 'Share preferences or requests the spa team should know.'),
             step(['.booking-submit'], 'Review payment', withExample('Continue to the payment summary after every required choice is complete.', 'A downpayment confirms part of the price; the remaining balance must be settled before the session starts.'), 'top'),
         ];

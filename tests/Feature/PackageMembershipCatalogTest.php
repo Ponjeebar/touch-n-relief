@@ -75,8 +75,8 @@ class PackageMembershipCatalogTest extends TestCase
             ->get(route('booking.index'))
             ->assertOk()
             ->assertSee('class="booking-grid booking-mobile-wizard-ready"', false)
-            ->assertSee('data-mobile-step="date"', false)
-            ->assertSee('booking-panel-schedule is-mobile-active', false);
+            ->assertSee('data-mobile-step="service"', false)
+            ->assertSee('booking-panel-service is-mobile-active', false);
 
         $this->actingAs($customer)
             ->get(route('booking.index', ['date' => now()->addDay()->toDateString()]))

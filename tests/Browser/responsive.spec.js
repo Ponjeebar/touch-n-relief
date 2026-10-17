@@ -291,63 +291,97 @@ test('completed appointment rebooking stays usable on mobile and desktop', async
     }
 });
 
-test('returning to the date step resets choices and allows the same date again', async ({ page }) => {
+test('service then therapist then date and time stays consistent when choices change', async ({ page }, testInfo) => {
     await login(page, accounts.customer);
-    await page.goto('/booking', { waitUntil: 'domcontentloaded' });
-    const bookingTourKey = await page.locator('#tnr-customer-tour-config').evaluate((config) => (
-        `tnr-system-tour:${config.dataset.customerTourUser}:${config.dataset.customerTourRole}:${config.dataset.customerTourPage}:v3`
-    ));
-    await page.evaluate((key) => localStorage.setItem(key, 'complete'), bookingTourKey);
-
+    await page.goto('/booking');
+    const tourKey = await page.locator('#tnr-customer-tour-config').evaluate(config =>
+        `tnr-system-tour:${config.dataset.customerTourUser}:${config.dataset.customerTourRole}:${config.dataset.customerTourPage}:v3`);
+    await page.evaluate(key => localStorage.setItem(key, 'complete'), tourKey);
     for (const setup of [
-        { viewport: { width: 390, height: 844 }, theme: 'dark' },
-        { viewport: { width: 1366, height: 768 }, theme: 'light' },
+        { width: 390, height: 844, theme: 'dark' },
+        { width: 768, height: 1024, theme: 'light' },
+        { width: 1366, height: 768, theme: 'light' },
     ]) {
-        await page.setViewportSize(setup.viewport);
-        await page.evaluate((theme) => localStorage.setItem('tnr-theme', theme), setup.theme);
-        await page.goto('/booking', { waitUntil: 'domcontentloaded' });
-        await expect(page.locator('.booking-policy-note')).toContainText('at least 30 minutes');
-
-        const dateInput = page.locator('#booking_date');
-        const firstDate = await dateInput.evaluate((input) => {
-            const start = new Date(`${input.min}T12:00:00`);
-            const nextMonday = new Date(start);
-            const daysUntilMonday = (8 - nextMonday.getDay()) % 7 || 7;
-            nextMonday.setDate(nextMonday.getDate() + daysUntilMonday);
-            return nextMonday.toISOString().slice(0, 10);
-        });
-
-        await dateInput.fill(firstDate);
+        await page.setViewportSize(setup);
+        await page.evaluate(theme => localStorage.setItem('tnr-theme', theme), setup.theme);
+        await page.goto('/booking');
+        const grid = page.locator('#booking-grid');
+        await expect(grid).toHaveAttribute('data-mobile-step', 'service');
+        await expect(page.locator('[data-booking-progress] span')).toHaveText(['Service', 'Therapist', 'Date and time']);
         await page.locator('.service-item').first().click();
-
-        const therapist = page.locator('.therapist-item:not(.is-unavailable)').filter({
-            has: page.locator('input[name="therapist"]:not([disabled])'),
-        }).first();
-        await expect(therapist).toBeVisible();
+        await expect(grid).toHaveAttribute('data-mobile-step', 'therapist');
+        const therapist = page.locator('.therapist-item:not(.is-unavailable)').first();
         await therapist.click();
-        await expect(page.locator('#time-slots .time-slot')).not.toHaveCount(0);
-
-        const back = page.locator('#booking-mobile-back');
-        await back.click();
-        await back.click();
-        await back.click();
-        await expect(page.locator('#booking-grid')).toHaveAttribute('data-mobile-step', 'date');
-        await expect(dateInput).toHaveValue('');
-        await expect(page.locator('.booking-field-time')).toBeHidden();
-        await expect(page.locator('input[name="service"]:checked')).toHaveCount(0);
+        const chosen = await page.locator('input[name="therapist"]:checked').inputValue();
+        await expect(grid).toHaveAttribute('data-mobile-step', 'schedule');
+        await expect(page.locator('.booking-field-date')).toBeVisible();
+        await expect(page.locator('.booking-field-time')).toBeVisible();
+        const date = page.locator('#booking_date');
+        const monday = await date.evaluate(input => {
+            const value = new Date(input.min + 'T12:00:00');
+            value.setDate(value.getDate() + ((8 - value.getDay()) % 7 || 7));
+            return value.toISOString().slice(0, 10);
+        });
+        await date.fill(monday);
+        await expect(page.locator('input[name="therapist"]:checked')).toHaveValue(chosen);
+        await expect(page.locator('#time-slots .time-slot:not([disabled])').first()).toBeVisible();
+        await page.locator('#time-slots .time-slot:not([disabled])').first().click();
+        await expect(page.locator('#time_slot')).not.toHaveValue('');
+        const nextMonday = new Date(monday + 'T12:00:00');
+        nextMonday.setDate(nextMonday.getDate() + 7);
+        await date.fill(nextMonday.toISOString().slice(0, 10));
+        await expect(page.locator('#time_slot')).toHaveValue('');
+        await expect(page.locator('input[name="service"]:checked')).toHaveCount(1);
+        await expect(page.locator('input[name="therapist"]:checked')).toHaveValue(chosen);
+        await page.locator('#booking-mobile-back').click();
+        await expect(grid).toHaveAttribute('data-mobile-step', 'therapist');
+        await page.locator('#booking-mobile-back').click();
+        await expect(grid).toHaveAttribute('data-mobile-step', 'service');
+        await page.locator('.service-item').nth(1).click();
         await expect(page.locator('input[name="therapist"]:checked')).toHaveCount(0);
         await expect(page.locator('#time_slot')).toHaveValue('');
-        await expect(page.locator('#time-slots')).toBeEmpty();
-
-        await dateInput.fill(firstDate);
-
-        await expect(page.locator('input[name="service"]:checked')).toHaveCount(0);
-        await expect(page.locator('input[name="therapist"]:checked')).toHaveCount(0);
-        await expect(page.locator('#time_slot')).toHaveValue('');
-        await expect(page.locator('#time-slots')).toBeEmpty();
-        await expect(page.locator('#time-slots-hint')).toHaveText('Select a service to view available time slots.');
-        await expect(page.locator('#booking-grid')).toHaveAttribute('data-mobile-step', 'service');
+        await page.locator('.therapist-item:not(.is-unavailable)').first().click();
+        await expect(grid).toHaveAttribute('data-mobile-step', 'schedule');
+        await expect(date).toHaveValue('');
+        await expect(page.locator('.booking-policy-note')).toContainText('at least 30 minutes');
+        await page.screenshot({ path: testInfo.outputPath('booking-' + setup.width + '.png') });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
     }
+});
+
+test('date selection rejects an unavailable therapist and ignores an older schedule response', async ({ page }) => {
+    await login(page, accounts.customer);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/booking');
+    await dismissOptionalTour(page);
+    await page.locator('.service-item').first().click();
+    const candidate = page.locator('.therapist-item').first();
+    await candidate.click();
+    const name = await page.locator('input[name="therapist"]:checked').inputValue();
+    const date = page.locator('#booking_date');
+    let delayUnavailable = false;
+    await page.route('**/booking/therapist-availability?*', async route => {
+        const unavailable = new URL(route.request().url()).searchParams.get('booking_date') === '2030-01-01';
+        if (unavailable && delayUnavailable) await new Promise(resolve => setTimeout(resolve, 500));
+        await route.fulfill({ json: { therapists: {
+            [name]: { bookable: !unavailable, status: unavailable ? 'off-duty' : 'available', label: unavailable ? 'Off duty' : '' },
+        } } });
+    });
+    await date.fill('2030-01-01');
+    await expect(page.locator('input[name="therapist"]:checked')).toHaveCount(0);
+    await expect(page.locator('#time_slot')).toHaveValue('');
+    await expect(page.locator('#time-slots')).toBeEmpty();
+    await expect(page.locator('#booking-toast-msg')).toContainText('Choose a therapist available on this date');
+    await date.fill('');
+    await page.locator('#booking-mobile-back').click();
+    await candidate.click();
+    delayUnavailable = true;
+    await date.fill('2030-01-01');
+    await date.fill('2030-01-02');
+    await page.waitForTimeout(700);
+    await expect(page.locator('input[name="therapist"]:checked')).toHaveValue(name);
+    await expect(candidate).not.toHaveClass(/is-unavailable/);
+    await expect(page.locator('#bkConfirmModal')).toHaveClass(/bk-hidden/);
 });
 
 test('staff immediate walk-in shows the calculated session and enforced payment controls', async ({ page }) => {
