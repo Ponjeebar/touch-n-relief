@@ -55,20 +55,22 @@
                             @endforeach
                             <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'custom' ? 'active' : '' }}" data-period="custom" aria-pressed="{{ ($period ?? 'monthly') === 'custom' ? 'true' : 'false' }}" aria-controls="repCustomRange" aria-expanded="false">Custom</button>
                         </div>
+                        <div class="rep-download-actions" role="group" aria-label="Report downloads">
+                            <a href="{{ route('reporting.export', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-export-btn" id="repExportLink" data-page-transition="off">
+                                <i class="bi bi-download" aria-hidden="true"></i>
+                                <span>Export Excel</span>
+                            </a>
+                            <a href="{{ route('reporting.pdf', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-print-btn" id="repPdfLink" data-page-transition="off">
+                                <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
+                                <span>Generate PDF</span>
+                            </a>
+                        </div>
                         <form method="GET" action="{{ route('reporting.index') }}" class="rep-custom-range" id="repCustomRange" hidden>
                             <input type="hidden" name="period" value="custom">
                             <label>From <input type="date" name="date_from" value="{{ $dateFrom ?? now()->startOfMonth()->toDateString() }}" max="{{ now()->toDateString() }}" required></label>
                             <label>To <input type="date" name="date_to" value="{{ $dateTo ?? now()->toDateString() }}" max="{{ now()->toDateString() }}" required></label>
                             <button type="submit">Apply</button>
                         </form>
-                        <a href="{{ route('reporting.export', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-export-btn" id="repExportLink" data-page-transition="off">
-                            <i class="bi bi-download" aria-hidden="true"></i>
-                            <span>Export Excel</span>
-                        </a>
-                        <a href="{{ route('reporting.pdf', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-print-btn" id="repPdfLink" data-page-transition="off">
-                            <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
-                            <span>Generate PDF</span>
-                        </a>
                     </div>
                     <div class="right">
                         @include('partials.topbar-notifications')
