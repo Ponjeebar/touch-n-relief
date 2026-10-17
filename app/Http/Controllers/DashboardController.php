@@ -2773,15 +2773,15 @@ class DashboardController extends Controller
             $serviceLabel = (string) $selectionBadge;
         } elseif ($period === 'custom') {
             $primaryLabel = 'Net Collections';
-            $primaryBadge = 'Custom';
+            $primaryBadge = $dateLabel;
             $primarySub = 'Collections less refunds for '.$dateLabel;
             $primaryIcon = 'calendar-range';
             $secondaryLabel = 'New Users';
-            $secondaryBadge = 'Custom';
+            $secondaryBadge = $dateLabel;
             $secondarySub = 'New registered customers during this range';
             $secondaryIcon = 'people';
             $hoursLabel = 'Total Service Hours';
-            $hoursBadge = 'Custom';
+            $hoursBadge = $dateLabel;
             $hoursSub = 'Completed service time during this range';
             $hoursIcon = 'clock';
             $pageSubtitle = $dateLabel.' — net collections and customer activity';

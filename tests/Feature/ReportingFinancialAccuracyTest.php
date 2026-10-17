@@ -439,6 +439,9 @@ class ReportingFinancialAccuracyTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('period', 'custom')
+            ->assertJsonPath('primaryBadge', 'Sep 27, 2026 - Sep 30, 2026')
+            ->assertJsonPath('secondaryBadge', 'Sep 27, 2026 - Sep 30, 2026')
+            ->assertJsonPath('hoursBadge', 'Sep 27, 2026 - Sep 30, 2026')
             ->assertJsonPath('grossCollections', 499)
             ->assertJsonPath('membershipCollections', 499)
             ->assertJsonPath('paymentCount', 1)

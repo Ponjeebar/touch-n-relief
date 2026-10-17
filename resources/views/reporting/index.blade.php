@@ -127,7 +127,7 @@
                         <article class="rep-metric rep-metric-primary rep-metric-daily">
                             <div class="rep-metric-top">
                                 <div class="rep-icon" id="repPrimaryIconWrap"><i class="bi bi-{{ $primaryIcon ?? 'receipt' }}" id="repPrimaryIcon"></i></div>
-                                <div class="rep-badge up" id="repPrimaryBadge">{{ $primaryBadge ?? 'Today' }}</div>
+                                <div class="rep-period-label" id="repPrimaryBadge">{{ $primaryBadge ?? 'Today' }}</div>
                             </div>
                             <div class="rep-label" id="repPrimaryLabel">{{ $primaryLabel ?? 'Daily Sales' }}</div>
                             <div class="rep-value" id="repPrimaryValue">₱{{ number_format((float) ($primaryAmount ?? $dailySales ?? 0), 2) }}</div>
@@ -137,7 +137,7 @@
                         <article class="rep-metric rep-metric-yearly">
                             <div class="rep-metric-top">
                                 <div class="rep-icon soft" id="repSecondaryIconWrap"><i class="bi bi-{{ $secondaryIcon ?? 'calendar2-range' }}" id="repSecondaryIcon"></i></div>
-                                <div class="rep-badge up" id="repSecondaryBadge">{{ $secondaryBadge ?? 'This year' }}</div>
+                                <div class="rep-period-label" id="repSecondaryBadge">{{ $secondaryBadge ?? 'This year' }}</div>
                             </div>
                             <div class="rep-label" id="repSecondaryLabel">{{ $secondaryLabel ?? 'Yearly Users' }}</div>
                             <div class="rep-value rep-value-int" id="repSecondaryValue">{{ number_format((int) ($secondaryUserCount ?? $yearlyUsers ?? 0)) }}</div>
@@ -147,7 +147,7 @@
                         <article class="rep-metric rep-metric-hours">
                             <div class="rep-metric-top">
                                 <div class="rep-icon soft" id="repHoursIconWrap"><i class="bi bi-{{ $hoursIcon ?? 'clock' }}" id="repHoursIcon"></i></div>
-                                <div class="rep-badge up" id="repHoursBadge">{{ $hoursBadge ?? 'This month' }}</div>
+                                <div class="rep-period-label" id="repHoursBadge">{{ $hoursBadge ?? 'This month' }}</div>
                             </div>
                             <div class="rep-label" id="repHoursLabel">{{ $hoursLabel ?? 'Total Service Hours' }}</div>
                             <div class="rep-value rep-value-int" id="repHoursValue">{{ number_format((float) ($hoursValue ?? 0), 1) }} hrs</div>

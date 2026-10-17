@@ -264,24 +264,17 @@
     color: var(--rep-teal);
 }
 
-.rep-badge {
+.rep-period-label {
+    min-width: 0;
     font-size: 13px;
-    font-weight: 800;
-    padding: 7px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.12);
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: right;
+    overflow-wrap: anywhere;
+    color: var(--rep-muted);
 }
 
-.rep-badge.up {
-    border-color: rgba(47, 157, 98, 0.30);
-    background: rgba(47, 157, 98, 0.12);
-    color: #2f9d62;
-}
-
-.rep-metric-primary .rep-badge.up {
-    border-color: rgba(255, 255, 255, 0.20);
-    background: rgba(255, 255, 255, 0.16);
+.rep-metric-primary .rep-period-label {
     color: #ffffff;
 }
 
