@@ -34,6 +34,9 @@
                     placeholder="Name"
                     value="{{ old('name') }}"
                     autocomplete="name"
+                    maxlength="255"
+                    pattern="{{ \App\Rules\PersonName::HTML_PATTERN }}"
+                    title="{{ \App\Rules\PersonName::MESSAGE }}"
                     class="@error('name', 'register') invalid @enderror"
                     required
                 >
@@ -50,7 +53,7 @@
                     spellcheck="false"
                     minlength="3"
                     maxlength="30"
-                    pattern="[A-Za-z0-9_-]+"
+                    pattern="[A-Za-z0-9_\-]+"
                     title="3–30 characters: letters, numbers, underscores, and hyphens only."
                     class="@error('username', 'register') invalid @enderror"
                     required
@@ -64,6 +67,7 @@
                     placeholder="Enter E-mail"
                     value="{{ old('email') }}"
                     autocomplete="email"
+                    maxlength="255"
                     class="@error('email', 'register') invalid @enderror"
                     required
                 >

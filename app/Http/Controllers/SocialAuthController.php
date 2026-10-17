@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Rules\PersonName;
 use App\Services\ActivityLogger;
 use App\Services\WalkInClientService;
 use App\Support\CustomerEligibility;
@@ -168,7 +169,10 @@ class SocialAuthController extends Controller
             ]);
         }
 
+        $request->merge(['name' => $request->input('name', $pending['name'])]);
+
         $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', new PersonName],
             'contact_number' => ['required', 'regex:/^09\d{9}$/'],
             'birthday' => ['required', 'date', CustomerEligibility::birthdayRule()],
             'sex' => ['required', Rule::in(User::sexOptions())],
@@ -196,7 +200,7 @@ class SocialAuthController extends Controller
                 } else {
                     $username = $this->uniqueUsername($pending['email']);
                     $signup = [
-                        'name' => $pending['name'],
+                        'name' => $validated['name'],
                         'username' => $username,
                         'email' => $pending['email'],
                         'contact_number' => $validated['contact_number'],
@@ -207,7 +211,7 @@ class SocialAuthController extends Controller
                     $walkIn = $this->walkInClients->findWalkInForRegistration(
                         $pending['email'],
                         $validated['contact_number'],
-                        $pending['name'],
+                        $validated['name'],
                     );
 
                     if ($walkIn instanceof User) {

@@ -12,6 +12,7 @@ use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\Therapist;
 use App\Models\User;
+use App\Rules\PersonName;
 use App\Services\ActivityLogger;
 use App\Services\BackupRecoveryService;
 use App\Services\BookingSlotService;
@@ -312,7 +313,7 @@ class DashboardController extends Controller
     public function storeCustomer(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
+            'full_name' => ['required', 'string', 'max:255', new PersonName],
             'birthday' => ['nullable', 'date', CustomerEligibility::birthdayRule()],
             'number' => ['nullable', 'regex:/^09\d{9}$/'],
             'email' => ['required', 'email', 'max:255', 'unique:customers,email'],
@@ -344,7 +345,7 @@ class DashboardController extends Controller
     public function updateCustomer(Request $request, Customer $customer): RedirectResponse
     {
         $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
+            'full_name' => ['required', 'string', 'max:255', new PersonName],
             'birthday' => ['nullable', 'date', CustomerEligibility::birthdayRule()],
             'number' => ['nullable', 'regex:/^09\d{9}$/'],
             'email' => ['required', 'email', 'max:255', 'unique:customers,email,'.$customer->id],
@@ -1814,13 +1815,13 @@ class DashboardController extends Controller
                 'max:20',
                 Rule::unique('therapists', 'therapist_code')->ignore($ignoreId),
             ],
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new PersonName],
             'role' => ['nullable', 'string', 'max:255'],
             'bio' => ['nullable', 'string', 'max:5000'],
             'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
             'address' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
-            'birthday' => ['nullable', 'date'],
+            'birthday' => ['nullable', 'date', 'before_or_equal:today'],
             'specializations' => ['nullable', 'string'],
             'certifications' => ['nullable', 'string'],
             'accent_color' => ['nullable', 'string', 'max:20'],
@@ -3213,12 +3214,12 @@ class DashboardController extends Controller
     public function storeReceptionist(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:receptionists,username'],
+            'full_name' => ['required', 'string', 'max:255', new PersonName],
+            'username' => ['required', 'string', 'min:3', 'max:30', 'alpha_dash:ascii', 'unique:receptionists,username'],
             'email' => ['required', 'email', 'max:255', 'unique:receptionists,email'],
             'address' => ['nullable', 'string', 'max:255'],
             'phone_number' => ['nullable', 'regex:/^09\d{9}$/'],
-            'birthday' => ['nullable', 'date'],
+            'birthday' => ['nullable', 'date', 'before_or_equal:today'],
             'profile_picture' => ['nullable', 'image', 'max:2048'],
             'password' => ['required', 'string', StrongPassword::rule()],
         ], [
@@ -3268,12 +3269,12 @@ class DashboardController extends Controller
     public function updateReceptionist(Request $request, Receptionist $receptionist): RedirectResponse
     {
         $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:receptionists,username,'.$receptionist->id],
+            'full_name' => ['required', 'string', 'max:255', new PersonName],
+            'username' => ['required', 'string', 'min:3', 'max:30', 'alpha_dash:ascii', 'unique:receptionists,username,'.$receptionist->id],
             'email' => ['required', 'email', 'max:255', 'unique:receptionists,email,'.$receptionist->id],
             'address' => ['nullable', 'string', 'max:255'],
             'phone_number' => ['nullable', 'regex:/^09\d{9}$/'],
-            'birthday' => ['nullable', 'date'],
+            'birthday' => ['nullable', 'date', 'before_or_equal:today'],
             'profile_picture' => ['nullable', 'image', 'max:2048'],
         ], [
             'phone_number.regex' => 'Phone number must be 11 digits starting with 09.',

@@ -55,6 +55,12 @@
                 </div>
                 <div class="social-complete-fields">
                     <div class="social-complete-field">
+                        <label for="social-name">Name</label>
+                        <input id="social-name" name="name" type="text" value="{{ old('name', $pending['name']) }}" maxlength="255" pattern="{{ \App\Rules\PersonName::HTML_PATTERN }}" title="{{ \App\Rules\PersonName::MESSAGE }}" autocomplete="name" class="@error('name') invalid @enderror" aria-describedby="social-name-hint" required>
+                        <small id="social-name-hint">Use your name for spa appointments. Numbers are not allowed.</small>
+                        @error('name')<p class="social-field-error">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="social-complete-field">
                         <label for="social-contact">Contact number</label>
                         <input id="social-contact" name="contact_number" type="tel" value="{{ old('contact_number') }}" placeholder="09XXXXXXXXX" maxlength="11" pattern="^09\d{9}$" inputmode="numeric" autocomplete="tel" class="@error('contact_number') invalid @enderror" aria-describedby="social-contact-hint" required>
                         <small id="social-contact-hint">Use an 11-digit Philippine mobile number.</small>

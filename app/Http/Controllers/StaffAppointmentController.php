@@ -8,6 +8,7 @@ use App\Models\SpaBooking;
 use App\Models\SpaService;
 use App\Models\Therapist;
 use App\Models\User;
+use App\Rules\PersonName;
 use App\Services\ActivityLogger;
 use App\Services\BookingCancellationService;
 use App\Services\BookingRefundService;
@@ -189,7 +190,7 @@ class StaffAppointmentController extends Controller
         $rules = [
             'client_type' => ['required', 'in:walk_in,registered'],
             'client_user_id' => ['nullable', 'integer', 'exists:users,id'],
-            'client_name' => ['required', 'string', 'max:255'],
+            'client_name' => ['required', 'string', 'max:255', new PersonName],
             'client_email' => ['nullable', 'email', 'max:255'],
             'client_phone' => ['nullable', 'regex:/^09\d{9}$/'],
             'client_password' => ['nullable', 'required_if:client_type,walk_in', 'confirmed', StrongPassword::rule()],

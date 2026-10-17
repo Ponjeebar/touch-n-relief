@@ -136,7 +136,7 @@ class AuthVerificationTest extends TestCase
 
         $this->get(route('landing'))
             ->assertOk()
-            ->assertSee('tnr-landing-theme-toggle');
+            ->assertDontSee('tnr-landing-theme-toggle');
     }
 
     public function test_password_reset_rejects_current_and_recent_passwords(): void

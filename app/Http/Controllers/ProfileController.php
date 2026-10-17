@@ -9,6 +9,7 @@ use App\Models\Receptionist;
 use App\Models\User;
 use App\Notifications\ProfileEmailChangeRequestedNotification;
 use App\Rules\NotRecentlyUsedPassword;
+use App\Rules\PersonName;
 use App\Services\ActivityLogger;
 use App\Services\AuthVerificationCodeService;
 use App\Services\UserActivityService;
@@ -104,7 +105,7 @@ class ProfileController extends Controller
             : ['nullable', 'date', 'before_or_equal:today'];
 
         $validated = $request->validateWithBag('profile', [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new PersonName],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
             'birthday' => $birthdayRules,
@@ -126,7 +127,7 @@ class ProfileController extends Controller
                 User::PRESSURE_HIGH,
             ])],
             'receptionist_address' => ['nullable', 'string', 'max:255'],
-            'receptionist_birthday' => ['nullable', 'date'],
+            'receptionist_birthday' => ['nullable', 'date', 'before_or_equal:today'],
         ], [
             'contact_number.regex' => 'Phone number must be 11 digits starting with 09.',
             'birthday.before_or_equal' => $user->isUser()

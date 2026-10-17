@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\AuthVerificationCode;
 use App\Models\User;
 use App\Rules\NotRecentlyUsedPassword;
+use App\Rules\PersonName;
 use App\Services\ActivityLogger;
 use App\Services\AuthVerificationCodeService;
 use App\Services\SiteSettingsService;
@@ -274,7 +275,7 @@ class AuthController extends Controller
         $intendedBeforeRegister = trim((string) $request->session()->get('url.intended', ''));
 
         $lookup = $request->validateWithBag('register', [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new PersonName],
             'contact_number' => ['required', 'regex:/^09\d{9}$/'],
         ], [
             'contact_number.regex' => 'Phone number must be 11 digits starting with 09.',
@@ -287,7 +288,7 @@ class AuthController extends Controller
         );
 
         $validated = $request->validateWithBag('register', [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new PersonName],
             'username' => [
                 'required',
                 'string',

@@ -871,7 +871,7 @@
                                 <div class="profile-grid">
                                     <div class="profile-field">
                                         <label for="name">Name</label>
-                                        <input id="name" name="name" value="{{ old('name', $user->name) }}" required>
+                                        <input id="name" name="name" value="{{ old('name', $user->name) }}" maxlength="255" pattern="{{ \App\Rules\PersonName::HTML_PATTERN }}" title="{{ \App\Rules\PersonName::MESSAGE }}" required>
                                     </div>
                                     <div class="profile-field">
                                         <label for="contact_number">Contact number</label>
