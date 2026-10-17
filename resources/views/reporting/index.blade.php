@@ -48,14 +48,14 @@
                     <div class="rep-toolbar">
                         <div class="rep-period" id="repPeriod">
                             @foreach (['daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly', 'yearly' => 'Yearly'] as $periodKey => $periodLabel)
-                                <label class="rep-period-btn rep-period-dropdown {{ ($period ?? 'monthly') === $periodKey ? 'active' : '' }}" data-period="{{ $periodKey }}">
-                                    <span aria-hidden="true">{{ $periodLabel }} <i class="bi bi-chevron-down"></i></span>
-                                    <select data-period-select="{{ $periodKey }}" aria-label="{{ $periodLabel }} reporting period"></select>
-                                </label>
+                                <details class="rep-period-dropdown">
+                                    <summary class="rep-period-btn {{ ($period ?? 'monthly') === $periodKey ? 'active' : '' }}" data-period="{{ $periodKey }}">{{ $periodLabel }} <i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+                                    <div class="rep-period-options" data-period-options="{{ $periodKey }}" role="group" aria-label="{{ $periodLabel }} reporting period"></div>
+                                </details>
                             @endforeach
-                            <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'custom' ? 'active' : '' }}" data-period="custom" aria-pressed="{{ ($period ?? 'monthly') === 'custom' ? 'true' : 'false' }}">Custom</button>
+                            <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'custom' ? 'active' : '' }}" data-period="custom" aria-pressed="{{ ($period ?? 'monthly') === 'custom' ? 'true' : 'false' }}" aria-controls="repCustomRange" aria-expanded="false">Custom</button>
                         </div>
-                        <form method="GET" action="{{ route('reporting.index') }}" class="rep-custom-range {{ ($period ?? '') === 'custom' ? 'is-visible' : '' }}" id="repCustomRange">
+                        <form method="GET" action="{{ route('reporting.index') }}" class="rep-custom-range" id="repCustomRange" hidden>
                             <input type="hidden" name="period" value="custom">
                             <label>From <input type="date" name="date_from" value="{{ $dateFrom ?? now()->startOfMonth()->toDateString() }}" max="{{ now()->toDateString() }}" required></label>
                             <label>To <input type="date" name="date_to" value="{{ $dateTo ?? now()->toDateString() }}" max="{{ now()->toDateString() }}" required></label>
@@ -478,18 +478,18 @@
         }
 
         function populatePeriodSelect(period, selectedValue) {
-            document.getElementById('repCustomRange')?.classList.toggle('is-visible', period === 'custom');
-            document.querySelectorAll('#repPeriod [data-period-select]').forEach((select) => {
-                const selectPeriod = select.dataset.periodSelect;
+            document.querySelectorAll('#repPeriod [data-period-options]').forEach((menu) => {
+                const selectPeriod = menu.dataset.periodOptions;
                 const active = selectPeriod === period;
                 const value = active ? (selectedValue || defaultPeriodValue(period)) : '';
-                const units = { daily: 'day', weekly: 'week', monthly: 'month', yearly: 'year' };
-                const placeholder = new Option(`Choose a ${units[selectPeriod]}`, '', !active, !active);
-                placeholder.disabled = true;
-                select.replaceChildren(placeholder);
+                menu.replaceChildren();
                 periodValueOptions(selectPeriod).forEach(([val, label]) => {
-                    const text = selectPeriod === 'daily' ? dailyOptionLabel(val, label) : label;
-                    select.add(new Option(text, val, val === value, val === value));
+                    const option = document.createElement('button');
+                    option.type = 'button';
+                    option.dataset.periodValue = val;
+                    option.setAttribute('aria-pressed', val === value ? 'true' : 'false');
+                    option.textContent = selectPeriod === 'daily' ? dailyOptionLabel(val, label) : label;
+                    menu.append(option);
                 });
                 if (active) currentPeriodValue = value;
             });
@@ -938,6 +938,7 @@
             const wrap = document.getElementById('repPeriod');
             if (!wrap || !reportingDataUrl) return;
 
+            setCustomRangeVisible(false);
             wrap.classList.add('rep-period--busy');
             try {
                 const data = await fetchReportingPayload(period, periodValue);
@@ -953,31 +954,69 @@
             }
         }
 
-        document.getElementById('repPeriod')?.addEventListener('click', (e) => {
-            const btn = e.target.closest('button.rep-period-btn');
-            if (!btn) return;
-            const period = btn.dataset.period;
-            if (!period || period === currentPeriod) return;
+        function setCustomRangeVisible(visible) {
+            document.getElementById('repCustomRange').hidden = !visible;
+            document.querySelector('[data-period="custom"]').setAttribute('aria-expanded', String(visible));
+        }
 
-            currentPeriod = 'custom';
-            setPeriodButtonsActive('custom');
-            populatePeriodSelect('custom', '');
-            document.querySelector('#repCustomRange input[name="date_from"]')?.focus();
+        function closePeriodMenus() {
+            document.querySelectorAll('#repPeriod details[open]').forEach((details) => { details.open = false; });
+        }
+
+        document.querySelectorAll('#repPeriod details').forEach((details) => {
+            details.addEventListener('toggle', () => {
+                if (!details.open) return;
+                document.querySelectorAll('#repPeriod details').forEach((other) => {
+                    if (other !== details) other.open = false;
+                });
+                setCustomRangeVisible(false);
+                const menu = details.querySelector('.rep-period-options');
+                const rect = details.getBoundingClientRect();
+                const width = Math.min(280, window.innerWidth - 24);
+                menu.style.width = `${width}px`;
+                menu.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - width - 12))}px`;
+                menu.style.top = `${rect.bottom + 6}px`;
+                menu.style.maxHeight = `${Math.max(80, Math.min(300, window.innerHeight - rect.bottom - 24))}px`;
+                menu.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest' });
+            });
         });
 
-        document.getElementById('repPeriod')?.addEventListener('change', async (e) => {
-            const select = e.target.closest('[data-period-select]');
-            if (!select) return;
-            const period = select.dataset.periodSelect;
-            const value = select.value;
-            if (!value || (period === currentPeriod && value === currentPeriodValue)) return;
-            await loadReporting(period, value);
+        document.getElementById('repPeriod')?.addEventListener('click', async (e) => {
+            if (e.target.closest('[data-period="custom"]')) {
+                closePeriodMenus();
+                const visible = document.getElementById('repCustomRange').hidden;
+                setCustomRangeVisible(visible);
+                if (visible) document.querySelector('#repCustomRange input[name="date_from"]')?.focus();
+                return;
+            }
+            const option = e.target.closest('[data-period-value]');
+            if (!option) return;
+            const period = option.closest('[data-period-options]').dataset.periodOptions;
+            const value = option.dataset.periodValue;
+            option.closest('details').querySelector('summary').focus();
+            closePeriodMenus();
+            if (period !== currentPeriod || value !== currentPeriodValue) await loadReporting(period, value);
         });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#repPeriod')) closePeriodMenus();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            document.querySelector('#repPeriod details[open] summary')?.focus();
+            closePeriodMenus();
+        });
+        window.addEventListener('resize', closePeriodMenus);
+        window.addEventListener('scroll', (e) => {
+            if (!(e.target instanceof Element) || !e.target.closest('.rep-period-options')) closePeriodMenus();
+        }, true);
 
         document.getElementById('repLedgerSearch')?.addEventListener('input', renderLedgerRows);
         document.getElementById('repLedgerType')?.addEventListener('change', renderLedgerRows);
 
         window.addEventListener('popstate', () => {
+            closePeriodMenus();
+            setCustomRangeVisible(false);
             const loc = new URL(window.location.href);
             let p = loc.searchParams.get('period') || 'monthly';
             if (!['daily', 'weekly', 'monthly', 'yearly', 'custom'].includes(p)) {

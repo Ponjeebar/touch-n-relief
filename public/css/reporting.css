@@ -137,6 +137,7 @@
 .rep-period-dropdown {
     position: relative;
     text-align: center;
+    min-width: 0;
 }
 
 @media (max-width: 350px) {
@@ -151,16 +152,73 @@
     margin-left: 3px;
 }
 
-.rep-period-dropdown select {
-    position: absolute;
-    inset: 0;
+.rep-period-dropdown summary {
+    list-style: none;
+}
+
+.rep-period-dropdown summary::-webkit-details-marker {
+    display: none;
+}
+
+.rep-period-options {
+    position: fixed;
+    z-index: 250;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 5px;
+    border: 1px solid var(--rep-border);
+    border-radius: 10px;
+    background: var(--rep-surface);
+    box-shadow: 0 8px 24px rgba(31, 43, 51, 0.16);
+    text-align: left;
+    scrollbar-width: thin;
+}
+
+.rep-period-options button {
+    display: block;
     width: 100%;
-    height: 100%;
-    opacity: 0;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #243843;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: left;
     cursor: pointer;
 }
 
-.rep-period-dropdown:focus-within {
+.rep-period-options button:hover,
+.rep-period-options button:focus-visible {
+    background: #f0f6f3;
+    outline: 2px solid var(--rep-green);
+    outline-offset: -2px;
+}
+
+.rep-period-options button[aria-pressed="true"] {
+    color: #04724d;
+    background: #e5f2eb;
+    font-weight: 700;
+}
+
+html[data-theme="dark"] .rep-period-options {
+    background: #1c2836;
+    border-color: #3b4d5e;
+}
+
+html[data-theme="dark"] .rep-period-options button {
+    color: #dce8ef;
+}
+
+html[data-theme="dark"] .rep-period-options button:hover,
+html[data-theme="dark"] .rep-period-options button:focus-visible,
+html[data-theme="dark"] .rep-period-options button[aria-pressed="true"] {
+    background: #24453e;
+    color: #b6f1d5;
+}
+
+.rep-period-dropdown summary:focus-visible {
     outline: 2px solid #0c9aa6;
     outline-offset: 2px;
 }
@@ -553,13 +611,15 @@
 }
 
 .rep-custom-range {
-    display: none;
+    display: flex;
     align-items: end;
     gap: 8px;
+    flex-basis: 100%;
+    grid-column: 1 / -1;
 }
 
-.rep-custom-range.is-visible {
-    display: flex;
+.rep-custom-range[hidden] {
+    display: none !important;
 }
 
 .rep-custom-range label {

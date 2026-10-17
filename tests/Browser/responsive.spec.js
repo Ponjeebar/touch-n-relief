@@ -198,6 +198,70 @@ test('profile dialog traps keyboard focus and restores it when closed', async ({
     await expect(menuButton).toBeFocused();
 });
 
+test('report period menus keep custom dates hidden until requested', async ({ page }) => {
+    test.setTimeout(120000);
+    await login(page, accounts.admin);
+
+    for (const width of [360, 768, 1366]) {
+        for (const theme of themes) {
+            await page.setViewportSize({ width, height: 900 });
+            await setTheme(page, theme);
+            await page.goto('/reporting', { waitUntil: 'networkidle' });
+            await dismissOptionalTour(page);
+            const range = page.locator('#repCustomRange');
+            const custom = page.locator('#repPeriod button[data-period="custom"]');
+            await expect(range).toBeHidden();
+            await custom.click();
+            await expect(range).toBeVisible();
+            await expect(custom).toHaveAttribute('aria-expanded', 'true');
+
+            for (const period of ['daily', 'weekly', 'monthly', 'yearly']) {
+                const summary = page.locator(`#repPeriod summary[data-period="${period}"]`);
+                const menu = page.locator(`[data-period-options="${period}"]`);
+                await summary.click();
+                await expect(range).toBeHidden();
+                await expect(menu).toBeVisible();
+                const bounds = await menu.boundingBox();
+                expect(bounds.x).toBeGreaterThanOrEqual(0);
+                expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+                await menu.locator('button').first().click();
+                await expect(page).toHaveURL(new RegExp(`period=${period}`));
+                await expect(summary).toHaveClass(/active/);
+                await expect(menu).toBeHidden();
+                await expect(page.locator('#repExportLink')).toHaveAttribute('href', new RegExp(`period=${period}`));
+            }
+
+            const monthly = page.locator('summary[data-period="monthly"]');
+            await monthly.focus();
+            await page.keyboard.press('Enter');
+            const monthMenu = page.locator('[data-period-options="monthly"]');
+            await expect(monthMenu).toBeVisible();
+            const scrollable = await monthMenu.evaluate((el) => el.scrollHeight > el.clientHeight);
+            expect(scrollable).toBe(true);
+            await page.keyboard.press('Escape');
+            await expect(monthMenu).toBeHidden();
+            await expect(monthly).toBeFocused();
+            await monthly.click();
+            await page.locator('h1').click();
+            await expect(monthMenu).toBeHidden();
+            await custom.click();
+            await custom.click();
+            await expect(range).toBeHidden();
+        }
+    }
+
+    await page.goto('/reporting?period=custom&date_from=2026-10-01&date_to=2026-10-05', { waitUntil: 'networkidle' });
+    await expect(page.locator('#repCustomRange')).toBeHidden();
+    await page.locator('#repPeriod button[data-period="custom"]').click();
+    await expect(page.locator('#repCustomRange')).toBeVisible();
+    await expect(page.locator('#repCustomRange input[name="date_from"]')).toHaveValue('2026-10-01');
+    await page.locator('#repCustomRange input[name="date_from"]').fill('2026-10-02');
+    await page.locator('#repCustomRange button[type="submit"]').click();
+    await expect(page).toHaveURL(/period=custom&date_from=2026-10-02&date_to=2026-10-05/);
+    await expect(page.locator('#repCustomRange')).toBeHidden();
+    await expect(page.locator('#repExportLink')).toHaveAttribute('href', /date_from=2026-10-02/);
+});
+
 test('report downloads keep the reporting overview visible', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await setTheme(page, 'light');
