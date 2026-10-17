@@ -5,6 +5,11 @@ return [
     'client_new_days' => (int) env('CLIENT_NEW_DAYS', 30),
     'client_active_months' => (int) env('CLIENT_ACTIVE_MONTHS', 12),
     'client_auto_archive_months' => (int) env('CLIENT_AUTO_ARCHIVE_MONTHS', 24),
+    'monitoring' => [
+        'processing_delay_minutes' => (int) env('MONITOR_PROCESSING_DELAY_MINUTES', 5),
+        'processor_stale_minutes' => (int) env('MONITOR_PROCESSOR_STALE_MINUTES', 10),
+        'gateway_review_hours' => (int) env('MONITOR_GATEWAY_REVIEW_HOURS', 24),
+    ],
     'booking' => [
         'customer_minimum_lead_minutes' => (int) env('CUSTOMER_BOOKING_MINIMUM_LEAD_MINUTES', 30),
         'expired_hold_limit' => (int) env('CUSTOMER_EXPIRED_HOLD_LIMIT', 3),

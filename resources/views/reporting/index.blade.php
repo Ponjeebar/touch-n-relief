@@ -308,6 +308,15 @@
                         <p class="rep-table-empty" id="repLedgerEmpty" hidden>No ledger entries match the selected filters.</p>
                     </article>
 
+                    <article class="rep-data-panel" id="operational-checks">
+                        <h3>Operational checks</h3>
+                        <p>Current processing health across all dates. These checks do not change appointments or financial records.</p>
+                        <p id="repOperationalSummary">{{ ($operationalMonitoring['status'] ?? 'unverified') === 'unverified' ? 'Processor history is not yet available' : 'Checking processor history' }}</p>
+                        <ul id="repOperationalProcessors"></ul>
+                        <ul id="repOperationalIssues"></ul>
+                        <p>Review allowances: {{ config('touchnrelief.monitoring.processing_delay_minutes', 5) }} minutes after an automatic processing deadline; {{ config('touchnrelief.monitoring.processor_stale_minutes', 10) }} minutes without a successful processor run; {{ config('touchnrelief.monitoring.gateway_review_hours', 24) }} hours for an unresolved gateway case.</p>
+                    </article>
+
                     <article class="rep-data-panel rep-ledger-panel" id="gateway-reconciliation">
                         <h3>Gateway payments requiring review</h3>
                         <p>Payments received in this period that are not allocated to a booking or membership. These are excluded from sales totals. Verify the gateway records before any payout.</p>
@@ -885,6 +894,31 @@
 
         function applyReportingPayload(d) {
             d = d && typeof d === 'object' ? d : {};
+            if (d.operationalMonitoring) {
+                const check = d.operationalMonitoring;
+                const checkedAt = new Date(check.checkedAt).toLocaleString('en-PH', { timeZone: @json(config('app.timezone')) });
+                const summaries = { healthy: 'No overdue processing or aged gateway cases detected.', attention: 'Administrator review is required.', unverified: 'Processor history is not yet available.' };
+                setText('repOperationalSummary', `${summaries[check.status] || summaries.unverified} Checked ${checkedAt} (${ @json(config('app.timezone')) }).`);
+                const processors = document.getElementById('repOperationalProcessors');
+                processors.replaceChildren();
+                (check.processors || []).forEach((processor) => {
+                    const row = document.createElement('li');
+                    const statuses = { healthy: 'Recent successful run', stale: 'Successful run overdue', failed: 'Last attempt failed', unknown: 'Not yet observed' };
+                    const success = processor.lastSuccessAt ? new Date(processor.lastSuccessAt).toLocaleString('en-PH', { timeZone: @json(config('app.timezone')) }) : 'not recorded';
+                    row.textContent = `${processor.label}: ${statuses[processor.status] || statuses.unknown}. Last success: ${success}.`;
+                    processors.append(row);
+                });
+                const issues = document.getElementById('repOperationalIssues');
+                issues.replaceChildren();
+                (check.issues || []).forEach((issue) => {
+                    const row = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = issue.url;
+                    link.textContent = issue.message;
+                    row.append(link);
+                    issues.append(row);
+                });
+            }
             if (d.period) currentPeriod = d.period;
             if (d.periodValue) currentPeriodValue = d.periodValue;
             if (d.dateFrom) currentDateFrom = d.dateFrom;

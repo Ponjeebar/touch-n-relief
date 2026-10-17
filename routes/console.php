@@ -77,6 +77,9 @@ Schedule::command('appointments:process-no-shows')
 Schedule::command('appointments:complete-expired-sessions')
     ->everyMinute()
     ->withoutOverlapping();
+Schedule::command('operations:check --notify')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
 Schedule::command('clients:archive-inactive')
     ->dailyAt((string) config('touchnrelief.schedules.client_archive_time', '02:15'))
     ->withoutOverlapping();

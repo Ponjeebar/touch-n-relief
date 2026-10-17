@@ -36,6 +36,11 @@ for (const setup of [
         await expect(page.locator('#repGatewayReviewRows')).toContainText('pay_audit_browser_extra');
         await expect(page.locator('#repUnallocatedGatewayAmount')).toContainText('100.00');
         await expect(page.locator('#gateway-reconciliation')).toContainText('excluded');
+        await expect(page.locator('#repOperationalSummary')).toContainText('Administrator review is required');
+        await expect(page.locator('#repOperationalIssues')).toContainText('gateway payment case(s)');
+        await expect(page.locator('#repOperationalIssues a').filter({ hasText: 'gateway payment case(s)' })).toHaveAttribute('href', /date_from=2024-10-19/);
+        const monitoringBounds = await page.locator('#operational-checks').boundingBox();
+        expect(monitoringBounds.x + monitoringBounds.width).toBeLessThanOrEqual(setup.width + 16);
         await expect(page.locator('#bestDay')).toHaveText('No positive sales');
         await expect(page.locator('#bestService')).toHaveText('No positive sales');
         const reviewBounds = await page.locator('#gateway-reconciliation').boundingBox();

@@ -12,6 +12,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\BookingSlotService;
 use App\Services\PaymentLedgerService;
+use App\Services\UserActivityService;
 use Carbon\Carbon;
 use Database\Seeders\SiteSettingsSeeder;
 use Database\Seeders\SpaServiceSeeder;
@@ -49,6 +50,10 @@ class SystemAuditFollowUpTest extends TestCase
         $this->assertSame($therapist->name, $therapist->fresh()->name);
         $this->assertSame($therapist->name, $booking->fresh()->therapist_name);
         $this->assertTrue(app(BookingSlotService::class)->therapistSlotTaken($therapist->name, now()->toDateString(), '1:00 PM', 60));
+        $this->assertDatabaseCount('transactions', 0);
+        $this->assertDatabaseCount('payment_ledger_entries', 0);
+        $this->assertDatabaseCount('booking_refunds', 0);
+        $this->assertDatabaseMissing('activity_logs', ['action' => 'therapist.updated']);
     }
 
     public function test_therapist_with_appointments_or_history_must_be_retained(): void
@@ -89,6 +94,8 @@ class SystemAuditFollowUpTest extends TestCase
         $slots = app(BookingSlotService::class);
         $labels = $slots->offeredSlotLabelsForServiceOnDate($service->name, now()->toDateString());
         $slot = TimeSlot::where('label', $labels[0])->firstOrFail();
+        $booking = $this->booking();
+        app(PaymentLedgerService::class)->recordInitialPayment($booking);
         $enabledSlot = TimeSlot::where('label', $labels[1])->firstOrFail();
         DB::table('service_slot_date_overrides')->insert(['service_name' => $service->name, 'slot_date' => now()->toDateString(), 'time_slot_id' => $slot->id, 'is_enabled' => false, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('service_slot_date_overrides')->insert(['service_name' => $service->name, 'slot_date' => now()->toDateString(), 'time_slot_id' => $enabledSlot->id, 'is_enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
@@ -98,10 +105,16 @@ class SystemAuditFollowUpTest extends TestCase
         $this->assertNotContains($slot->label, $slots->offeredSlotLabelsForServiceOnDate($service->fresh()->name, now()->toDateString()));
         $this->assertDatabaseHas('service_slot_date_overrides', ['service_name' => $service->fresh()->name, 'time_slot_id' => $slot->id, 'is_enabled' => false]);
         $this->assertContains($enabledSlot->label, $slots->offeredSlotLabelsForServiceOnDate($service->fresh()->name, now()->toDateString()));
+        $this->assertSame($service->fresh()->name, $booking->fresh()->service_name);
+        $this->assertSame(100.0, (float) $booking->fresh()->payment_amount);
+        $this->assertSame('paid', $booking->fresh()->payment_status);
+        $this->assertSame(1, PaymentLedgerEntry::where('spa_booking_id', $booking->id)->count());
+        $this->assertDatabaseCount('transactions', 0);
     }
 
     public function test_scheduled_completion_updates_history_and_report_hours_once_without_polling(): void
     {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
         $this->therapist();
         $booking = $this->booking(['session_status' => 'in_session', 'session_started_at' => now()->subHour(), 'time_slot' => '12:00 PM']);
         app(PaymentLedgerService::class)->recordInitialPayment($booking);
@@ -110,7 +123,12 @@ class SystemAuditFollowUpTest extends TestCase
         $this->assertSame('completed', $booking->fresh()->session_status);
         $this->assertSame(1, Transaction::where('spa_booking_id', $booking->id)->count());
         $this->assertSame(1, PaymentLedgerEntry::where('spa_booking_id', $booking->id)->count());
-        $this->actingAs(User::factory()->create(['role' => User::ROLE_ADMIN]))
+        $this->assertDatabaseCount('booking_refunds', 0);
+        $this->assertSame(1, DB::table('staff_notifications')->where('staff_user_id', $admin->id)->where('spa_booking_id', $booking->id)->where('title', 'Session completed')->count());
+        $history = app(UserActivityService::class)->transactionsForUser($booking->user);
+        $this->assertCount(1, $history);
+        $this->assertSame('completed', $history[0]['session_status']);
+        $this->actingAs($admin)
             ->getJson(route('reporting.data', ['period' => 'monthly']))->assertOk()->assertJsonPath('hoursValue', 1)->assertJsonPath('primaryAmount', 100);
         $this->assertTrue(collect(Schedule::events())->contains(fn ($event) => str_contains((string) ($event->command ?? ''), 'appointments:complete-expired-sessions')));
     }

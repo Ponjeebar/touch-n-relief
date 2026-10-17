@@ -804,6 +804,23 @@ html[data-theme="dark"] .rep-period-options button[aria-pressed="true"] {
     line-height: 1.7;
 }
 
+#operational-checks ul {
+    padding-left: 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+#operational-checks a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+html[data-theme="dark"] #operational-checks ul {
+    color: #edf4f7;
+}
+
 html[data-theme="dark"] .rep-financial-strip,
 html[data-theme="dark"] .rep-data-panel,
 html[data-theme="dark"] .rep-calculation-notes {

@@ -73,6 +73,7 @@ class GatewayPaymentReconciliationTest extends TestCase
 
     public function test_membership_extra_payment_does_not_extend_membership_again(): void
     {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
         $user = User::factory()->create(['role' => User::ROLE_USER]);
         $plan = MembershipPlan::create(['name' => 'Audit Membership', 'price_amount' => 100, 'validity_days' => 30, 'is_active' => true, 'description' => 'Membership test fixture']);
         $purchase = MembershipPurchase::create(['user_id' => $user->id, 'membership_plan_id' => $plan->id, 'plan_name' => $plan->name, 'validity_days' => 30, 'amount' => 100, 'payment_method' => 'paymongo', 'payment_status' => 'pending']);
@@ -86,6 +87,10 @@ class GatewayPaymentReconciliationTest extends TestCase
         $this->assertSame('pay_membership_original', $purchase->fresh()->payment_transaction_id);
         $this->assertDatabaseCount('gateway_payment_reconciliations', 1);
         $this->assertDatabaseHas('gateway_payment_reconciliations', ['membership_purchase_id' => $purchase->id, 'gateway_payment_id' => 'pay_membership_extra', 'amount' => 100]);
+        $this->assertSame(1, DB::table('staff_notifications')->where('staff_user_id', $admin->id)->where('title', 'Extra payment requires review')->count());
+        $this->actingAs($admin)->getJson(route('reporting.data', ['period' => 'monthly']))
+            ->assertOk()->assertJsonPath('primaryAmount', 100)->assertJsonPath('unallocatedGatewayAmount', 100);
+        $this->assertDatabaseCount('booking_refunds', 0);
     }
 
     public function test_unknown_amounts_and_contradictory_replays_never_replace_original_evidence(): void

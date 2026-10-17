@@ -19,6 +19,7 @@ use App\Services\ActivityLogger;
 use App\Services\BackupRecoveryService;
 use App\Services\BookingSlotService;
 use App\Services\NotificationFeedService;
+use App\Services\OperationalMonitoringService;
 use App\Services\PaymentLedgerService;
 use App\Services\ReportingPdfChartService;
 use App\Services\ReportingSpreadsheetService;
@@ -2330,6 +2331,7 @@ class DashboardController extends Controller
         $period = $this->normalizeReportingPeriod($request->query('period', 'monthly'));
         $periodValue = $request->query('period_value');
         $payload = $this->reportingPayload($period, $periodValue, $request->query('date_from'), $request->query('date_to'));
+        $payload['operationalMonitoring'] = app(OperationalMonitoringService::class)->snapshot();
 
         return view('reporting.index', array_merge($payload, [
             'reportingBootstrap' => $payload,
@@ -2341,7 +2343,10 @@ class DashboardController extends Controller
         $period = $this->normalizeReportingPeriod($request->query('period', 'monthly'));
         $periodValue = $request->query('period_value');
 
-        return response()->json($this->reportingPayload($period, $periodValue, $request->query('date_from'), $request->query('date_to')));
+        $payload = $this->reportingPayload($period, $periodValue, $request->query('date_from'), $request->query('date_to'));
+        $payload['operationalMonitoring'] = app(OperationalMonitoringService::class)->snapshot();
+
+        return response()->json($payload);
     }
 
     public function reportingExport(Request $request, ReportingSpreadsheetService $spreadsheet): StreamedResponse
