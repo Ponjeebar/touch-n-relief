@@ -14,9 +14,6 @@
         var nextMode = isDark ? 'light' : 'dark';
         var label = 'Switch to ' + nextMode + ' mode';
 
-        if (!button.hasAttribute('data-landing-theme-toggle')) {
-            button.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-        }
         button.setAttribute('aria-label', label);
         button.setAttribute('title', label);
         var text = button.querySelector('[data-landing-theme-label]');
@@ -24,7 +21,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        var buttons = document.querySelectorAll('#tnr-landing-theme-toggle, [data-landing-theme-toggle]');
+        var buttons = document.querySelectorAll('[data-landing-theme-toggle]');
         if (!buttons.length) return;
 
         buttons.forEach(function (button) {

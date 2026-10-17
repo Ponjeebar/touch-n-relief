@@ -1,15 +1,14 @@
 import { expect, test } from '@playwright/test';
 
-test('guests can change theme from the header', async ({ page }) => {
-    await page.goto('/');
-    const toggle = page.locator('#tnr-landing-theme-toggle');
-    await expect(toggle).toBeVisible();
-    await toggle.click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await expect(toggle).toHaveAttribute('aria-label', 'Switch to light mode');
-    await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-});
+for (const width of [390, 1366]) {
+    test(`guests have no theme control at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto('/');
+        await expect(page.locator('#tnr-landing-theme-toggle, [data-landing-theme-toggle]')).toHaveCount(0);
+        if (width <= 900) await page.getByRole('button', { name: 'Open navigation menu', exact: true }).click();
+        await expect(page.locator('.nav-links').getByRole('link', { name: 'Log In', exact: true })).toBeVisible();
+    });
+}
 
 for (const width of [390, 768, 1366]) {
     test(`customer changes theme through account dropdown at ${width}px`, async ({ page }, testInfo) => {
