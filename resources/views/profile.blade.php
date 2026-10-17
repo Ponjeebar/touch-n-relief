@@ -974,15 +974,15 @@
                             $wellnessSex = old('sex', $user->sex);
                             $wellnessTherapist = old('therapist_gender_preference', $user->therapist_gender_preference);
                             $wellnessPressure = old('pressure_preference', $user->pressure_preference);
-                            $wellnessPregnant = old('is_pregnant', $user->is_pregnant ? '1' : '0');
+                            $wellnessPregnant = old('is_pregnant', $user->is_pregnant === null ? '' : ($user->is_pregnant ? '1' : '0'));
                         @endphp
                         <section class="profile-section profile-section-in-form profile-wellness" id="wellness-section" aria-labelledby="profile-wellness-title">
                             <div class="profile-section-head">
                                 <h2 id="profile-wellness-title">Wellness preferences</h2>
-                                @if ($user->profile_completed_at)
+                                @if ($user->therapist_gender_preference && $user->pressure_preference && ($user->sex !== \App\Models\User::SEX_FEMALE || $user->is_pregnant !== null))
                                     <span class="profile-wellness-badge">
                                         <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
-                                        Completed {{ $user->profile_completed_at->format('M d, Y') }}
+                                        Preferences provided
                                     </span>
                                 @endif
                             <div class="profile-local-actions" id="wellness-actions">

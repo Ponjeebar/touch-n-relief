@@ -7,14 +7,14 @@
     $onboardingStepCount = $showPregnancyStep ? 3 : 2;
 @endphp
 @once
-    <link rel="stylesheet" href="{{ asset('css/registration-onboarding.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/registration-onboarding.css') }}?v={{ filemtime(public_path('css/registration-onboarding.css')) }}">
 @endonce
 <div class="ob-modal" id="tnr-registration-onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="ob-modal-title">
     <div class="ob-modal-backdrop" aria-hidden="true"></div>
     <div class="ob-dialog" role="document">
         <div class="ob-header">
             <h2 class="ob-title" id="ob-modal-title">Complete your wellness profile</h2>
-            <p class="ob-subtitle">Help us personalize your massage experience. This only takes a minute.</p>
+            <p class="ob-subtitle">Set your preferences now, or skip and add them later from your profile.</p>
         </div>
 
         <div class="ob-progress" aria-hidden="true">
@@ -79,9 +79,10 @@
 
             <div class="ob-footer">
                 <button type="button" class="ob-btn ob-btn-secondary" id="ob-back-btn" disabled>Back</button>
+                <button type="submit" class="ob-btn ob-btn-secondary ob-skip-btn" name="action" value="skip" id="ob-skip-btn">Skip for now</button>
                 <button type="button" class="ob-btn ob-btn-primary" id="ob-next-btn">Next</button>
             </div>
         </form>
     </div>
 </div>
-<script src="{{ asset('js/registration-onboarding.js') }}"></script>
+<script src="{{ asset('js/registration-onboarding.js') }}?v={{ filemtime(public_path('js/registration-onboarding.js')) }}"></script>

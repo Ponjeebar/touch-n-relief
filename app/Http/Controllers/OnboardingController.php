@@ -19,6 +19,21 @@ class OnboardingController extends Controller
             return redirect()->route('landing');
         }
 
+        if ($request->input('action') === 'skip') {
+            if ($user->needsProfileOnboarding()) {
+                $user->forceFill(['profile_completed_at' => now()])->save();
+                ActivityLogger::logCustomerAction(
+                    'profile.onboarding_skipped',
+                    'Skipped the wellness preferences questionnaire',
+                    $user,
+                    request: $request,
+                );
+                $request->session()->put('customer_tour_pending', true);
+            }
+
+            return $this->redirectAfterOnboarding($request);
+        }
+
         $rules = [
             'therapist_gender_preference' => ['required', Rule::in([
                 User::THERAPIST_PREF_MALE,
@@ -57,6 +72,11 @@ class OnboardingController extends Controller
 
         $request->session()->put('customer_tour_pending', true);
 
+        return $this->redirectAfterOnboarding($request);
+    }
+
+    private function redirectAfterOnboarding(Request $request): RedirectResponse
+    {
         $returnTo = trim((string) $request->input('return_to', ''));
         if ($this->isSafeReturnTo($request, $returnTo)) {
             return redirect()->to($returnTo);

@@ -160,6 +160,14 @@
     gap: 12px;
     padding: 14px 22px 18px;
     border-top: 1px solid #e8eef2;
+    flex-wrap: wrap;
+}
+
+.ob-skip-btn { background: transparent; text-decoration: underline; }
+
+@media (max-width: 400px) {
+    .ob-footer { gap: 8px; padding-inline: 14px; }
+    .ob-footer .ob-btn { padding: 10px 12px; min-height: 44px; }
 }
 
 .ob-btn {

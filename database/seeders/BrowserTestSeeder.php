@@ -189,5 +189,20 @@ class BrowserTestSeeder extends Seeder
             app(PaymentLedgerService::class)->recordInitialPayment($booking);
             app(BookingRefundService::class)->processRefund($booking);
         }
+
+        foreach (['skip' => User::SEX_FEMALE, 'complete' => User::SEX_MALE] as $scenario => $sex) {
+            User::factory()->create([
+                'name' => 'Browser Onboarding Customer',
+                'email' => 'onboarding-'.$scenario.'@browser.test',
+                'birthday' => '1995-05-15',
+                'role' => User::ROLE_USER,
+                'sex' => $sex,
+                'password' => $password,
+                'profile_completed_at' => null,
+                'therapist_gender_preference' => null,
+                'pressure_preference' => null,
+                'is_pregnant' => null,
+            ]);
+        }
     }
 }

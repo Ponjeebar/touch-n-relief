@@ -84,6 +84,7 @@
 
     if (form) {
         form.addEventListener('submit', function (e) {
+            if (e.submitter?.id === 'ob-skip-btn') return;
             for (var i = 0; i < steps.length; i++) {
                 if (!validateStep(i)) {
                     e.preventDefault();
