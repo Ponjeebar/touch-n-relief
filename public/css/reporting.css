@@ -134,39 +134,33 @@
     flex-shrink: 0;
 }
 
-.rep-period-divider {
-    width: 1px;
-    align-self: stretch;
-    min-height: 28px;
-    background: #e7eef2;
-    margin: 2px 2px 2px 0;
+.rep-period-dropdown {
+    position: relative;
+    text-align: center;
 }
 
-.rep-period-select {
+@media (max-width: 350px) {
+    #repPeriod {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+    }
+}
+
+.rep-period-dropdown i {
+    font-size: 10px;
+    margin-left: 3px;
+}
+
+.rep-period-dropdown select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
     cursor: pointer;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    padding: 9px 34px 9px 12px;
-    border-radius: 12px;
-    color: #1f2b33;
-    border: 1px solid #eef3f5;
-    background: #fbfdfe;
-    min-width: 132px;
-    width: 132px;
-    flex: 0 0 132px;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%234f6d8c'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
 }
 
-.rep-period-select:hover {
-    border-color: #d6e4e3;
-    background-color: #f4fffb;
-}
-
-.rep-period-select:focus-visible {
+.rep-period-dropdown:focus-within {
     outline: 2px solid #0c9aa6;
     outline-offset: 2px;
 }
@@ -822,10 +816,6 @@ html[data-theme="dark"] .rep-ledger-filters select {
         padding-inline: 10px;
     }
 
-    .rep-period-select {
-        min-width: 132px;
-    }
-
     .topbar > .right {
         gap: 8px;
     }
@@ -966,27 +956,24 @@ html[data-theme="dark"] .rep-ledger-filters select {
     .rep-period {
         grid-column: 1 / -1;
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 6px;
+        grid-template-columns: repeat(5, auto);
+        justify-content: space-between;
+        gap: 2px;
         width: 100%;
-        padding: 8px;
+        padding: 6px 3px;
     }
 
     .rep-period-btn {
         width: 100%;
         min-width: 0;
-        padding: 9px 4px;
+        padding: 9px 1px;
+        font-size: 12px;
         text-align: center;
     }
 
-    .rep-period-divider {
-        display: none;
-    }
-
-    .rep-period-select {
-        grid-column: 1 / -1;
-        width: 100%;
-        min-width: 0;
+    .rep-period-dropdown i {
+        font-size: 8px;
+        margin-left: 1px;
     }
 
     .rep-export-btn,

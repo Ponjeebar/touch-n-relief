@@ -47,13 +47,13 @@
                     </div>
                     <div class="rep-toolbar">
                         <div class="rep-period" id="repPeriod">
-                            <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'daily' ? 'active' : '' }}" data-period="daily" aria-pressed="{{ ($period ?? 'monthly') === 'daily' ? 'true' : 'false' }}">Daily</button>
-                            <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'weekly' ? 'active' : '' }}" data-period="weekly" aria-pressed="{{ ($period ?? 'monthly') === 'weekly' ? 'true' : 'false' }}">Weekly</button>
-                            <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'monthly' ? 'active' : '' }}" data-period="monthly" aria-pressed="{{ ($period ?? 'monthly') === 'monthly' ? 'true' : 'false' }}">Monthly</button>
-                            <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'yearly' ? 'active' : '' }}" data-period="yearly" aria-pressed="{{ ($period ?? 'monthly') === 'yearly' ? 'true' : 'false' }}">Yearly</button>
+                            @foreach (['daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly', 'yearly' => 'Yearly'] as $periodKey => $periodLabel)
+                                <label class="rep-period-btn rep-period-dropdown {{ ($period ?? 'monthly') === $periodKey ? 'active' : '' }}" data-period="{{ $periodKey }}">
+                                    <span aria-hidden="true">{{ $periodLabel }} <i class="bi bi-chevron-down"></i></span>
+                                    <select data-period-select="{{ $periodKey }}" aria-label="{{ $periodLabel }} reporting period"></select>
+                                </label>
+                            @endforeach
                             <button type="button" class="rep-period-btn {{ ($period ?? 'monthly') === 'custom' ? 'active' : '' }}" data-period="custom" aria-pressed="{{ ($period ?? 'monthly') === 'custom' ? 'true' : 'false' }}">Custom</button>
-                            <span class="rep-period-divider" aria-hidden="true"></span>
-                            <select id="repPeriodValue" class="rep-period-select" aria-label="Date selection"></select>
                         </div>
                         <form method="GET" action="{{ route('reporting.index') }}" class="rep-custom-range {{ ($period ?? '') === 'custom' ? 'is-visible' : '' }}" id="repCustomRange">
                             <input type="hidden" name="period" value="custom">
@@ -478,19 +478,21 @@
         }
 
         function populatePeriodSelect(period, selectedValue) {
-            const select = document.getElementById('repPeriodValue');
-            if (!select) return;
-            select.hidden = period === 'custom';
             document.getElementById('repCustomRange')?.classList.toggle('is-visible', period === 'custom');
-            if (period === 'custom') return;
-            const options = periodValueOptions(period);
-            const fallback = defaultPeriodValue(period);
-            const value = selectedValue || fallback;
-            select.innerHTML = options.map(([val, label]) => {
-                const text = period === 'daily' ? dailyOptionLabel(val, label) : label;
-                return `<option value="${val}"${val === value ? ' selected' : ''}>${text}</option>`;
-            }).join('');
-            currentPeriodValue = value;
+            document.querySelectorAll('#repPeriod [data-period-select]').forEach((select) => {
+                const selectPeriod = select.dataset.periodSelect;
+                const active = selectPeriod === period;
+                const value = active ? (selectedValue || defaultPeriodValue(period)) : '';
+                const units = { daily: 'day', weekly: 'week', monthly: 'month', yearly: 'year' };
+                const placeholder = new Option(`Choose a ${units[selectPeriod]}`, '', !active, !active);
+                placeholder.disabled = true;
+                select.replaceChildren(placeholder);
+                periodValueOptions(selectPeriod).forEach(([val, label]) => {
+                    const text = selectPeriod === 'daily' ? dailyOptionLabel(val, label) : label;
+                    select.add(new Option(text, val, val === value, val === value));
+                });
+                if (active) currentPeriodValue = value;
+            });
         }
 
         function buildReportingQuery(period, periodValue, dateFrom = currentDateFrom, dateTo = currentDateTo) {
@@ -650,7 +652,7 @@
             document.querySelectorAll('#repPeriod .rep-period-btn').forEach((btn) => {
                 const on = btn.dataset.period === period;
                 btn.classList.toggle('active', on);
-                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+                if (btn.tagName === 'BUTTON') btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
         }
 
@@ -951,28 +953,25 @@
             }
         }
 
-        document.getElementById('repPeriod')?.addEventListener('click', async (e) => {
-            const btn = e.target.closest('.rep-period-btn');
+        document.getElementById('repPeriod')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('button.rep-period-btn');
             if (!btn) return;
             const period = btn.dataset.period;
             if (!period || period === currentPeriod) return;
 
-            if (period === 'custom') {
-                currentPeriod = 'custom';
-                setPeriodButtonsActive('custom');
-                populatePeriodSelect('custom', '');
-                document.querySelector('#repCustomRange input[name="date_from"]')?.focus();
-                return;
-            }
-
-            const nextValue = defaultPeriodValue(period);
-            await loadReporting(period, nextValue);
+            currentPeriod = 'custom';
+            setPeriodButtonsActive('custom');
+            populatePeriodSelect('custom', '');
+            document.querySelector('#repCustomRange input[name="date_from"]')?.focus();
         });
 
-        document.getElementById('repPeriodValue')?.addEventListener('change', async (e) => {
-            const value = e.target.value;
-            if (!value || value === currentPeriodValue) return;
-            await loadReporting(currentPeriod, value);
+        document.getElementById('repPeriod')?.addEventListener('change', async (e) => {
+            const select = e.target.closest('[data-period-select]');
+            if (!select) return;
+            const period = select.dataset.periodSelect;
+            const value = select.value;
+            if (!value || (period === currentPeriod && value === currentPeriodValue)) return;
+            await loadReporting(period, value);
         });
 
         document.getElementById('repLedgerSearch')?.addEventListener('input', renderLedgerRows);
