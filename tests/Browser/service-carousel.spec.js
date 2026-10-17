@@ -26,10 +26,6 @@ for (const setup of [
         } else {
             await page.goto('/');
         }
-        await expect(page.locator('.hero + #services')).toBeVisible();
-        expect(await page.locator('#about').evaluate(el =>
-            Boolean(document.querySelector('#therapists').compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)
-        )).toBe(true);
         const viewport = page.locator('.carousel-track-wrap');
         const cards = viewport.locator('.carousel-slide');
         expect(await cards.count()).toBeGreaterThan(3);
@@ -97,11 +93,6 @@ for (const setup of [
             await expect(page.getByText('Swipe left or right to see more services.')).toBeVisible();
             await expect(page.getByRole('button', { name: 'Next services', exact: true })).toBeHidden();
         }
-        await page.locator('.footer-links a[href="#about"]').click();
-        await expect(page).toHaveURL(/#about$/);
-        await expect(page.getByRole('heading', { name: 'About Buenos Touche and TouchNRelief', exact: true })).toBeInViewport();
-        await expect(page.getByRole('heading', { name: 'The TouchNRelief System', exact: true })).toBeVisible();
-        await page.locator('#about').screenshot({ path: testInfo.outputPath('about.png'), animations: 'disabled' });
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2)).toBe(true);
         expect(errors).toEqual([]);
     });

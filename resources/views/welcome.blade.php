@@ -86,6 +86,58 @@
         </div>
     </section>
 
+    <section class="intro-card">
+        <div class="container">
+            <div class="card reveal">
+                <h2>Experience the Buenos Touche Difference</h2>
+                <p>From calming ambiance to expert therapists, Buenos Touche delivers a complete wellness experience focused on your comfort and care.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="features container" id="about">
+        <div class="left reveal">
+            <h2>Why Clients Choose Buenos Touche</h2>
+            <p>We combine professional therapy techniques, personalized care, and a soothing environment to support your health and well-being.</p>
+            @php
+                $landing2Files = glob(public_path('images/landing/landing2/*.{jpg,jpeg,png,webp,gif}'), GLOB_BRACE) ?: [];
+                $landing2Slides = collect($landing2Files)
+                    ->map(fn ($p) => str_replace(public_path() . DIRECTORY_SEPARATOR, '', $p))
+                    ->map(fn ($relative) => str_replace('\\', '/', $relative))
+                    ->map(fn ($relative) => asset($relative))
+                    ->values()
+                    ->all();
+            @endphp
+            <div class="feature-carousel" data-feature-carousel>
+                @forelse ($landing2Slides as $i => $src)
+                    <img
+                        src="{{ $src }}"
+                        alt="Buenos Touche ambience {{ $i + 1 }}"
+                        class="feature-slide {{ $i === 0 ? 'active' : '' }}"
+                        loading="{{ $i === 0 ? 'eager' : 'lazy' }}"
+                        decoding="async"
+                    >
+                @empty
+                    <img src="{{ asset('images/login/background.jpg') }}" alt="Spa ambiance">
+                @endforelse
+            </div>
+        </div>
+        <div class="right">
+            <article class="reveal delay-1">
+                <h3>Relaxing Spa Environment</h3>
+                <p>Buenos Touche is thoughtfully designed with calming scents, soft lighting, and quiet spaces that help you unwind instantly.</p>
+            </article>
+            <article class="reveal delay-2">
+                <h3>Licensed Wellness Experts</h3>
+                <p>Our trained therapists deliver safe, attentive, and effective treatments focused on your personal wellness goals.</p>
+            </article>
+            <article class="reveal delay-3">
+                <h3>Personalized Therapy Plans</h3>
+                <p>Every Buenos Touche session is customized to your needs, from deep relief sessions to gentle relaxation care.</p>
+            </article>
+        </div>
+    </section>
+
     <section class="services" id="services">
         <div class="container">
             <h2 class="reveal">Buenos Touche Service Menu</h2>
@@ -308,58 +360,6 @@
         </div>
     </section>
 
-    <section class="intro-card" id="about">
-        <div class="container">
-            <div class="card reveal">
-                <h2>About Buenos Touche and TouchNRelief</h2>
-                <p>Buenos Touche provides the spa services. TouchNRelief supports online appointments and the staff workflows used to manage those services.</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="features container">
-        <div class="left reveal">
-            <h2>Buenos Touche Spa</h2>
-            <p>Buenos Touche offers massage services, including aromatherapy, hot stone massage, and foot reflexology. Explore the service menu for current treatments, prices, and durations.</p>
-            @php
-                $landing2Files = glob(public_path('images/landing/landing2/*.{jpg,jpeg,png,webp,gif}'), GLOB_BRACE) ?: [];
-                $landing2Slides = collect($landing2Files)
-                    ->map(fn ($p) => str_replace(public_path() . DIRECTORY_SEPARATOR, '', $p))
-                    ->map(fn ($relative) => str_replace('\\', '/', $relative))
-                    ->map(fn ($relative) => asset($relative))
-                    ->values()
-                    ->all();
-            @endphp
-            <div class="feature-carousel" data-feature-carousel>
-                @forelse ($landing2Slides as $i => $src)
-                    <img
-                        src="{{ $src }}"
-                        alt="Buenos Touche ambience {{ $i + 1 }}"
-                        class="feature-slide {{ $i === 0 ? 'active' : '' }}"
-                        loading="{{ $i === 0 ? 'eager' : 'lazy' }}"
-                        decoding="async"
-                    >
-                @empty
-                    <img src="{{ asset('images/login/background.jpg') }}" alt="Spa ambiance">
-                @endforelse
-            </div>
-        </div>
-        <div class="right">
-            <article class="reveal delay-1">
-                <h3>The TouchNRelief System</h3>
-                <p>TouchNRelief is the online appointment management system with sales monitoring used by Buenos Touche to organize bookings, therapist schedules, client records, and payments.</p>
-            </article>
-            <article class="reveal delay-2">
-                <h3>For Clients</h3>
-                <p>Clients can browse services, book appointments, make online payments, and view appointment updates through their accounts.</p>
-            </article>
-            <article class="reveal delay-3">
-                <h3>For Administrators and Receptionists</h3>
-                <p>Authorized staff manage appointments, monitor therapists and sessions, maintain client records, and review collections and refunds. Administrators also manage services and system settings.</p>
-            </article>
-        </div>
-    </section>
-
     <footer class="landing-footer" id="contact">
         <div class="container footer-grid">
             <div class="footer-brand">
@@ -373,9 +373,9 @@
             <div>
                 <h4>Quick Links</h4>
                 <ul class="footer-links">
+                    <li><a href="#about">About Us</a></li>
                     <li><a href="#services">Services</a></li>
                     <li><a href="#therapists">Therapists</a></li>
-                    <li><a href="#about">About</a></li>
                     <li><a href="#contact">Contact</a></li>
                     <li><a href="{{ route('login') }}">Login</a></li>
                 </ul>
