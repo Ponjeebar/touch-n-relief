@@ -830,14 +830,14 @@ html[data-theme="dark"] .landing-theme-icon-light {
 }
 
 .intro-card {
-    margin-top: -60px;
+    padding-top: 3rem;
     position: relative;
     z-index: 4;
 }
 
 .intro-card .card {
     background: #a9aa8f;
-    color: #fdfaf2;
+    color: #172e25;
     padding: 2rem;
     border-radius: 4px;
     text-align: center;
