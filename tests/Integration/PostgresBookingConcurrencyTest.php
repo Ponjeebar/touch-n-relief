@@ -65,7 +65,7 @@ class PostgresBookingConcurrencyTest extends TestCase
                 'DB_PASSWORD' => (string) config('database.connections.pgsql.password'),
             ]), static fn (mixed $value): bool => is_scalar($value));
             $processes = [];
-            foreach (User::factory()->count(2)->create() as $user) {
+            foreach (User::factory()->count(2)->create(['role' => User::ROLE_USER]) as $user) {
                 $processes[] = new Process([
                     PHP_BINARY, base_path('tests/Support/postgres-booking-worker.php'), (string) $user->id,
                     implode('|', $names), $date, $barrier, 'automatic',

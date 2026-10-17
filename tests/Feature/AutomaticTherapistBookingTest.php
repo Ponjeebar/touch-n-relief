@@ -52,7 +52,7 @@ class AutomaticTherapistBookingTest extends TestCase
 
     private function busy(string $name, ?User $user = null): SpaBooking
     {
-        $user ??= User::factory()->create();
+        $user ??= User::factory()->create(['role' => User::ROLE_USER]);
 
         return SpaBooking::query()->create([
             'user_id' => $user->id, 'client_name' => $user->name, 'service_name' => 'Foot Reflexology',
