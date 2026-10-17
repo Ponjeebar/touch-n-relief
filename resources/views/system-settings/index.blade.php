@@ -113,11 +113,18 @@
                                 <header class="ls-section-head">
                                     <span class="ls-section-icon contact" aria-hidden="true"><i class="bi bi-database-check"></i></span>
                                     <div>
-                                        <h2 class="ls-section-title">Backup retention</h2>
-                                        <p class="ls-section-desc">Controls automatic cleanup of application JSON backups stored in Google Drive.</p>
+                                        <h2 class="ls-section-title">Backup and recovery</h2>
+                                        <p class="ls-section-desc">Download an application recovery export and manage Google Drive backup retention.</p>
                                     </div>
                                 </header>
                                 <div class="ls-fields system-settings-fields">
+                                    <div>
+                                        <a href="{{ route('reporting.backup') }}" class="ls-btn ls-btn-primary" id="systemBackupLink" data-page-transition="off" aria-describedby="systemBackupHelp">
+                                            <i class="bi bi-database-down" aria-hidden="true"></i>
+                                            Download recovery export
+                                        </a>
+                                        <p class="ls-field-help" id="systemBackupHelp">Downloads application records as JSON, not a PostgreSQL database dump. The file contains sensitive customer and financial data; store it securely. Downloading does not save changes to these settings.</p>
+                                    </div>
                                     @include('system-settings.partials.number-field', ['name' => 'backup_retention_days', 'label' => 'Keep application JSON backups for', 'unit' => 'days', 'min' => 1, 'max' => 365, 'help' => 'Application JSON backups older than this are removed only after a successful Google Drive upload. PostgreSQL dump retention is controlled in GitHub Actions by POSTGRES_DRIVE_BACKUP_RETENTION_DAYS.'])
                                 </div>
                             </article>

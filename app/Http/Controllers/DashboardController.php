@@ -2411,7 +2411,7 @@ class DashboardController extends Controller
         } catch (\Throwable $exception) {
             report($exception);
 
-            return redirect()->route('reporting.index')->with('error', 'The backup could not be created. Please try again or contact the administrator.');
+            return redirect()->route('system-settings.edit')->with('error', 'The backup could not be created. Please try again or contact the administrator.');
         }
 
         $downloadName = $recovery->filename();

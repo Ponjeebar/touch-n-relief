@@ -21,9 +21,33 @@ class BackupRecoveryTest extends TestCase
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
         $this->actingAs($admin)->get(route('reporting.backup'))
-            ->assertRedirect(route('reporting.index'))
+            ->assertRedirect(route('system-settings.edit'))
             ->assertSessionHas('error', 'The backup could not be created. Please try again or contact the administrator.');
 
+        $this->assertDatabaseMissing('activity_logs', ['action' => 'report.backup']);
+    }
+
+    public function test_recovery_export_is_located_in_settings_and_remains_admin_only(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $this->actingAs($admin)->get(route('system-settings.edit'))
+            ->assertOk()
+            ->assertSee('Backup and recovery')
+            ->assertSee('id="systemBackupLink"', false)
+            ->assertSee(route('reporting.backup'));
+        $this->get(route('reporting.index'))->assertOk()->assertDontSee('id="repBackupLink"', false);
+
+        foreach ([User::ROLE_RECEPTIONIST, User::ROLE_USER] as $role) {
+            $this->actingAs(User::factory()->create(['role' => $role]));
+            foreach (['system-settings.edit', 'reporting.backup'] as $route) {
+                $response = $this->get(route($route));
+                if ($role === User::ROLE_RECEPTIONIST) {
+                    $response->assertRedirect(route('receptionist.dashboard'));
+                } else {
+                    $response->assertForbidden();
+                }
+            }
+        }
         $this->assertDatabaseMissing('activity_logs', ['action' => 'report.backup']);
     }
 

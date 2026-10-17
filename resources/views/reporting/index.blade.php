@@ -69,12 +69,6 @@
                             <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
                             <span>Generate PDF</span>
                         </a>
-                        @if (auth()->user()->isAdmin())
-                            <a href="{{ route('reporting.backup') }}" class="rep-backup-btn" id="repBackupLink" data-page-transition="off" title="Download a sensitive recovery export. Store it securely.">
-                                <i class="bi bi-database-down" aria-hidden="true"></i>
-                                <span>Recovery export</span>
-                            </a>
-                        @endif
                     </div>
                     <div class="right">
                         @include('partials.topbar-notifications')

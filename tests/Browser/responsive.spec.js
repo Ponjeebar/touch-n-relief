@@ -268,7 +268,7 @@ test('report downloads keep the reporting overview visible', async ({ page }) =>
     await login(page, accounts.admin);
     await page.goto('/reporting', { waitUntil: 'networkidle' });
 
-    for (const selector of ['#repExportLink', '#repPdfLink', '#repBackupLink']) {
+    for (const selector of ['#repExportLink', '#repPdfLink']) {
         const [download] = await Promise.all([
             page.waitForEvent('download'),
             page.locator(selector).click(),

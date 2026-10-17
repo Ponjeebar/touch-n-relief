@@ -283,10 +283,10 @@ class RevisionAdjustmentsTest extends TestCase
             ->assertOk()
             ->assertSee('id="repExportLink"', false)
             ->assertSee('id="repPdfLink"', false)
-            ->assertSee('id="repBackupLink"', false)
+            ->assertDontSee('id="repBackupLink"', false)
             ->getContent();
 
-        $this->assertSame(3, substr_count($html, 'data-page-transition="off"'));
+        $this->assertSame(2, substr_count($html, 'data-page-transition="off"'));
     }
 
     public function test_landing_settings_save_and_render_social_links(): void
