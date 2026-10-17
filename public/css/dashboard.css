@@ -446,48 +446,6 @@ body {
     display: inline-flex;
 }
 
-.topbar-settings {
-    position: relative;
-    display: inline-flex;
-}
-
-.settings-dropdown {
-    position: absolute;
-    top: calc(100% + 10px);
-    right: 0;
-    min-width: 180px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    background: #ffffff;
-    box-shadow: 0 14px 30px rgba(13, 23, 33, 0.14);
-    padding: 8px;
-    z-index: 26;
-}
-
-.settings-dropdown-hidden {
-    display: none;
-}
-
-.settings-dropdown-item {
-    width: 100%;
-    border: none;
-    background: transparent;
-    border-radius: 10px;
-    padding: 8px 10px;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text);
-    cursor: pointer;
-}
-
-.settings-dropdown-item:hover {
-    background: rgba(79, 109, 140, 0.08);
-}
-
 .topbar-notifications .icon-btn {
     position: relative;
 }
@@ -910,10 +868,6 @@ a.profile-dropdown-item {
     margin: 0;
     padding: 10px 16px;
     justify-content: flex-start;
-}
-
-.profile-dropdown .staff-profile-theme-item {
-    display: none;
 }
 
 .profile-dropdown-item-logout {

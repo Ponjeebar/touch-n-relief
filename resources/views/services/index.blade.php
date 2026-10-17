@@ -66,7 +66,6 @@
                                 >
                             </form>
                             @include('partials.topbar-notifications')
-                            @include('partials.topbar-settings')
                         </div>
                         @include('partials.topbar-profile')
                     </div>

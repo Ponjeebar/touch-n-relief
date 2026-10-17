@@ -62,9 +62,6 @@
         var trigger = document.getElementById('tnr-profile-menu-trigger');
         var profileWrap = document.querySelector('[data-tnr-profile-wrap]');
         var profileDropdown = document.getElementById('tnr-profile-dropdown');
-        var settingsTrigger = document.getElementById('tnr-settings-trigger');
-        var settingsWrap = document.querySelector('[data-tnr-settings-wrap]');
-        var settingsDropdown = document.getElementById('tnr-settings-dropdown');
 
         function isDropdownOpen() {
             return profileDropdown && !profileDropdown.classList.contains('profile-dropdown-hidden');
@@ -75,39 +72,6 @@
             profileDropdown.classList.add('profile-dropdown-hidden');
             trigger?.setAttribute('aria-expanded', 'false');
             profileWrap?.classList.remove('is-menu-open');
-        }
-
-        function isSettingsOpen() {
-            return settingsDropdown && !settingsDropdown.classList.contains('settings-dropdown-hidden');
-        }
-
-        function closeSettingsDropdown() {
-            if (!settingsDropdown) return;
-            settingsDropdown.classList.add('settings-dropdown-hidden');
-            settingsDropdown.style.removeProperty('--settings-mobile-top');
-            settingsTrigger?.setAttribute('aria-expanded', 'false');
-            settingsWrap?.classList.remove('is-menu-open');
-        }
-
-        function positionSettingsDropdown() {
-            if (!settingsDropdown || !settingsTrigger || !window.matchMedia('(max-width: 700px)').matches) return;
-            var triggerRect = settingsTrigger.getBoundingClientRect();
-            var desiredTop = triggerRect.bottom + 8;
-            var maximumTop = Math.max(10, window.innerHeight - settingsDropdown.offsetHeight - 10);
-            settingsDropdown.style.setProperty('--settings-mobile-top', Math.min(desiredTop, maximumTop) + 'px');
-        }
-
-        function openSettingsDropdown() {
-            if (!settingsDropdown) return;
-            settingsDropdown.classList.remove('settings-dropdown-hidden');
-            positionSettingsDropdown();
-            settingsTrigger?.setAttribute('aria-expanded', 'true');
-            settingsWrap?.classList.add('is-menu-open');
-        }
-
-        function toggleSettingsDropdown() {
-            if (isSettingsOpen()) closeSettingsDropdown();
-            else openSettingsDropdown();
         }
 
         function openDropdown() {
@@ -135,15 +99,7 @@
                 closeProfileModalQuick();
                 return;
             }
-            closeSettingsDropdown();
             toggleDropdown();
-        });
-
-        settingsTrigger?.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            closeDropdown();
-            toggleSettingsDropdown();
         });
 
         document.querySelectorAll('[data-tnr-theme-toggle]').forEach(function (themeToggle) {
@@ -154,16 +110,9 @@
             });
         });
 
-        window.addEventListener('resize', function () {
-            if (isSettingsOpen()) positionSettingsDropdown();
-        });
-
         document.addEventListener('click', function (e) {
             if (isDropdownOpen() && !e.target.closest('[data-tnr-profile-wrap]')) {
                 closeDropdown();
-            }
-            if (isSettingsOpen() && !e.target.closest('[data-tnr-settings-wrap]')) {
-                closeSettingsDropdown();
             }
         });
 
@@ -172,9 +121,6 @@
             if (isDropdownOpen()) {
                 closeDropdown();
                 return;
-            }
-            if (isSettingsOpen()) {
-                closeSettingsDropdown();
             }
         });
 

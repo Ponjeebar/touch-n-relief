@@ -244,7 +244,6 @@
             step(['a[href*="/client-records"]'], 'Client Records', withExample('Search customer profiles and inspect their appointment and service history.', 'Open a returning client before assisting them to confirm contact details and past services.')),
             step(['.mobile-dashboard-actions'], 'Quick actions', 'On compact screens, these links open the three most common operational pages.'),
             step(['[data-open-dashboard-notifications]', '[data-topbar-notif-sync]'], 'Notifications', 'Review new bookings, payment updates, cancellations, and reschedules.', 'bottom', 'end'),
-            step(['#tnr-settings-trigger'], 'Display settings', 'Switch between light and dark mode.'),
             step(['#tnr-profile-menu-trigger'], 'Account menu', 'Open your profile, change the display theme, replay the page tour, or sign out.', 'bottom', 'end'),
         ]);
     }

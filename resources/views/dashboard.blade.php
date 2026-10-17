@@ -103,7 +103,6 @@
                                     @endforelse
                                 </div>
                             </aside>
-                            @include('partials.topbar-settings')
                         </div>
 
                         @include('partials.topbar-profile')

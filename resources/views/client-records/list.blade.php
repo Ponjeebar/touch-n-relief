@@ -51,7 +51,6 @@
                                 <input id="client-records-search" type="search" placeholder="Search client name..." aria-label="Search client name">
                             </div>
                             @include('partials.topbar-notifications')
-                            @include('partials.topbar-settings')
                         </div>
                         @include('partials.topbar-profile')
                     </div>

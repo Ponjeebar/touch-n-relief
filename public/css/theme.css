@@ -1429,20 +1429,6 @@ html[data-theme="dark"] .search input::placeholder {
     color: var(--placeholder);
 }
 
-html[data-theme="dark"] .settings-dropdown {
-    background: #1e2835;
-    border-color: var(--line);
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
-}
-
-html[data-theme="dark"] .settings-dropdown-item {
-    color: var(--text);
-}
-
-html[data-theme="dark"] .settings-dropdown-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-}
-
 html[data-theme="dark"] .dashboard-notifications {
     background: #1e2835;
     border-color: var(--line);

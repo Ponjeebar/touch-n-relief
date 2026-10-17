@@ -55,9 +55,6 @@
         overflow-y: auto;
         overscroll-behavior: contain;
     }
-    .topbar .profile-dropdown .staff-profile-theme-item,
-    .staff-mobile-header-actions .profile-dropdown .staff-profile-theme-item { display: flex; }
-    .topbar-settings { display: none; }
     .sidebar {
         position: relative;
         z-index: 100;
@@ -76,29 +73,13 @@
         display: flex;
         align-items: center;
     }
-    .staff-mobile-header-actions .search,
-    .staff-mobile-header-actions .topbar-settings { display: none; }
+    .staff-mobile-header-actions .search { display: none; }
     .staff-mobile-header-actions .icon-btn {
         border-color: rgba(255, 255, 255, .45);
         background: rgba(255, 255, 255, .12);
         color: #fff;
     }
     .staff-mobile-header-actions .profile-menu-trigger:hover { background: rgba(255, 255, 255, .12); }
-
-    .topbar-settings .settings-dropdown {
-        position: fixed;
-        inset: var(--settings-mobile-top, 140px) 10px auto;
-        width: auto;
-        min-width: 0;
-        max-width: none;
-        z-index: 1202;
-        padding: 8px;
-    }
-    .topbar-settings .settings-dropdown-item {
-        min-height: 44px;
-        justify-content: flex-start;
-        font-size: 14px;
-    }
 
     /* Keep notifications inside the phone viewport instead of off the left edge. */
     .dashboard-notifications,

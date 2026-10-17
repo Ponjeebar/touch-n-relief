@@ -52,7 +52,6 @@
                     <div class="right">
                         <div class="actions" aria-label="Client record actions">
                             @include('partials.topbar-notifications')
-                            @include('partials.topbar-settings')
                         </div>
                         @include('partials.topbar-profile')
                     </div>

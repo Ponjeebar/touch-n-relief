@@ -46,7 +46,6 @@
                     </div>
                     <div class="right tt-hero-actions">
                         @include('partials.topbar-notifications')
-                        @include('partials.topbar-settings')
                         @include('partials.topbar-profile')
                     </div>
                 </header>

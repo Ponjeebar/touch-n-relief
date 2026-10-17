@@ -63,7 +63,7 @@
             </button>
         @endif
         @if ($u->isAdmin() || $u->isReceptionist())
-            <button type="button" class="profile-dropdown-item staff-profile-theme-item mp-theme-row" id="tnr-profile-theme-toggle" data-tnr-theme-toggle role="menuitem" aria-checked="false">
+            <button type="button" class="profile-dropdown-item mp-theme-row" id="tnr-profile-theme-toggle" data-tnr-theme-toggle role="menuitemcheckbox" aria-checked="false">
                 <span class="profile-dropdown-icon mp-theme-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
                 <span>Dark mode</span>
             </button>

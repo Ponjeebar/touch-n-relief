@@ -44,7 +44,6 @@
                     </div>
                     <div class="right">
                         @include('partials.topbar-notifications')
-                        @include('partials.topbar-settings')
                         @include('partials.topbar-profile')
                     </div>
                 </div>
