@@ -81,7 +81,7 @@
                 $bookingHasService = collect($services)->contains(
                     fn ($service) => ($service['name'] ?? '') === $bookingInitialService
                 );
-                $bookingHasTherapist = collect($therapists)->contains(
+                $bookingHasTherapist = $bookingInitialTherapist === \App\Services\BookingSlotService::ANY_THERAPIST || collect($therapists)->contains(
                     fn ($therapist) => ($therapist['name'] ?? '') === $bookingInitialTherapist
                         && (blank($bookingInitialDate) || ! empty($therapist['is_bookable']))
                 );
@@ -226,6 +226,13 @@
                     <p class="booking-panel-lock-hint" id="therapist-lock-hint">Select a service first to choose a therapist.</p>
                     <p class="booking-therapist-hint" id="booking-therapist-hint" hidden></p>
                     <div class="therapist-list" id="therapist-list">
+                        <label class="therapist-item therapist-item-any" data-therapist-bookable="1">
+                            <input type="radio" name="therapist" value="{{ \App\Services\BookingSlotService::ANY_THERAPIST }}" form="booking-form" @checked($bookingInitialTherapist === \App\Services\BookingSlotService::ANY_THERAPIST) @disabled(! $bookingTherapistEnabled)>
+                            <span class="therapist-item-main">
+                                <span class="therapist-item-name">Any available therapist</span>
+                                <span class="therapist-item-role">No preference. We will assign an available therapist for your date and time when you reserve.</span>
+                            </span>
+                        </label>
                         @foreach ($therapists as $therapist)
                             @php
                                 $therapistActive = (old('therapist', $selectedTherapistName) ?? '') === $therapist['name'];
@@ -497,6 +504,7 @@
             var therapistScheduleDateKey = '';
             var serviceInputs = Array.from(document.querySelectorAll('input[name="service"]'));
             var therapistInputs = Array.from(document.querySelectorAll('input[name="therapist"]'));
+            var anyTherapist = @json(\App\Services\BookingSlotService::ANY_THERAPIST);
             var hiddenSlot = document.getElementById('time_slot');
             var slotsWrap = document.getElementById('time-slots');
             var oldSlot = hiddenSlot ? hiddenSlot.value : '';
@@ -941,7 +949,7 @@
                         }
 
                         if (sumService) sumService.textContent = svc;
-                        if (sumTherapist) sumTherapist.textContent = therapist;
+                        if (sumTherapist) sumTherapist.textContent = therapist === anyTherapist ? 'Any available therapist (assigned when you reserve)' : therapist;
                         if (sumDate) sumDate.textContent = formatDate(date);
                         if (sumTime) sumTime.textContent = time;
                         if (sumNotes) {
@@ -1026,6 +1034,9 @@
                     if (!service) {
                         hint.hidden = true;
                         hint.textContent = '';
+                    } else if (selected?.value === anyTherapist) {
+                        hint.hidden = false;
+                        hint.textContent = 'An available therapist will be assigned for your chosen date and time when you reserve.';
                     } else if (anyMatch) {
                         hint.hidden = false;
                         hint.textContent = 'Highlighted therapists specialize in ' + service + '. We recommend booking with one of them.';
@@ -1053,7 +1064,7 @@
                     therapistInputs.forEach(function (input) {
                         var item = input.closest('.therapist-item');
                         var unavailable = item && (item.classList.contains('is-unavailable') || item.dataset.therapistBookable === '0');
-                        if (!unavailable) {
+                        if (!unavailable && input.value !== anyTherapist) {
                             input.checked = false;
                         }
                     });

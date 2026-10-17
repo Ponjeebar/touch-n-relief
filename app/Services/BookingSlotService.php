@@ -15,11 +15,36 @@ use Illuminate\Validation\ValidationException;
 
 class BookingSlotService
 {
+    public const ANY_THERAPIST = '__any_available__';
+
     public const IMMEDIATE_WALK_IN_BACKDATE_MINUTES = 5;
 
     private ?SpaServiceCatalog $catalog = null;
 
     private bool $sessionsSynced = false;
+
+    /** Select and lock a therapist inside the transaction that creates the booking. */
+    public function assignAvailableTherapist(int $userId, string $serviceName, string $bookingDate, string $timeSlot, int $durationMinutes, array $therapistNames, int $minimumLeadMinutes = 0): string
+    {
+        $candidates = array_values(array_unique($therapistNames));
+        // Keep lock order consistent across concurrent automatic assignments.
+        sort($candidates, SORT_STRING);
+        $lastError = null;
+        foreach ($candidates as $name) {
+            $this->lockTherapistBookingsForUpdate($name, $bookingDate);
+            try {
+                $this->assertBookingAvailable($userId, $serviceName, $name, $bookingDate, $timeSlot, $durationMinutes, therapistNames: $therapistNames, minimumLeadMinutes: $minimumLeadMinutes);
+
+                return $name;
+            } catch (ValidationException $exception) {
+                $lastError = $exception;
+            }
+        }
+
+        throw $lastError ?? ValidationException::withMessages([
+            'therapist' => 'No therapist is available for this appointment. Choose another date or time.',
+        ]);
+    }
 
     private function catalog(): SpaServiceCatalog
     {

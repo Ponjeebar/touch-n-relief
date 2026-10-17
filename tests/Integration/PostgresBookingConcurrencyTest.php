@@ -42,6 +42,56 @@ class PostgresBookingConcurrencyTest extends TestCase
         ]);
     }
 
+    public function test_automatic_assignment_respects_capacity_under_concurrent_requests(): void
+    {
+        foreach ([1, 2] as $capacity) {
+            $names = [];
+            for ($index = 0; $index < $capacity; $index++) {
+                $name = "Auto Therapist {$capacity} {$index}";
+                Therapist::query()->create([
+                    'therapist_code' => "PG-AUTO-{$capacity}-{$index}", 'name' => $name,
+                    'status' => 'available', 'is_active' => true, 'work_on_off_day' => true,
+                ]);
+                $names[] = $name;
+            }
+            $date = now()->addDays(3)->toDateString();
+            $barrier = storage_path('framework/testing/auto-booking-'.bin2hex(random_bytes(6)));
+            $environment = array_filter(array_merge($_SERVER, $_ENV, [
+                'DB_CONNECTION' => 'pgsql', 'DB_URL' => '',
+                'DB_HOST' => (string) config('database.connections.pgsql.host'),
+                'DB_PORT' => (string) config('database.connections.pgsql.port'),
+                'DB_DATABASE' => (string) config('database.connections.pgsql.database'),
+                'DB_USERNAME' => (string) config('database.connections.pgsql.username'),
+                'DB_PASSWORD' => (string) config('database.connections.pgsql.password'),
+            ]), static fn (mixed $value): bool => is_scalar($value));
+            $processes = [];
+            foreach (User::factory()->count(2)->create() as $user) {
+                $processes[] = new Process([
+                    PHP_BINARY, base_path('tests/Support/postgres-booking-worker.php'), (string) $user->id,
+                    implode('|', $names), $date, $barrier, 'automatic',
+                ], base_path(), $environment, null, 30);
+            }
+            try {
+                foreach ($processes as $process) {
+                    $process->start();
+                }
+                usleep(250000);
+                touch($barrier);
+                foreach ($processes as $process) {
+                    $process->wait();
+                }
+                $results = collect($processes)->map(fn (Process $process): string => trim($process->getOutput()))->sort()->values()->all();
+                $this->assertSame($capacity === 1 ? ['created', 'unavailable'] : ['created', 'created'], $results,
+                    collect($processes)->map(fn (Process $process): string => $process->getErrorOutput())->implode("\n"));
+                $bookings = SpaBooking::query()->whereIn('therapist_name', $names)->get();
+                $this->assertCount($capacity, $bookings);
+                $this->assertCount($capacity, $bookings->pluck('therapist_name')->unique());
+            } finally {
+                @unlink($barrier);
+            }
+        }
+    }
+
     public function test_two_simultaneous_requests_cannot_claim_the_same_therapist_slot(): void
     {
         $firstUser = User::factory()->create();

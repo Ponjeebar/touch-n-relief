@@ -13,6 +13,7 @@ $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
 [$script, $userId, $therapistName, $bookingDate, $barrier] = $argv;
+$automatic = ($argv[5] ?? '') === 'automatic';
 $deadline = microtime(true) + 10;
 while (! file_exists($barrier) && microtime(true) < $deadline) {
     usleep(10000);
@@ -24,8 +25,12 @@ if (! file_exists($barrier)) {
 }
 
 try {
-    DB::transaction(function () use ($userId, $therapistName, $bookingDate): void {
+    DB::transaction(function () use ($userId, $therapistName, $bookingDate, $automatic): void {
         $slots = app(BookingSlotService::class);
+        if ($automatic) {
+            User::query()->whereKey((int) $userId)->lockForUpdate()->firstOrFail();
+            $therapistName = $slots->assignAvailableTherapist((int) $userId, 'Foot Reflexology', $bookingDate, '10:00 AM', 45, explode('|', $therapistName));
+        }
         $slots->assertBookingAvailable(
             (int) $userId,
             'Foot Reflexology',

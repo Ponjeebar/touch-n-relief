@@ -310,7 +310,7 @@ test('service then therapist then date and time stays consistent when choices ch
         await expect(page.locator('[data-booking-progress] span')).toHaveText(['Service', 'Therapist', 'Date and time']);
         await page.locator('.service-item').first().click();
         await expect(grid).toHaveAttribute('data-mobile-step', 'therapist');
-        const therapist = page.locator('.therapist-item:not(.is-unavailable)').first();
+        const therapist = page.locator('.therapist-item:not(.is-unavailable):not(.therapist-item-any)').first();
         await therapist.click();
         const chosen = await page.locator('input[name="therapist"]:checked').inputValue();
         await expect(grid).toHaveAttribute('data-mobile-step', 'schedule');
@@ -340,11 +340,47 @@ test('service then therapist then date and time stays consistent when choices ch
         await page.locator('.service-item').nth(1).click();
         await expect(page.locator('input[name="therapist"]:checked')).toHaveCount(0);
         await expect(page.locator('#time_slot')).toHaveValue('');
-        await page.locator('.therapist-item:not(.is-unavailable)').first().click();
+        await page.locator('.therapist-item:not(.is-unavailable):not(.therapist-item-any)').first().click();
         await expect(grid).toHaveAttribute('data-mobile-step', 'schedule');
         await expect(date).toHaveValue('');
         await expect(page.locator('.booking-policy-note')).toContainText('at least 30 minutes');
         await page.screenshot({ path: testInfo.outputPath('booking-' + setup.width + '.png') });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
+    }
+});
+
+test('any available therapist reaches payment review without choosing a person', async ({ page }, testInfo) => {
+    await login(page, accounts.customer);
+    for (const setup of [
+        { width: 390, height: 844, theme: 'dark' },
+        { width: 768, height: 1024, theme: 'light' },
+        { width: 1366, height: 768, theme: 'light' },
+    ]) {
+        await page.setViewportSize(setup);
+        await page.evaluate(theme => localStorage.setItem('tnr-theme', theme), setup.theme);
+        await page.goto('/booking');
+        await dismissOptionalTour(page);
+        await page.locator('.service-item').first().click();
+        const option = page.locator('.therapist-item-any');
+        await expect(option).toContainText('Any available therapist');
+        await option.click();
+        await expect(page.locator('#booking-grid')).toHaveAttribute('data-mobile-step', 'schedule');
+        const date = page.locator('#booking_date');
+        const monday = await date.evaluate(input => {
+            const next = new Date(input.min + 'T12:00:00');
+            next.setDate(next.getDate() + ((8 - next.getDay()) % 7 || 7));
+            return next.toISOString().slice(0, 10);
+        });
+        await date.fill(monday);
+        await expect(page.locator('#time-slots .time-slot:not([disabled])').first()).toBeVisible();
+        await expect(option.locator('input')).toBeChecked();
+        await page.locator('#time-slots .time-slot:not([disabled])').first().click();
+        await page.locator('.booking-submit').click();
+        await expect(page.locator('#bkConfirmModal')).not.toHaveClass(/bk-hidden/);
+        await expect(page.locator('#bkSumTherapist')).toHaveText('Any available therapist (assigned when you reserve)');
+        await expect(page.locator('#bkSumDate')).not.toBeEmpty();
+        await expect(page.locator('#bkSumTime')).not.toBeEmpty();
+        await page.screenshot({ path: testInfo.outputPath('any-therapist-' + setup.width + '.png') });
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
     }
 });
@@ -355,7 +391,7 @@ test('date selection rejects an unavailable therapist and ignores an older sched
     await page.goto('/booking');
     await dismissOptionalTour(page);
     await page.locator('.service-item').first().click();
-    const candidate = page.locator('.therapist-item').first();
+    const candidate = page.locator('.therapist-item:not(.therapist-item-any)').first();
     await candidate.click();
     const name = await page.locator('input[name="therapist"]:checked').inputValue();
     const date = page.locator('#booking_date');

@@ -195,7 +195,7 @@ class BookingController extends Controller
 
         $validated = $request->validateWithBag('booking', [
             'service' => ['required', 'string', 'in:'.implode(',', $serviceNames)],
-            'therapist' => ['required', 'string', 'in:'.implode(',', $therapistNames)],
+            'therapist' => ['required', 'string', Rule::in([...$therapistNames, BookingSlotService::ANY_THERAPIST])],
             'booking_date' => ['required', 'date', 'after_or_equal:today'],
             'time_slot' => ['required', 'string', 'max:30', 'in:'.implode(',', $allSlots)],
             'notes' => ['nullable', 'string', 'max:500'],
@@ -224,25 +224,28 @@ class BookingController extends Controller
                 ->withInput(SensitiveInput::safeForFlash($request));
         }
 
-        try {
-            $this->therapistAvailability->assertBookableOnDate(
-                $validated['therapist'],
-                $validated['booking_date'],
-            );
+        if ($validated['therapist'] !== BookingSlotService::ANY_THERAPIST) {
+            try {
+                $this->therapistAvailability->assertBookableOnDate(
+                    $validated['therapist'],
+                    $validated['booking_date'],
+                );
 
-            $this->slots->assertBookingAvailable(
-                $user->id,
-                $validated['service'],
-                $validated['therapist'],
-                $validated['booking_date'],
-                $validated['time_slot'],
-                $durationMinutes,
-                null,
-                $therapistNames,
-                minimumLeadMinutes: $this->customerBookingPolicy->minimumLeadMinutes(),
-            );
-        } catch (ValidationException $e) {
-            return $this->bookingValidationResponse($request, $e, $user, $validated, $durationMinutes);
+                $this->slots->assertBookingAvailable(
+                    $user->id,
+                    $validated['service'],
+                    $validated['therapist'],
+                    $validated['booking_date'],
+                    $validated['time_slot'],
+                    $durationMinutes,
+                    null,
+                    $therapistNames,
+                    minimumLeadMinutes: $this->customerBookingPolicy->minimumLeadMinutes(),
+                );
+            } catch (ValidationException $e) {
+                return $this->bookingValidationResponse($request, $e, $user, $validated, $durationMinutes);
+            }
+
         }
 
         $booking = null;
@@ -251,6 +254,12 @@ class BookingController extends Controller
             DB::transaction(function () use ($validated, $serviceRow, $user, $durationMinutes, $therapistNames, $paymentAmount, &$booking): void {
                 User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
                 $this->customerBookingPolicy->assertMayCreatePaymentHold($user);
+                if ($validated['therapist'] === BookingSlotService::ANY_THERAPIST) {
+                    $validated['therapist'] = $this->slots->assignAvailableTherapist(
+                        $user->id, $validated['service'], $validated['booking_date'], $validated['time_slot'],
+                        $durationMinutes, $therapistNames, $this->customerBookingPolicy->minimumLeadMinutes(),
+                    );
+                }
 
                 $this->slots->assertBookingAvailable(
                     $user->id,
@@ -410,7 +419,7 @@ class BookingController extends Controller
 
         $validated = $request->validate([
             'service' => ['required', 'string', 'in:'.implode(',', $serviceNames)],
-            'therapist' => ['required', 'string', 'in:'.implode(',', $therapistNames)],
+            'therapist' => ['required', 'string', Rule::in([...$therapistNames, BookingSlotService::ANY_THERAPIST])],
             'booking_date' => ['required', 'date', 'after_or_equal:today'],
             'exclude_booking_id' => ['nullable', 'integer', 'exists:spa_bookings,id'],
         ]);
@@ -428,6 +437,21 @@ class BookingController extends Controller
 
         $bookingDate = Carbon::parse($validated['booking_date']);
         $bookableTherapistNames = $this->therapistAvailability->bookableTherapistNamesForDate($bookingDate);
+
+        if ($validated['therapist'] === BookingSlotService::ANY_THERAPIST) {
+            $payload = $this->slots->landingAvailability(
+                $validated['service'], $validated['booking_date'], $user->id, $bookableTherapistNames,
+                app(SpaServiceCatalog::class)->durationMinutesFor($validated['service']), $excludeBookingId,
+                minimumLeadMinutes: $this->customerBookingPolicy->minimumLeadMinutes(),
+            );
+            if ($bookableTherapistNames === []) {
+                $payload['fully_booked_slots'] = $payload['offered_slots'];
+            }
+            $payload['booked_slots'] = [];
+            $payload['therapists'] = $this->therapistAvailability->bookingAvailabilityMapForDate($bookingDate);
+
+            return response()->json($payload);
+        }
 
         $payload = $this->slots->availability(
             $validated['service'],
