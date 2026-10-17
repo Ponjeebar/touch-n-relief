@@ -420,6 +420,32 @@ test('date selection rejects an unavailable therapist and ignores an older sched
     await expect(page.locator('#bkConfirmModal')).toHaveClass(/bk-hidden/);
 });
 
+test('both staff roles can choose any available therapist for walk-ins', async ({ page }) => {
+    for (const role of ['admin', 'receptionist']) {
+        await login(page, accounts[role]);
+        for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1366, height: 768 }]) {
+            await page.setViewportSize(viewport);
+            await page.goto('/appointments');
+            await dismissOptionalTour(page);
+            await page.locator('[data-mobile-add-appointment]:visible, .clients-add-appointment-btn:visible').first().click();
+            await page.locator('[data-pick-client-type="walk_in"]').click();
+            const therapist = page.locator('#add-therapist');
+            await expect(therapist).toHaveValue('');
+            await expect(therapist.locator('option:checked')).toHaveText('Any available therapist');
+            await expect(page.locator('#add-therapist-hint')).toBeVisible();
+            await page.locator('[data-add-booking-mode="immediate"]').click();
+            await expect(therapist).toHaveValue('');
+            await expect(therapist).toBeEnabled();
+            await expect(page.locator('[data-add-payment-type="downpayment"]')).toBeDisabled();
+            await expect(page.locator('[data-add-payment-method="paymongo"]')).toBeDisabled();
+            await expect(page.locator('#add-appointment-save-btn')).toHaveText('Start walk-in now');
+            expect(await page.locator('.add-appointment-modal-content').evaluate(el => el.scrollWidth <= el.clientWidth + 2)).toBe(true);
+            await page.locator('#close-add-appointment-modal').click();
+        }
+        await page.context().clearCookies();
+    }
+});
+
 test('staff immediate walk-in shows the calculated session and enforced payment controls', async ({ page }) => {
     await login(page, accounts.receptionist);
 

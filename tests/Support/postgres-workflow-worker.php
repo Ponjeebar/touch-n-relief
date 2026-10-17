@@ -178,7 +178,7 @@ try {
     } elseif ($action === 'refund-update') {
         app(BookingRefundService::class)->applyPaymongoUpdate('ref_distinct_'.$actor, 'pay_pg_refund', 30, BookingRefundService::STATUS_PROCESSED);
         echo 'accepted';
-    } elseif ($action === 'walk-in') {
+    } elseif (in_array($action, ['walk-in', 'walk-in-auto'], true)) {
         Carbon::setTestNow('2026-10-06 13:00:00');
         $staff = User::where('role', User::ROLE_RECEPTIONIST)->firstOrFail();
         $client = User::findOrFail((int) $actor);
@@ -187,7 +187,7 @@ try {
         $request = Request::create('/appointments', 'POST', [
             'client_type' => 'registered', 'client_user_id' => $client->id,
             'client_name' => $client->name, 'client_email' => $client->email, 'client_phone' => $client->contact_number,
-            'service' => 'Foot Reflexology', 'therapist' => $therapist->name, 'booking_mode' => 'immediate',
+            'service' => 'Foot Reflexology', 'therapist' => $action === 'walk-in-auto' ? '' : $therapist->name, 'booking_mode' => 'immediate',
             'immediate_start_time' => '13:00', 'immediate_confirmed' => '1',
             'payment_method' => 'cash_counter', 'payment_type' => 'full', 'counter_amount_tendered' => 1000,
         ]);

@@ -117,6 +117,9 @@ class StaffAppointmentController extends Controller
                 $duration,
             );
             $payload['all_slots'] = $this->slots->allSlotLabels();
+            if ($bookableTherapists === []) {
+                $payload['fully_booked_slots'] = $payload['offered_slots'];
+            }
             $payload['booked_slots'] = [];
             $payload['therapist_busy_details'] = [];
             $payload['therapist_schedule'] = [
@@ -996,8 +999,10 @@ class StaffAppointmentController extends Controller
         $bookingWhen = Carbon::parse($bookingDate)->startOfDay();
         $bookableOnDate = $this->therapistAvailability->bookableTherapistNamesForDate($bookingWhen);
         $candidates = array_values(array_intersect($therapistNames, $bookableOnDate));
+        sort($candidates, SORT_STRING);
 
         foreach ($candidates as $name) {
+            $this->slots->lockTherapistBookingsForUpdate($name, $bookingDate);
             try {
                 if ($immediate) {
                     $this->slots->assertImmediateWalkInAvailable(

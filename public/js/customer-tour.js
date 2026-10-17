@@ -262,7 +262,7 @@
             'appointments.index': [
                 step(['.topbar .welcome', '.appointments-head'], 'Appointments workspace', 'Create and manage customer and walk-in bookings.'),
                 step(['.metric-grid-appointments'], 'Daily totals', 'See the active-client count and appointments for the selected day.'),
-                step(['.clients-add-appointment-btn', '[data-mobile-add-appointment]'], 'Create an appointment', withExample('Choose a registered client or walk-in, then add the schedule, service, therapist, and payment.', 'For a walk-in customer, collect the required information at the counter before confirming the booking.')),
+                step(['.clients-add-appointment-btn', '[data-mobile-add-appointment]'], 'Create an appointment', withExample('Choose a registered client or walk-in, then add the service, schedule, and payment. Select a therapist or leave Any available therapist selected.', 'For a walk-in customer, collect the required information at the counter before confirming the booking.')),
                 step(['#appointments-search'], 'Search appointments', withExample('Search by client, service, therapist, or appointment detail.', 'Type a client surname to find their booking without scanning the full day.')),
                 step(['.appointments-sub'], 'Filter by status', withExample('Use status totals to isolate bookings requiring a specific action.', 'Payment Pending means the initial checkout still needs verification. Balance Due means the booking is confirmed but still has an amount to collect.')),
                 step(['#appointments-list-container', '.appointments-card'], 'Appointment list', 'Each row contains the client, service, therapist, schedule, payment state, and permitted actions.'),

@@ -419,12 +419,13 @@
 
                     <div class="profile-field">
                         <label for="add-therapist">Therapist</label>
-                        <select id="add-therapist" name="therapist" class="reschedule-select">
-                            <option value="" @selected(old('therapist') === null || old('therapist') === '')>Auto assign</option>
+                        <select id="add-therapist" name="therapist" class="reschedule-select" aria-describedby="add-therapist-hint">
+                            <option value="" @selected(old('therapist') === null || old('therapist') === '')>Any available therapist</option>
                             @foreach ($therapistOptions as $therapistName)
                                 <option value="{{ $therapistName }}" @selected(old('therapist') === $therapistName)>{{ $therapistName }}</option>
                             @endforeach
                         </select>
+                        <p class="field-hint" id="add-therapist-hint">No preference? Leave this selected. An available therapist will be assigned when you save, including when starting a walk-in now.</p>
                     </div>
 
                     <div class="profile-field reschedule-full add-scheduled-field">
@@ -1291,7 +1292,7 @@
             if (addSlotsHint) {
                 addSlotsHint.textContent = therapist
                     ? 'Green slots are open for the selected therapist.'
-                    : 'Green slots have at least one available therapist (auto assign).';
+                    : 'Green slots have at least one available therapist. One will be assigned when you save.';
             }
 
             offered.forEach((slot) => {

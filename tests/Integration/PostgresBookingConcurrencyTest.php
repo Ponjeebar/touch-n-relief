@@ -530,6 +530,21 @@ class PostgresBookingConcurrencyTest extends TestCase
         $this->assertSame(1, DB::table('activity_logs')->where('subject_id', $booking->id)->where('action', 'session.started')->count());
     }
 
+    public function test_competing_auto_assigned_walk_ins_create_one_booking_collection_and_start(): void
+    {
+        User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $clients = [User::factory()->create(['role' => User::ROLE_USER]), User::factory()->create(['role' => User::ROLE_USER])];
+        $therapist = Therapist::create(['therapist_code' => 'PG-WALK-IN', 'name' => 'Walk In Race Therapist', 'status' => 'available', 'work_on_off_day' => true, 'is_active' => true]);
+        Therapist::query()->whereKeyNot($therapist->id)->update(['is_active' => false]);
+        $this->assertSame(['created', 'stale'], $this->runWorkflowWorkers('walk-in-auto', $therapist->id, array_map(fn ($client) => (string) $client->id, $clients)));
+        $booking = SpaBooking::where('therapist_name', $therapist->name)->sole();
+        $this->assertSame('in_session', $booking->session_status);
+        $this->assertSame('13:00', $booking->session_started_at->format('H:i'));
+        $this->assertSame(1, PaymentLedgerEntry::where('spa_booking_id', $booking->id)->count());
+        $this->assertSame((float) $booking->amount, (float) PaymentLedgerEntry::where('spa_booking_id', $booking->id)->sum('amount'));
+        $this->assertSame(1, DB::table('activity_logs')->where('subject_id', $booking->id)->where('action', 'session.started')->count());
+    }
+
     private function gatewayRefundBooking(float $amount): SpaBooking
     {
         $client = User::factory()->create(['role' => User::ROLE_USER]);

@@ -8,6 +8,7 @@ use App\Models\MembershipPurchase;
 use App\Models\PaymentLedgerEntry;
 use App\Models\SpaBooking;
 use App\Models\SpaService;
+use App\Models\Therapist;
 use App\Models\User;
 use App\Services\BookingRefundService;
 use App\Services\BookingSlotService;
@@ -15,6 +16,7 @@ use App\Services\PaymentLedgerService;
 use App\Services\PaymongoService;
 use App\Services\SpaSessionService;
 use App\Services\TherapistAvailabilityService;
+use App\Services\TherapistCatalog;
 use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -1097,6 +1099,66 @@ class StaffAppointmentPaymentTest extends TestCase
         $this->assertDatabaseCount('spa_bookings', 1);
         $this->assertDatabaseCount('payment_ledger_entries', 0);
         Carbon::setTestNow();
+    }
+
+    public function test_both_staff_roles_can_auto_assign_scheduled_and_immediate_new_walk_ins(): void
+    {
+        Carbon::setTestNow('2026-10-05 13:00:00');
+        try {
+            foreach ([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST] as $role) {
+                $staff = User::factory()->create(['role' => $role]);
+                $this->actingAs($staff)->get(route('appointments.index'))->assertOk()
+                    ->assertSee('Any available therapist')->assertSee('add-therapist-hint');
+                foreach ([false, true] as $immediate) {
+                    $shape = User::factory()->make(['role' => User::ROLE_USER, 'name' => 'Walk In Customer']);
+                    $input = $immediate
+                        ? $this->immediateBookingInput($shape, '')
+                        : $this->bookingInput($shape, PaymentMethodCatalog::METHOD_CASH_COUNTER, PaymentMethodCatalog::TYPE_FULL);
+                    $input = array_replace($input, [
+                        'client_type' => 'walk_in', 'client_user_id' => '',
+                        'client_password' => 'WalkInPassword9', 'client_password_confirmation' => 'WalkInPassword9',
+                        'client_birthday' => '2000-01-01', 'client_sex' => 'male',
+                    ]);
+                    $this->actingAs($staff)->post(route('appointments.store'), $input)->assertSessionHasNoErrors();
+                    $booking = SpaBooking::query()->latest('id')->firstOrFail();
+                    $this->assertNotEmpty($booking->therapist_name);
+                    $this->assertSame(SpaBooking::SOURCE_WALK_IN, $booking->booking_source);
+                    $this->assertTrue($booking->isFullyPaid());
+                    $this->assertSame($immediate ? SpaBooking::STATUS_IN_SESSION : SpaBooking::STATUS_CONFIRMED, $booking->session_status);
+                    $this->assertSame($immediate, $booking->session_started_at !== null);
+                    if ($immediate) {
+                        $this->assertSame('13:00', $booking->session_started_at->format('H:i'));
+                    }
+                    $this->assertDatabaseHas('payment_ledger_entries', [
+                        'spa_booking_id' => $booking->id, 'entry_type' => PaymentLedgerEntry::TYPE_INITIAL_PAYMENT,
+                        'amount' => $booking->amount, 'recorded_by' => $staff->id,
+                    ]);
+                    $this->assertDatabaseHas('activity_logs', [
+                        'user_id' => $staff->id, 'action' => 'appointment.created', 'subject_id' => $booking->id,
+                    ]);
+                }
+            }
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_auto_assignment_shows_no_slots_when_no_therapist_works_on_the_date(): void
+    {
+        Carbon::setTestNow('2026-10-05 13:00:00');
+        try {
+            $staff = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+            app(TherapistCatalog::class)->ensureSeeded();
+            Therapist::query()->update(['is_active' => false]);
+            $service = SpaService::query()->where('is_active', true)->firstOrFail();
+            $response = $this->actingAs($staff)->getJson(route('appointments.availability', [
+                'service' => $service->name, 'booking_date' => '2026-10-06', 'therapist' => '',
+            ]))->assertOk();
+            $this->assertNotEmpty($response->json('offered_slots'));
+            $this->assertSame($response->json('offered_slots'), $response->json('fully_booked_slots'));
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     private function bookingInput(User $client, string $method, string $type, ?string $serviceName = null): array
