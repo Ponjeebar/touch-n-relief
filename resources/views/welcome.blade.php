@@ -80,8 +80,7 @@
                 TouchNRelief makes it simple to book personalized treatments with Buenos Touche Spa, where every session is crafted to ease stress and restore balance.
             </p>
             <div class="hero-actions reveal delay-4">
-                <a href="#services" class="btn btn-light">View Our Services</a>
-            <a href="{{ route('booking.index') }}" class="btn btn-outline hero-book-btn" data-customer-tour="book">Book Now</a>
+                <a href="{{ route('booking.index') }}" class="btn btn-outline hero-book-btn" data-customer-tour="book">Book Now</a>
             </div>
         </div>
     </section>
@@ -378,6 +377,8 @@
                     <li><a href="#therapists">Therapists</a></li>
                     <li><a href="#contact">Contact</a></li>
                     <li><a href="{{ route('login') }}">Login</a></li>
+                    <li><a href="{{ route('privacy-policy') }}">Privacy Policy</a></li>
+                    <li><a href="{{ route('terms-and-conditions') }}">Terms and Conditions</a></li>
                 </ul>
             </div>
 
