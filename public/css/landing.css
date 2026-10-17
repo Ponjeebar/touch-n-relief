@@ -57,6 +57,7 @@ html[data-theme="dark"] .intro-card .card {
 html[data-theme="dark"] .features .left p,
 html[data-theme="dark"] .features article p,
 html[data-theme="dark"] .section-sub,
+html[data-theme="dark"] .services-swipe-hint,
 html[data-theme="dark"] .catalog-section-heading > p:last-child {
     color: #b9c5bf;
 }
@@ -983,17 +984,19 @@ html[data-theme="dark"] .landing-theme-icon-light {
 .carousel-track {
     display: flex;
     gap: 1rem;
-    transition: transform 0.45s ease;
-    will-change: transform;
 }
 
 .carousel-slide {
     min-width: calc((100% - 2rem) / 3);
+    flex: 0 0 calc((100% - 2rem) / 3);
 }
 
 .services-carousel.is-single .carousel-track {
     justify-content: center;
-    transform: none !important;
+}
+
+.services-swipe-hint {
+    display: none;
 }
 
 .services-carousel.is-single .carousel-slide {
@@ -2085,12 +2088,34 @@ html[data-theme="dark"] .landing-theme-icon-light {
     }
 
     .carousel-slide {
-        min-width: 100%;
+        min-width: 88%;
+        flex-basis: 88%;
     }
 
-    .carousel-btn {
-        width: 36px;
-        height: 36px;
+    .services-carousel .carousel-btn {
+        display: none;
+    }
+
+    .carousel-track-wrap {
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+    }
+
+    .carousel-track-wrap::-webkit-scrollbar {
+        display: none;
+    }
+
+    .carousel-slide {
+        scroll-snap-align: start;
+    }
+
+    .services-swipe-hint {
+        display: block;
+        margin: 12px 0 0;
+        color: #66605d;
+        font-size: 13px;
+        text-align: center;
     }
 
     .nav-links a:not(.btn) {

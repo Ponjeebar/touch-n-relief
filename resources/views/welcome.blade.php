@@ -148,7 +148,7 @@
             @endif
             <div class="services-carousel reveal delay-2 {{ count($services) === 1 ? 'is-single' : '' }}" data-carousel>
                 <button class="carousel-btn prev" type="button" aria-label="Previous services" data-prev>&#10094;</button>
-                <div class="carousel-track-wrap">
+                <div class="carousel-track-wrap" tabindex="0" role="region" aria-label="Available massage services">
                     <div class="carousel-track">
                         @foreach ($services as $service)
                             @php
@@ -182,6 +182,9 @@
                 </div>
                 <button class="carousel-btn next" type="button" aria-label="Next services" data-next>&#10095;</button>
             </div>
+            @if (count($services) > 1)
+                <p class="services-swipe-hint">Swipe left or right to see more services.</p>
+            @endif
             <div class="carousel-dots" data-dots></div>
         </div>
     </section>
@@ -490,13 +493,13 @@
 
             const carousel = document.querySelector('[data-carousel]');
             const track = carousel ? carousel.querySelector('.carousel-track') : null;
+            const viewport = carousel ? carousel.querySelector('.carousel-track-wrap') : null;
             const slides = track ? Array.from(track.children) : [];
             const dotsWrap = document.querySelector('[data-dots]');
             const prevBtn = carousel ? carousel.querySelector('[data-prev]') : null;
             const nextBtn = carousel ? carousel.querySelector('[data-next]') : null;
             const getVisible = () => (window.innerWidth <= 900 ? 1 : 3);
             let index = 0;
-            let timer = null;
 
             const maxIndex = () => Math.max(slides.length - getVisible(), 0);
             const clampIndex = (value) => Math.max(0, Math.min(value, maxIndex()));
@@ -513,54 +516,54 @@
                     dot.addEventListener('click', () => {
                         index = i;
                         updateCarousel();
-                        restartAuto();
                     });
                     dotsWrap.appendChild(dot);
                 }
             };
 
-            const updateCarousel = () => {
-                if (!track || !slides.length) return;
-                const slideWidth = slides[0].getBoundingClientRect().width;
-                const gap = 16;
-                index = clampIndex(index);
-                track.style.transform = 'translateX(-' + ((slideWidth + gap) * index) + 'px)';
+            const slideStep = () => slides[0].getBoundingClientRect().width + parseFloat(getComputedStyle(track).gap);
+            const updateDots = () => {
                 const dots = dotsWrap ? Array.from(dotsWrap.children) : [];
-                dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === index);
+                    dot.setAttribute('aria-current', i === index ? 'true' : 'false');
+                });
             };
 
-            const restartAuto = () => {
-                if (!slides.length || slides.length <= getVisible()) return;
-                if (timer) clearInterval(timer);
-                timer = setInterval(() => {
-                    index = index >= maxIndex() ? 0 : index + 1;
-                    updateCarousel();
-                }, 3200);
+            const updateCarousel = (smooth = true) => {
+                if (!viewport || !slides.length) return;
+                index = clampIndex(index);
+                viewport.scrollTo({
+                    left: slideStep() * index,
+                    behavior: smooth && !window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'instant',
+                });
+                updateDots();
             };
 
             if (carousel && slides.length === 1) {
                 carousel.classList.add('is-single');
             }
 
-            if (prevBtn && nextBtn && slides.length) {
+            if (viewport && prevBtn && nextBtn && slides.length) {
                 prevBtn.addEventListener('click', () => {
                     index = index <= 0 ? maxIndex() : index - 1;
                     updateCarousel();
-                    restartAuto();
                 });
                 nextBtn.addEventListener('click', () => {
                     index = index >= maxIndex() ? 0 : index + 1;
                     updateCarousel();
-                    restartAuto();
                 });
+                viewport.addEventListener('scroll', () => {
+                    index = clampIndex(Math.round(viewport.scrollLeft / slideStep()));
+                    updateDots();
+                }, { passive: true });
                 window.addEventListener('resize', () => {
                     index = clampIndex(index);
                     renderDots();
-                    updateCarousel();
+                    updateCarousel(false);
                 });
                 renderDots();
-                updateCarousel();
-                restartAuto();
+                updateCarousel(false);
             }
 
             const modal = document.getElementById('serviceModal');
