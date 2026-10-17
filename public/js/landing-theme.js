@@ -14,32 +14,38 @@
         var nextMode = isDark ? 'light' : 'dark';
         var label = 'Switch to ' + nextMode + ' mode';
 
-        button.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        if (!button.hasAttribute('data-landing-theme-toggle')) {
+            button.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        }
         button.setAttribute('aria-label', label);
         button.setAttribute('title', label);
+        var text = button.querySelector('[data-landing-theme-label]');
+        if (text) text.textContent = label;
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        var button = document.getElementById('tnr-landing-theme-toggle');
-        if (!button) return;
+        var buttons = document.querySelectorAll('#tnr-landing-theme-toggle, [data-landing-theme-toggle]');
+        if (!buttons.length) return;
 
-        syncControl(button, currentTheme());
+        buttons.forEach(function (button) {
+            syncControl(button, currentTheme());
 
-        button.addEventListener('click', function () {
-            var mode = currentTheme() === 'dark' ? 'light' : 'dark';
+            button.addEventListener('click', function () {
+                var mode = currentTheme() === 'dark' ? 'light' : 'dark';
 
-            if (mode === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            } else {
-                document.documentElement.removeAttribute('data-theme');
-            }
+                if (mode === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
 
-            try {
-                localStorage.setItem(storageKey, mode);
-                localStorage.setItem(versionKey, currentVersion);
-            } catch (e) {}
+                try {
+                    localStorage.setItem(storageKey, mode);
+                    localStorage.setItem(versionKey, currentVersion);
+                } catch (e) {}
 
-            syncControl(button, mode);
+                buttons.forEach(function (control) { syncControl(control, mode); });
+            });
         });
     });
 })();

@@ -44,7 +44,7 @@
                 </nav>
             @endif
             <div class="nav-header-actions">
-                @if ($navMode === 'full')
+                @if ($navMode === 'full' && ! $user)
                     <button
                         type="button"
                         class="landing-theme-toggle"

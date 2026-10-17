@@ -21,6 +21,11 @@
             <button type="button" role="menuitem" class="nav-user-menu-btn" data-tnr-open-transactions>My Appointments</button>
             <button type="button" role="menuitem" class="nav-user-menu-btn" data-start-customer-tour>Take a tour</button>
         @endif
+        <button type="button" role="menuitem" class="nav-user-menu-btn" data-landing-theme-toggle aria-label="Switch to dark mode">
+            <i class="bi bi-moon-stars-fill landing-theme-icon landing-theme-icon-dark" aria-hidden="true"></i>
+            <i class="bi bi-sun-fill landing-theme-icon landing-theme-icon-light" aria-hidden="true"></i>
+            <span data-landing-theme-label>Switch to dark mode</span>
+        </button>
         <form method="POST" action="{{ route('logout') }}">
             @csrf
             <button type="submit" role="menuitem" class="nav-user-logout">Logout</button>
