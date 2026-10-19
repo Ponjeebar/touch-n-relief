@@ -224,6 +224,7 @@
                     </section>
 
                     <section id="panel-customers" class="{{ $activeTab === 'customers' ? '' : 'hidden-section' }}">
+                        <p>Customer details are read-only here. Customers update their information through their own profile.</p>
                         <div class="user-list users-customer-list" id="customers-list">
                             @forelse ($customers as $customer)
                                 <div
@@ -257,17 +258,9 @@
                                         </div>
                                     </div>
                                     <div class="user-meta">
-                                        <button
-                                            class="user-action edit cr-edit-customer-btn"
-                                            type="button"
-                                            data-update-url="{{ route('dashboard.customers.update', $customer) }}"
-                                            data-full-name="{{ $customer->full_name }}"
-                                            data-email="{{ $customer->email }}"
-                                            data-birthday="{{ optional($customer->birthday)->format('Y-m-d') }}"
-                                            data-number="{{ $customer->number ?? '' }}"
-                                        >
-                                            <i class="bi bi-pencil-square" aria-hidden="true"></i> Edit
-                                        </button>
+                                        <a class="user-action" href="{{ route('client-records.show', $customer) }}">
+                                            <i class="bi bi-eye" aria-hidden="true"></i> View Record
+                                        </a>
                                         <button
                                             class="user-action archive archive-customer-btn"
                                             type="button"
@@ -423,6 +416,7 @@
                     <div class="profile-modal-content add-modal-content">
                         <button class="profile-modal-close" type="button" id="close-edit-receptionist-modal" aria-label="Close">&times;</button>
                         <h3 class="profile-modal-title" id="edit-receptionist-title">Edit Receptionist</h3>
+                        <p>Login username and email are read-only. Receptionists manage email changes through their own profile.</p>
                         <form class="add-receptionist-modal-form" id="edit-receptionist-form" method="POST" action="" enctype="multipart/form-data">
                             @csrf
                             @method('PUT')
@@ -437,11 +431,11 @@
                                 </div>
                                 <div class="profile-field">
                                     <label>Username</label>
-                                    <input type="text" name="username" id="edit-modal-username" required>
+                                    <input type="text" id="edit-modal-username" readonly>
                                 </div>
                                 <div class="profile-field">
                                     <label>Email</label>
-                                    <input type="email" name="email" id="edit-modal-email" required>
+                                    <input type="email" id="edit-modal-email" readonly>
                                 </div>
                                 <div class="profile-field">
                                     <label>Phone Number</label>
@@ -526,8 +520,6 @@
                     @method('DELETE')
                     <input type="hidden" name="return_to" id="archive-customer-return-to" value="users.index">
                 </form>
-
-                @include('partials.customer-client-modals', ['showAdd' => false])
             </main>
         </div>
     </div>

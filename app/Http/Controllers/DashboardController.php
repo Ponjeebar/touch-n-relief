@@ -347,39 +347,7 @@ class DashboardController extends Controller
 
     public function updateCustomer(Request $request, Customer $customer): RedirectResponse
     {
-        $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:255', new PersonName],
-            'birthday' => ['nullable', 'date', CustomerEligibility::birthdayRule()],
-            'number' => ['nullable', 'regex:/^09\d{9}$/'],
-            'email' => ['required', 'email', 'max:255', 'unique:customers,email,'.$customer->id],
-            'password' => ['nullable', 'string', StrongPassword::rule()],
-            'return_to' => ['nullable', 'string', 'in:users.index,client-records.index,client-records.show'],
-        ], [
-            'number.regex' => 'Phone number must be 11 digits starting with 09.',
-            'birthday.before_or_equal' => CustomerEligibility::birthdayMessage(),
-        ]);
-
-        $returnTo = $validated['return_to'] ?? 'users.index';
-        unset($validated['return_to']);
-
-        $customer->full_name = $validated['full_name'];
-        $customer->birthday = $validated['birthday'] ?? null;
-        $customer->number = $validated['number'] ?? null;
-        $customer->email = $validated['email'];
-        if (! empty($validated['password'])) {
-            $customer->password = $validated['password'];
-        }
-        $customer->save();
-
-        ActivityLogger::log(
-            'customer.updated',
-            'Updated customer '.$customer->full_name,
-            ['email' => $customer->email, 'customer_id' => $customer->customer_id],
-            subject: $customer,
-            request: $request,
-        );
-
-        return $this->redirectAfterCustomerWrite($returnTo, $customer, 'Customer updated successfully.');
+        abort(403, 'Customer details must be updated by the customer through their profile.');
     }
 
     public function destroyCustomer(Request $request, Customer $customer): RedirectResponse
@@ -3324,10 +3292,16 @@ class DashboardController extends Controller
 
     public function updateReceptionist(Request $request, Receptionist $receptionist): RedirectResponse
     {
+        $request->validate([
+            'username' => ['sometimes', Rule::in([$receptionist->username])],
+            'email' => ['sometimes', Rule::in([$receptionist->email])],
+        ], [
+            'username.in' => 'Login usernames cannot be changed from account management.',
+            'email.in' => 'Email changes must use the receptionist profile verification process.',
+        ]);
+
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255', new PersonName],
-            'username' => ['required', 'string', 'min:3', 'max:30', 'alpha_dash:ascii', 'unique:receptionists,username,'.$receptionist->id],
-            'email' => ['required', 'email', 'max:255', 'unique:receptionists,email,'.$receptionist->id],
             'address' => ['nullable', 'string', 'max:255'],
             'phone_number' => ['nullable', 'regex:/^09\d{9}$/'],
             'birthday' => ['nullable', 'date', 'before_or_equal:today'],
@@ -3353,14 +3327,12 @@ class DashboardController extends Controller
         // Keep the receptionist login account in sync.
         if (Schema::hasColumn('users', 'role')) {
             $user = User::query()
-                ->whereRaw('LOWER(email) = ?', [strtolower($receptionist->getOriginal('email') ?: $validated['email'])])
-                ->orWhereRaw('LOWER(username) = ?', [strtolower($receptionist->getOriginal('username') ?: $validated['username'])])
+                ->whereRaw('LOWER(email) = ?', [strtolower($receptionist->email)])
+                ->orWhereRaw('LOWER(username) = ?', [strtolower($receptionist->username)])
                 ->first();
 
             if ($user !== null) {
                 $user->name = $validated['full_name'];
-                $user->username = $validated['username'];
-                $user->email = $validated['email'];
                 $user->role = $user->role ?: User::ROLE_RECEPTIONIST;
                 $user->save();
             }

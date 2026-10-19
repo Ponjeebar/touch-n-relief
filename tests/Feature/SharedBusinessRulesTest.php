@@ -194,7 +194,7 @@ class SharedBusinessRulesTest extends TestCase
             'full_name' => $customer->full_name,
             'email' => $customer->email,
             'password' => 'password',
-        ])->assertSessionHasErrors('password');
+        ])->assertForbidden();
 
         $this->flushSession();
         $this->actingAs($admin)->post(route('dashboard.receptionists.store'), [
