@@ -93,6 +93,7 @@
         example.dataset.tourDemo = 'appointment';
         example.setAttribute('role', 'listitem');
         example.innerHTML = [
+            '<button class="appt-details-trigger" type="button" disabled data-tour-demo-action aria-label="Example: view appointment details"></button>',
             '<div class="appt-client">',
                 '<div class="appt-avatar" aria-hidden="true">SC</div>',
                 '<div class="appt-client-main">',
@@ -111,7 +112,6 @@
                 '<button class="appt-icon-btn collect-balance" type="button" disabled data-tour-demo-action aria-label="Example: collect remaining balance"><i class="bi bi-cash-coin" aria-hidden="true"></i></button>',
                 '<button class="appt-icon-btn start" type="button" disabled data-tour-demo-action aria-label="Example: start after full payment within the allowed start window"><i class="bi bi-play-fill" aria-hidden="true"></i></button>',
                 '<button class="appt-icon-btn reschedule" type="button" disabled data-tour-demo-action aria-label="Example: reschedule appointment"><i class="bi bi-calendar2-week" aria-hidden="true"></i></button>',
-                '<button class="appt-icon-btn view" type="button" disabled data-tour-demo-action aria-label="Example: view appointment details"><i class="bi bi-eye" aria-hidden="true"></i></button>',
                 '<button class="appt-icon-btn cancel" type="button" disabled data-tour-demo-action aria-label="Example: cancel appointment"><i class="bi bi-x-lg" aria-hidden="true"></i></button>',
             '</div>',
         ].join('');
@@ -265,7 +265,7 @@
                 step(['#appointments-search'], 'Search appointments', withExample('Search by client, service, therapist, or appointment detail.', 'Type a client surname to find their booking without scanning the full day.')),
                 step(['.appointments-sub'], 'Filter by status', withExample('Use status totals to isolate bookings requiring a specific action.', 'Payment Pending means the initial checkout still needs verification. Balance Due means the booking is confirmed but still has an amount to collect.')),
                 step(['#appointments-list-container', '.appointments-card'], 'Appointment list', 'Each row contains the client, service, therapist, schedule, payment state, and permitted actions.'),
-                step(['[data-tour-demo="appointment"] .appt-icon-btn.view', '.appt-icon-btn.view[data-open-view]'], 'Review full details', withExample('Open details before changing a booking or payment. The tutorial row is not saved and its buttons cannot change records.', 'The sample appointment costs PHP 145.00, with PHP 72.50 paid and PHP 72.50 remaining.')),
+                step(['[data-tour-demo="appointment"]', '.appt-row:has([data-open-view])'], 'Review full details', withExample('Click an appointment row to open its details before changing a booking or payment. The tutorial row is not saved and its buttons cannot change records.', 'The sample appointment costs PHP 145.00, with PHP 72.50 paid and PHP 72.50 remaining.')),
                 step(['[data-tour-demo="appointment"] .appt-icon-btn.collect-balance', '.appt-icon-btn.collect-balance[data-open-balance]'], 'Collect a remaining balance', withExample('Record only the exact amount actually received at the counter.', 'Collect the sample appointment’s PHP 72.50 balance before starting the session.')),
                 step(['.appt-icon-btn.start'], 'Start an eligible session', withExample('Start is allowed only within the configured time window and after required payment.', 'A fully paid 3:00 PM appointment can be started near 3:00 PM, then appears in Ongoing Sessions.')),
                 step(['[data-tour-demo="appointment"] .appt-icon-btn.reschedule', '.appt-icon-btn.reschedule[data-open-reschedule]'], 'Reschedule carefully', 'Choose a new available date and time; availability is checked again before saving.'),

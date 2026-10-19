@@ -29,6 +29,43 @@
             $bookingId = $appointment['booking_id'] ?? null;
         @endphp
         <div class="appt-row" role="listitem" data-booking-id="{{ $bookingId ?? '' }}">
+            <button
+                class="appt-details-trigger"
+                type="button"
+                title="View appointment details"
+                aria-label="View appointment for {{ $appointment['client'] }}"
+                data-open-view="true"
+                data-client="{{ $appointment['client'] }}"
+                data-service="{{ $appointment['service'] }}"
+                data-therapist="{{ $appointment['therapist'] }}"
+                data-status="{{ $appointment['status'] }}"
+                data-date="{{ $appointment['date'] }}"
+                data-time="{{ $appointment['time'] }}"
+                data-notes="{{ $appointment['notes'] ?? '' }}"
+                data-payment-summary="{{ $appointment['payment_summary'] ?? '' }}"
+                data-payment-method="{{ $appointment['payment_method_label'] ?? '' }}"
+                data-payment-status="{{ $appointment['payment_status_label'] ?? '' }}"
+                data-full-payment-status="{{ $appointment['full_payment_status_label'] ?? '' }}"
+                data-total-paid="{{ $appointment['paid_amount'] ?? '' }}"
+                data-remaining-balance="{{ $appointment['remaining_balance'] ?? '' }}"
+                data-payment-retry-url="{{ ! empty($appointment['can_retry_paymongo']) && $bookingId ? route('appointments.paymongo.retry', $bookingId) : '' }}"
+                data-payment-type="{{ $appointment['payment_type_label'] ?? '' }}"
+                data-payment-amount="{{ $appointment['payment_amount'] ?? '' }}"
+                data-service-amount="{{ $appointment['service_amount'] ?? '' }}"
+                data-payment-proof="{{ $appointment['payment_proof_url'] ?? '' }}"
+                data-payment-transaction="{{ $appointment['payment_transaction_id'] ?? '' }}"
+                data-booking-id="{{ $bookingId ?? '' }}"
+                data-refund-status="{{ $appointment['refund_status'] ?? '' }}"
+                data-refund-status-label="{{ $appointment['refund_status_label'] ?? '' }}"
+                data-refund-amount="{{ $appointment['refund_amount'] ?? '' }}"
+                data-refund-reference="{{ $appointment['refund_reference'] ?? '' }}"
+                data-refund-note="{{ $appointment['refund_note'] ?? '' }}"
+                data-manual-refund-amount="{{ $appointment['pending_manual_refund_amount'] ?? 0 }}"
+                data-refund-history-url="{{ $bookingId ? route('refund.confirmations', $bookingId) : '' }}"
+                data-can-complete-refund="{{ ! empty($appointment['can_complete_refund']) ? '1' : '0' }}"
+                data-refund-url="{{ ! empty($appointment['can_complete_refund']) && $bookingId ? route('appointments.refund.complete', $bookingId) : '' }}"
+            >
+            </button>
             <div class="appt-client">
                 <div class="appt-avatar" aria-hidden="true">
                     {{ strtoupper(substr($appointment['client'] ?? 'CL', 0, 2)) }}
@@ -181,44 +218,6 @@
                             </button>
                         </form>
                     @endif
-                    <button
-                        class="appt-icon-btn view"
-                        type="button"
-                        title="View"
-                        aria-label="View appointment for {{ $appointment['client'] }}"
-                        data-open-view="true"
-                        data-client="{{ $appointment['client'] }}"
-                        data-service="{{ $appointment['service'] }}"
-                        data-therapist="{{ $appointment['therapist'] }}"
-                        data-status="{{ $appointment['status'] }}"
-                        data-date="{{ $appointment['date'] }}"
-                        data-time="{{ $appointment['time'] }}"
-                        data-notes="{{ $appointment['notes'] ?? '' }}"
-                        data-payment-summary="{{ $appointment['payment_summary'] ?? '' }}"
-                        data-payment-method="{{ $appointment['payment_method_label'] ?? '' }}"
-                        data-payment-status="{{ $appointment['payment_status_label'] ?? '' }}"
-                        data-full-payment-status="{{ $appointment['full_payment_status_label'] ?? '' }}"
-                        data-total-paid="{{ $appointment['paid_amount'] ?? '' }}"
-                        data-remaining-balance="{{ $appointment['remaining_balance'] ?? '' }}"
-                        data-payment-retry-url="{{ ! empty($appointment['can_retry_paymongo']) && $bookingId ? route('appointments.paymongo.retry', $bookingId) : '' }}"
-                        data-payment-type="{{ $appointment['payment_type_label'] ?? '' }}"
-                        data-payment-amount="{{ $appointment['payment_amount'] ?? '' }}"
-                        data-service-amount="{{ $appointment['service_amount'] ?? '' }}"
-                        data-payment-proof="{{ $appointment['payment_proof_url'] ?? '' }}"
-                        data-payment-transaction="{{ $appointment['payment_transaction_id'] ?? '' }}"
-                        data-booking-id="{{ $bookingId ?? '' }}"
-                        data-refund-status="{{ $appointment['refund_status'] ?? '' }}"
-                        data-refund-status-label="{{ $appointment['refund_status_label'] ?? '' }}"
-                        data-refund-amount="{{ $appointment['refund_amount'] ?? '' }}"
-                        data-refund-reference="{{ $appointment['refund_reference'] ?? '' }}"
-                        data-refund-note="{{ $appointment['refund_note'] ?? '' }}"
-                        data-manual-refund-amount="{{ $appointment['pending_manual_refund_amount'] ?? 0 }}"
-                        data-refund-history-url="{{ $bookingId ? route('refund.confirmations', $bookingId) : '' }}"
-                        data-can-complete-refund="{{ ! empty($appointment['can_complete_refund']) ? '1' : '0' }}"
-                        data-refund-url="{{ ! empty($appointment['can_complete_refund']) && $bookingId ? route('appointments.refund.complete', $bookingId) : '' }}"
-                    >
-                        <i class="bi bi-eye" aria-hidden="true"></i>
-                    </button>
                     <button
                         class="appt-icon-btn cancel"
                         type="button"
