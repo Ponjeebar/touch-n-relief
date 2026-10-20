@@ -21,13 +21,17 @@ class ChatbotService
 
     /**
      * @param  array<string, mixed>  $context
-     * @return array{reply: string, actions: list<array{label: string, url: string}>, suggestions: list<string>, context: array<string, string>}
+     * @return array{reply: string, actions: list<array{label: string, url: string, external?: bool}>, suggestions: list<string>, context: array<string, string>}
      */
     public function answer(string $message, ?User $user, array $context = []): array
     {
         $this->conversationContext = $this->sanitizeContext($context);
         $question = preg_replace('/\s+/u', ' ', mb_strtolower(trim($message))) ?? mb_strtolower(trim($message));
         $staff = $user !== null && ($user->isAdmin() || $user->isReceptionist());
+
+        if ($publicAnswer = $this->businessInformation($question)) {
+            return $publicAnswer;
+        }
 
         if ($this->has($question, ['thank you', 'thanks', 'thankyou', 'salamat'])) {
             return $this->respond(
@@ -88,7 +92,7 @@ class ChatbotService
             );
         }
 
-        if ($this->has($question, ['my account', 'my profile', 'account information', 'my information', 'my role', 'my email'])) {
+        if ($this->has($question, ['my account', 'my profile', 'account information', 'my information', 'my role', 'my email', 'my name', 'who am i'])) {
             if (! $user) {
                 return $this->signInFirst();
             }
@@ -163,13 +167,115 @@ class ChatbotService
         }
 
         return $this->respond(
-            'I’m sorry, I didn’t quite understand that. Could you say it another way, or choose one of the questions below? '
-            .($user ? 'I can also check your appointments.' : 'You can sign in for help with your own appointments.'),
-            $user ? [$this->action('Book an appointment', 'booking.index')] : $this->guestActions(),
-            $user
-                ? ['My appointments', 'Services and prices', 'Can I reschedule?', 'Business hours']
-                : ['Services and prices', 'How do I book?', 'Business hours', 'Where are you located?'],
+            'I can help with Bueno’s Touché services, prices, booking, business hours, location, ownership, and official social media. '
+            .'For a question that needs staff assistance, use the spa contact details below.',
+            [$this->contactAction()],
+            ['Who owns the spa?', 'Social media accounts', 'Services and prices', 'How do I book?'],
         );
+    }
+
+    private function businessInformation(string $question): ?array
+    {
+        $plain = trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $question) ?? $question);
+        $plain = preg_replace('/\s+/u', ' ', $plain) ?? $plain;
+
+        if (preg_match('/\b(private|personal|home|bahay|personal na)\b/u', $plain)
+            && preg_match('/\b(phone|number|email|address|contact|tirahan|numero)\b/u', $plain)) {
+            $this->remember('business');
+            $details = $this->settings->footer();
+
+            return $this->respond('I can share the spa’s published contact information, not private personal details. '
+                .'Contact Bueno’s Touché at '.$details['contact_phone'].' or '.$details['contact_email'].'.',
+                [$this->contactAction()], ['Who owns the spa?', 'Social media accounts', 'Business hours']);
+        }
+
+        if (preg_match('/\b(who are you|what is your name|what s your name|whats your name|your name|sino ka|sino po kayo|ano pangalan mo|anong pangalan mo|are you (?:a |an )?(?:bot|robot|ai|human|real person)|what can you do)\b/u', $plain)) {
+            $this->remember('business');
+
+            return $this->respond('I’m the TouchNRelief virtual assistant for Bueno’s Touché. I’m an automated assistant, not a person. '
+                .'I can help with services and prices, booking, business hours, location, the spa owner, and official social media. '
+                .'Sign in only when you want to check your own appointment records.',
+                [$this->contactAction()], ['Who owns the spa?', 'Social media accounts', 'Services and prices', 'How do I book?']);
+        }
+
+        if (preg_match('/\b(facebook|instagram|social media|socials|social account|messenger|fb|ig)\b/u', $plain)) {
+            $this->remember('social');
+            $platform = preg_match('/\b(instagram|ig)\b/u', $plain) ? 'instagram'
+                : (preg_match('/\b(facebook|fb|messenger)\b/u', $plain) ? 'facebook' : null);
+            $links = $this->socialActions($platform);
+            $name = $platform === 'instagram' ? 'Instagram' : ($platform === 'facebook' ? 'Facebook' : 'social media');
+
+            return $this->respond($links
+                ? 'Here '.(count($links) === 1 ? 'is the official '.$name.' link' : 'are the official social media links').' published on the Bueno’s Touché landing page. Open a link below to visit the account.'
+                : 'An official '.$name.' link is not published on the landing page right now. Please use the spa’s contact details to confirm the account.',
+                $links ?: [$this->contactAction()], ['Who owns the spa?', 'Contact the spa', 'Business hours']);
+        }
+
+        if (preg_match('/\b(owner|owns|owned|ownership|proprietor|may ari|mayari|nagmamay ari|sino si ronald|ronald bueno)\b/u', $plain)) {
+            $this->remember('business');
+            $details = $this->settings->footer();
+
+            return $this->respond('The owner of Bueno’s Touché is '.$details['owner_name'].'. '
+                .'For business inquiries, contact the spa at '.$details['contact_phone'].' or '.$details['contact_email'].'.',
+                [$this->contactAction(), ...$this->socialActions()], ['Social media accounts', 'Business hours', 'Where are you located?']);
+        }
+
+        if (preg_match('/\b(about the spa|about your spa|about the business|about buenos|about bueno|what is touchnrelief|what is touch n relief|tell me about yourself|what kind of business)\b/u', $plain)) {
+            $this->remember('business');
+            $details = $this->settings->footer();
+
+            return $this->respond('Bueno’s Touché offers massage services and is owned by '.$details['owner_name'].'. '
+                .'TouchNRelief is its online appointment management system. You can browse services, choose an available therapist and schedule, and complete the required payment through checkout. '
+                .'The spa’s published address is '.$details['contact_address'].'.',
+                [['label' => 'About the spa', 'url' => route('landing').'#about']],
+                ['Services and prices', 'Who owns the spa?', 'Social media accounts', 'Business hours']);
+        }
+
+        if (preg_match('/\b(how are you|how s it going|kamusta ka|kumusta ka)\b/u', $plain)) {
+            $this->remember('business');
+
+            return $this->respond('I’m here and ready to help with your visit to Bueno’s Touché. What would you like to know?',
+                [], ['Who are you?', 'Services and prices', 'Social media accounts', 'How do I book?']);
+        }
+
+        if (preg_match('/\b(speak to|talk to|human|real person|kausapin|customer support)\b/u', $plain)) {
+            $this->remember('business');
+            $details = $this->settings->footer();
+
+            return $this->respond('For help from the spa staff, contact '.$details['contact_phone'].' or '.$details['contact_email'].'. '
+                .'This chat provides automated guidance and does not send your message to a staff member.',
+                [$this->contactAction(), ...$this->socialActions()], ['Business hours', 'Where are you located?']);
+        }
+
+        return null;
+    }
+
+    /** @return list<array{label: string, url: string, external: bool}> */
+    private function socialActions(?string $platform = null): array
+    {
+        $details = $this->settings->footer();
+        $links = [];
+        foreach (['facebook' => ['facebook.com', 'fb.com', 'fb.me'], 'instagram' => ['instagram.com']] as $name => $hosts) {
+            if ($platform !== null && $platform !== $name) {
+                continue;
+            }
+            $url = trim($details[$name.'_url']);
+            $parts = parse_url($url);
+            $host = strtolower($parts['host'] ?? '');
+            $trusted = collect($hosts)->contains(fn (string $allowed): bool => $host === $allowed || str_ends_with($host, '.'.$allowed));
+            if (($parts['scheme'] ?? '') !== 'https' || ! $trusted || isset($parts['user']) || isset($parts['pass'])
+                || (isset($parts['port']) && $parts['port'] !== 443)) {
+                continue;
+            }
+            $links[] = ['label' => 'Open '.ucfirst($name), 'url' => $url, 'external' => true];
+        }
+
+        return $links;
+    }
+
+    private function contactAction(): array
+    {
+        return ['label' => 'Contact the spa', 'url' => route('landing').'#contact'];
     }
 
     private function services(string $question): array
@@ -408,6 +514,10 @@ class ChatbotService
         $refersToPrevious = $this->has($question, [' it', 'it ', 'that one', 'this one', 'does that', 'is that'])
             || in_array($compact, ['how much', 'how long', 'what is included', 'what does it include', 'tell me more'], true);
 
+        if (in_array($topic, ['business', 'social'], true) && $compact === 'tell me more') {
+            return $this->businessInformation($topic === 'social' ? 'social media accounts' : 'about the spa');
+        }
+
         if ($subject && $refersToPrevious && $topic === 'services') {
             return $this->services(mb_strtolower($subject));
         }
@@ -450,7 +560,7 @@ class ChatbotService
     /** @param array<string, mixed> $context */
     private function sanitizeContext(array $context): array
     {
-        $allowedTopics = ['services', 'packages', 'membership', 'appointments', 'hours', 'location'];
+        $allowedTopics = ['services', 'packages', 'membership', 'appointments', 'hours', 'location', 'business', 'social'];
         $topic = is_string($context['topic'] ?? null) && in_array($context['topic'], $allowedTopics, true)
             ? $context['topic']
             : null;
@@ -478,6 +588,7 @@ class ChatbotService
             'appointments' => ['Can I reschedule?', 'Can I cancel?', 'Book another appointment'],
             'hours' => ['Where are you located?', 'Services and prices', 'How do I book?'],
             'location' => ['Business hours', 'Services and prices', 'How do I book?'],
+            'business', 'social' => ['Who owns the spa?', 'Social media accounts', 'Business hours'],
             default => [],
         };
     }

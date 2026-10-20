@@ -100,6 +100,14 @@
                                             </div>
                                             @error('contact_address')<span class="field-error">{{ $message }}</span>@enderror
                                         </div>
+                                        <div class="ls-field">
+                                            <label for="owner_name">Public owner name</label>
+                                            <div class="ls-input-wrap">
+                                                <input id="owner_name" name="owner_name" type="text" value="{{ old('owner_name', $footer['owner_name']) }}" required maxlength="120" autocomplete="off">
+                                            </div>
+                                            <p class="ls-section-desc">Published when visitors ask the help chat who owns the spa.</p>
+                                            @error('owner_name')<span class="field-error">{{ $message }}</span>@enderror
+                                        </div>
                                     </div>
                                 </article>
 

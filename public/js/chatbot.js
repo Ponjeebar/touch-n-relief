@@ -62,10 +62,19 @@
                 actions.forEach((action) => {
                     try {
                         const url = new URL(action.url, window.location.origin);
-                        if (url.origin !== window.location.origin) return;
+                        const socialHosts = ['facebook.com', 'fb.com', 'fb.me', 'instagram.com'];
+                        const officialSocial = action.external === true && url.protocol === 'https:'
+                            && !url.username && !url.password && (!url.port || url.port === '443')
+                            && socialHosts.some(host => url.hostname === host || url.hostname.endsWith('.' + host));
+                        if (url.origin !== window.location.origin && !officialSocial) return;
+                        if (!['http:', 'https:'].includes(url.protocol)) return;
                         const link = document.createElement('a');
                         link.href = url.href;
                         link.textContent = action.label;
+                        if (officialSocial) {
+                            link.target = '_blank';
+                            link.rel = 'noopener noreferrer';
+                        }
                         links.append(link);
                     } catch (_) { /* Ignore invalid links. */ }
                 });
@@ -196,7 +205,7 @@
                 ? 'I can help you find appointments, services, client records, and ongoing sessions.'
                 : role === 'customer'
                     ? 'Hi' + (customerName ? ', ' + customerName : '') + '! How can I help with your visit today? You can ask about your appointments, services, or booking changes.'
-                    : 'Hi! How can I help with your visit today? You can ask about services, prices, hours, location, or booking.';
+                    : 'Hi! I’m the TouchNRelief virtual assistant for Bueno’s Touché. Ask about services, booking, hours, location, the owner, or official social media.';
         addMessage(welcome, true);
 
         launcher.addEventListener('click', () => setPanelOpen(panel.hidden));

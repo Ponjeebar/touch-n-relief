@@ -24,6 +24,8 @@ class SiteSettingsService
 
     public const KEY_INSTAGRAM_URL = 'footer_instagram_url';
 
+    public const KEY_OWNER_NAME = 'business_owner_name';
+
     public const KEY_THERAPIST_SCHEDULE_AUTOMATION = 'therapist_schedule_automation';
 
     public const KEY_THERAPIST_DEFAULT_WORKING_DAYS = 'therapist_default_working_days';
@@ -186,6 +188,7 @@ class SiteSettingsService
     public function footerDefaults(): array
     {
         return [
+            'owner_name' => 'Ronald Bueno',
             'contact_phone' => '+63 912 345 6789',
             'contact_email' => 'hello@touchnreliefspa.com',
             'contact_address' => 'Wellness Ave, City Center',
@@ -205,6 +208,7 @@ class SiteSettingsService
         $defaults = $this->footerDefaults();
 
         return [
+            'owner_name' => SiteSetting::valueFor(self::KEY_OWNER_NAME, $defaults['owner_name']) ?? $defaults['owner_name'],
             'contact_phone' => SiteSetting::valueFor(self::KEY_CONTACT_PHONE, $defaults['contact_phone']) ?? $defaults['contact_phone'],
             'contact_email' => SiteSetting::valueFor(self::KEY_CONTACT_EMAIL, $defaults['contact_email']) ?? $defaults['contact_email'],
             'contact_address' => SiteSetting::valueFor(self::KEY_CONTACT_ADDRESS, $defaults['contact_address']) ?? $defaults['contact_address'],
@@ -221,6 +225,10 @@ class SiteSettingsService
      */
     public function updateFooter(array $data): void
     {
+        if (array_key_exists('owner_name', $data)) {
+            SiteSetting::put(self::KEY_OWNER_NAME, trim($data['owner_name']));
+        }
+
         SiteSetting::put(self::KEY_CONTACT_PHONE, trim($data['contact_phone'] ?? ''));
         SiteSetting::put(self::KEY_CONTACT_EMAIL, trim($data['contact_email'] ?? ''));
         SiteSetting::put(self::KEY_CONTACT_ADDRESS, trim($data['contact_address'] ?? ''));

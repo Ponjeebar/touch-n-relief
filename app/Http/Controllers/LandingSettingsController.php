@@ -20,6 +20,7 @@ class LandingSettingsController extends Controller
     public function update(Request $request, SiteSettingsService $settings): RedirectResponse
     {
         $validated = $request->validate([
+            'owner_name' => ['sometimes', 'required', 'string', 'max:120'],
             'contact_phone' => ['required', 'string', 'max:80'],
             'contact_email' => ['required', 'email', 'max:120'],
             'contact_address' => ['required', 'string', 'max:200'],

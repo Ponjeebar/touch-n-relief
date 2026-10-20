@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\SiteSetting;
 use App\Models\SpaBooking;
 use App\Models\User;
+use App\Services\SiteSettingsService;
 use Database\Seeders\SpaServiceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -66,6 +68,71 @@ class ChatbotTest extends TestCase
     {
         $this->postJson(route('chatbot.reply'), ['message' => str_repeat('a', 501)])
             ->assertUnprocessable()->assertJsonValidationErrors('message');
+    }
+
+    public function test_chatbot_explains_its_identity_and_answers_business_questions_without_sign_in(): void
+    {
+        foreach (['who are you', 'What is your name?', 'Are you a real person?', 'Sino ka?', 'ano pangalan mo'] as $question) {
+            $this->postJson(route('chatbot.reply'), ['message' => $question])
+                ->assertOk()->assertSee('virtual assistant')->assertSee('TouchNRelief')
+                ->assertDontSee('didn’t quite understand')->assertDontSee('Sign in or register');
+        }
+
+        foreach (['Who owns the spa?', 'Sino ang may-ari?', 'Who is the owner of Buenos Touche?'] as $question) {
+            $this->postJson(route('chatbot.reply'), ['message' => $question])
+                ->assertOk()->assertSee('Ronald Bueno')->assertDontSee('Sign in or register');
+        }
+
+        $this->postJson(route('chatbot.reply'), ['message' => 'Tell me about the spa'])
+            ->assertOk()->assertSee('Ronald Bueno')->assertSee('massage');
+    }
+
+    public function test_business_questions_override_an_old_service_topic_and_use_public_settings(): void
+    {
+        SiteSetting::put('business_owner_name', 'Published Owner');
+        SiteSetting::put(SiteSettingsService::KEY_CONTACT_PHONE, '09170000001');
+        SiteSetting::put(SiteSettingsService::KEY_FACEBOOK_URL, 'https://www.facebook.com/published-spa');
+        SiteSetting::put(SiteSettingsService::KEY_INSTAGRAM_URL, 'https://www.instagram.com/published-spa');
+        User::factory()->create(['role' => User::ROLE_ADMIN, 'name' => 'Private Admin', 'email' => 'private@example.test']);
+
+        $this->postJson(route('chatbot.reply'), ['message' => 'How much is Hot Stone?'])->assertOk();
+        $this->postJson(route('chatbot.reply'), ['message' => 'Who owns it?'])
+            ->assertOk()->assertSee('Published Owner')->assertDontSee('Private Admin')->assertDontSee('PHP 145.00');
+        $this->postJson(route('chatbot.reply'), ['message' => 'What is your Facebook page?'])
+            ->assertOk()->assertJsonPath('actions.0.url', 'https://www.facebook.com/published-spa')
+            ->assertJsonPath('actions.0.external', true);
+        $this->postJson(route('chatbot.reply'), ['message' => 'Do you have Instagram?'])
+            ->assertOk()->assertJsonPath('actions.0.url', 'https://www.instagram.com/published-spa');
+        $this->postJson(route('chatbot.reply'), ['message' => 'What is his private phone number?'])
+            ->assertOk()->assertSee('09170000001')->assertDontSee('private@example.test');
+    }
+
+    public function test_missing_or_unsafe_social_links_are_not_invented_or_returned(): void
+    {
+        SiteSetting::put(SiteSettingsService::KEY_FACEBOOK_URL, 'https://facebook.com.evil.test/spa');
+        SiteSetting::put(SiteSettingsService::KEY_INSTAGRAM_URL, 'javascript:alert(1)');
+        $this->postJson(route('chatbot.reply'), ['message' => 'social media accounts'])
+            ->assertOk()->assertSee('not published')->assertDontSee('evil.test')->assertDontSee('javascript:');
+    }
+
+    public function test_small_talk_and_unknown_questions_offer_relevant_help_without_demanding_login(): void
+    {
+        $this->postJson(route('chatbot.reply'), ['message' => 'How are you?'])
+            ->assertOk()->assertSee('help')->assertDontSee('didn’t quite understand');
+        $this->postJson(route('chatbot.reply'), ['message' => 'What is the weather on Mars?'])
+            ->assertOk()->assertSee('spa')->assertDontSee('didn’t quite understand')->assertDontSee('Sign in or register');
+    }
+
+    public function test_public_owner_name_can_be_maintained_through_landing_settings(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $footer = app(SiteSettingsService::class)->footer();
+        $this->actingAs($admin)->put(route('landing-settings.update'), [...$footer, 'owner_name' => 'Updated Public Owner'])
+            ->assertRedirect(route('landing-settings.edit'));
+        $this->postJson(route('chatbot.reply'), ['message' => 'Who owns the business?'])
+            ->assertOk()->assertSee('Updated Public Owner');
+        $this->actingAs($admin)->put(route('landing-settings.update'), [...$footer, 'owner_name' => str_repeat('a', 121)])
+            ->assertSessionHasErrors('owner_name');
     }
 
     public function test_chatbot_remembers_a_service_for_natural_follow_up_questions(): void
