@@ -245,7 +245,7 @@ body.auth-page #container form {
     height: 100%;
 }
 
-/* Registration: slightly compact so all fields fit without scrolling */
+/* Registration fields share the existing authentication controls. */
 body.auth-page #container .sign-up form {
     align-items: stretch;
     padding: 0 36px;
@@ -1852,4 +1852,209 @@ body.auth-page #container.active .toggle-left {
 }
 .auth-page-header .mobile-nav-toggle {
     display: none;
+}
+
+/* Registration keeps one group of fields visible at a time. */
+body.auth-page #container .sign-up {
+    overflow-y: auto;
+}
+
+body.auth-page #container .sign-up form {
+    height: auto;
+    min-height: 100%;
+    justify-content: flex-start;
+    padding: 30px 36px;
+}
+
+body.auth-page #container .sign-up form h1 {
+    font-size: 26px;
+    margin-bottom: 14px;
+}
+
+.auth-registration-progress {
+    display: flex;
+    list-style: none;
+    width: 100%;
+    margin: 24px 0;
+    padding: 0;
+}
+
+.auth-registration-progress li {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--auth-muted);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.auth-registration-progress li + li::before {
+    content: '';
+    position: absolute;
+    top: 17px;
+    right: calc(50% + 24px);
+    width: calc(100% - 48px);
+    height: 1px;
+    background: var(--auth-line);
+}
+
+.auth-step-number {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--auth-line);
+    border-radius: 50%;
+    background: var(--auth-input-bg);
+    font-size: 13px;
+}
+
+.auth-registration-progress [aria-current="step"],
+.auth-registration-progress .is-complete {
+    color: var(--auth-primary);
+}
+
+.auth-registration-progress [aria-current="step"] .auth-step-number,
+.auth-registration-progress .is-complete .auth-step-number {
+    background: var(--auth-primary);
+    border-color: var(--auth-primary);
+    color: #fff;
+}
+
+.auth-registration-step {
+    width: 100%;
+    min-width: 0;
+}
+
+.auth-registration-step h2 {
+    margin: 0 0 20px;
+    color: var(--auth-muted);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+body.auth-page #container .sign-up form.auth-registration-wizard .auth-password-policy-field .password-requirements {
+    position: static;
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    background: var(--auth-input-bg);
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+}
+
+body.auth-page #container .sign-up form .auth-registration-step .auth-field-label {
+    display: block;
+    margin: 14px 0 7px;
+}
+
+body.auth-page #container .sign-up form .auth-registration-step input:not([type="checkbox"]):not([type="radio"]) {
+    margin: 0;
+    min-width: 0;
+    min-height: 46px;
+    padding-top: 13px;
+    padding-bottom: 13px;
+}
+
+body.auth-page #container .sign-up form .auth-registration-step .auth-field-block,
+body.auth-page #container .sign-up form .auth-registration-step .auth-gender-field {
+    margin: 16px 0 0;
+}
+
+body.auth-page #container .sign-up form .auth-registration-step .auth-field-block .auth-field-label {
+    margin-top: 0;
+}
+
+body.auth-page #container .sign-up form .auth-registration-step .field-msg {
+    margin: 5px 0 0;
+}
+
+body.auth-page #container .auth-registration-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--auth-line);
+}
+
+body.auth-page #container .auth-registration-actions button {
+    min-height: 44px;
+    margin: 0;
+    padding: 12px 22px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    cursor: pointer;
+}
+
+body.auth-page #container .auth-registration-actions .auth-registration-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    background: var(--auth-primary);
+    color: #fff;
+}
+
+body.auth-page #container .auth-registration-next:hover {
+    background: var(--auth-primary-hover);
+}
+
+body.auth-page #container .auth-registration-back {
+    padding-left: 0;
+    background: transparent;
+    color: var(--auth-muted);
+}
+
+body.auth-page #container .auth-registration-actions button:focus-visible,
+.auth-registration-step h2:focus-visible {
+    outline: 3px solid var(--auth-accent-teal);
+    outline-offset: 3px;
+}
+
+body.auth-page #container .auth-registration-step[hidden],
+body.auth-page #container .auth-registration-progress[hidden],
+body.auth-page #container .auth-registration-actions button[hidden] {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    body.auth-page #container.active,
+    body.auth-page #container.active .sign-up,
+    body.auth-page #container.active .sign-up form {
+        min-height: 660px;
+    }
+
+    body.auth-page #container .sign-up form {
+        padding: 30px 24px;
+    }
+}
+
+@media (min-width: 701px) {
+    body.auth-page #container.active.registration-wizard-ready {
+        height: auto;
+        overflow: hidden;
+    }
+
+    body.auth-page #container.active.registration-wizard-ready .sign-up {
+        position: relative;
+        height: auto;
+        min-height: inherit;
+        margin-left: 50%;
+        transform: none;
+        transition: opacity 0.3s ease;
+    }
 }

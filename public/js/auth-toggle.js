@@ -23,7 +23,8 @@
     }
 
     function focusFirstField(panel) {
-        const field = panel?.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
+        const field = Array.from(panel?.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])') || [])
+            .find(function (input) { return input.getClientRects().length > 0; });
         if (field instanceof HTMLElement) field.focus({ preventScroll: true });
     }
 
@@ -53,11 +54,11 @@
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const outgoing = container.querySelector(showRegister ? '.sign-in form' : '.sign-up form');
         const incoming = container.querySelector(showRegister ? '.sign-up form' : '.sign-in .auth-login-panel');
+        const direction = showRegister ? -1 : 1;
         let exitAnimation;
 
         if (mobile && !reduceMotion && outgoing?.animate && incoming?.animate) {
             switching = true;
-            const direction = showRegister ? -1 : 1;
             try {
                 exitAnimation = outgoing.animate([
                     { opacity: 1, transform: 'translateX(0)' },
@@ -140,6 +141,55 @@
     if (registerForm) {
         var passwordInput = registerForm.querySelector('input[name="password"]');
         var confirmInput = registerForm.querySelector('input[name="password_confirmation"]');
+        const steps = Array.from(registerForm.querySelectorAll('[data-register-step]'));
+        const progress = Array.from(registerForm.querySelectorAll('[data-register-progress]'));
+        const back = registerForm.querySelector('[data-register-back]');
+        const next = registerForm.querySelector('[data-register-next]');
+        const submit = registerForm.querySelector('[data-register-submit]');
+        let currentStep = 0;
+
+        function showStep(index, moveFocus) {
+            currentStep = index;
+            steps.forEach(function (step, i) { step.hidden = i !== index; });
+            progress.forEach(function (item, i) {
+                item.classList.toggle('is-complete', i < index);
+                if (i === index) item.setAttribute('aria-current', 'step');
+                else item.removeAttribute('aria-current');
+            });
+            back.hidden = index === 0;
+            next.hidden = index === steps.length - 1;
+            submit.hidden = index !== steps.length - 1;
+            if (moveFocus) steps[index].querySelector('h2').focus({ preventScroll: true });
+        }
+
+        function firstInvalidField(panel) {
+            return Array.from(panel.querySelectorAll('input, select, textarea'))
+                .find(function (field) { return !field.checkValidity(); });
+        }
+
+        function advanceStep() {
+            const invalid = firstInvalidField(steps[currentStep]);
+            if (invalid) { invalid.reportValidity(); return; }
+            if (currentStep < steps.length - 1) showStep(currentStep + 1, true);
+        }
+
+        if (steps.length && back && next && submit) {
+            // Validate the relevant step before revealing a field that needs attention.
+            registerForm.noValidate = true;
+            registerForm.classList.add('auth-registration-wizard');
+            container.classList.add('registration-wizard-ready');
+            registerForm.querySelector('.auth-registration-progress').hidden = false;
+            const errorStep = steps.findIndex(function (step) { return step.querySelector('.invalid'); });
+            showStep(errorStep < 0 ? 0 : errorStep, false);
+            back.addEventListener('click', function () { showStep(currentStep - 1, true); });
+            next.addEventListener('click', advanceStep);
+            registerForm.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' && !event.isComposing && event.target instanceof HTMLInputElement && currentStep < steps.length - 1) {
+                    event.preventDefault();
+                    advanceStep();
+                }
+            });
+        }
 
         function clearPasswordMatchValidity() {
             if (confirmInput) {
@@ -170,15 +220,19 @@
         }
 
         registerForm.addEventListener('submit', function (event) {
-            if (!validatePasswordMatch()) {
+            if (steps.length && currentStep < steps.length - 1) {
                 event.preventDefault();
-                confirmInput.reportValidity();
+                advanceStep();
                 return;
             }
 
-            if (!registerForm.checkValidity()) {
+            validatePasswordMatch();
+            const invalid = firstInvalidField(registerForm);
+            if (invalid) {
                 event.preventDefault();
-                registerForm.reportValidity();
+                const index = steps.findIndex(function (step) { return step.contains(invalid); });
+                if (index >= 0) showStep(index, false);
+                invalid.reportValidity();
             }
         });
     }

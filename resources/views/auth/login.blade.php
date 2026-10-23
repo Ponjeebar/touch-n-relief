@@ -28,145 +28,174 @@
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <h1 tabindex="-1">Create Account</h1>
                 @include('auth.partials.social-buttons', ['socialIntent' => 'signup'])
-                <input
-                    type="text"
-                    name="name"
-                    placeholder="Name"
-                    value="{{ old('name') }}"
-                    autocomplete="name"
-                    maxlength="255"
-                    pattern="{{ \App\Rules\PersonName::HTML_PATTERN }}"
-                    title="{{ \App\Rules\PersonName::MESSAGE }}"
-                    class="@error('name', 'register') invalid @enderror"
-                    required
-                >
-                @error('name', 'register')
-                    <p class="field-msg">{{ $message }}</p>
-                @enderror
-                <input
-                    type="text"
-                    name="username"
-                    placeholder="Username"
-                    value="{{ old('username') }}"
-                    autocomplete="username"
-                    autocapitalize="none"
-                    spellcheck="false"
-                    minlength="3"
-                    maxlength="30"
-                    pattern="[A-Za-z0-9_\-]+"
-                    title="3–30 characters: letters, numbers, underscores, and hyphens only."
-                    class="@error('username', 'register') invalid @enderror"
-                    required
-                >
-                @error('username', 'register')
-                    <p class="field-msg">{{ $message }}</p>
-                @enderror
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="Enter E-mail"
-                    value="{{ old('email') }}"
-                    autocomplete="email"
-                    maxlength="255"
-                    class="@error('email', 'register') invalid @enderror"
-                    required
-                >
-                @error('email', 'register')
-                    <p class="field-msg">{{ $message }}</p>
-                @enderror
-                <input
-                    type="tel"
-                    name="contact_number"
-                    placeholder="Contact number"
-                    value="{{ old('contact_number') }}"
-                    autocomplete="tel"
-                    maxlength="11"
-                    pattern="^09\d{9}$"
-                    title="Use 09XXXXXXXXX (11 digits)."
-                    inputmode="numeric"
-                    class="@error('contact_number', 'register') invalid @enderror"
-                    required
-                >
-                @error('contact_number', 'register')
-                    <p class="field-msg">{{ $message }}</p>
-                @enderror
-                <div class="auth-field-block">
-                    <label class="auth-field-label" for="register-birthday">Birthday</label>
+                <ol class="auth-registration-progress" aria-label="Registration progress" hidden>
+                    <li data-register-progress="0"><span class="auth-step-number" aria-hidden="true">1</span><span>Personal</span></li>
+                    <li data-register-progress="1"><span class="auth-step-number" aria-hidden="true">2</span><span>Contact</span></li>
+                    <li data-register-progress="2"><span class="auth-step-number" aria-hidden="true">3</span><span>Account</span></li>
+                </ol>
+                <section class="auth-registration-step" data-register-step="0" aria-labelledby="register-personal-heading">
+                    <h2 id="register-personal-heading" tabindex="-1">Tell us about yourself.</h2>
+                    <label class="auth-field-label" for="register-name">Full name</label>
                     <input
-                        type="date"
-                        id="register-birthday"
-                        name="birthday"
-                        value="{{ old('birthday') }}"
-                        max="{{ \App\Support\CustomerEligibility::latestEligibleBirthday() }}"
-                        autocomplete="bday"
-                        class="@error('birthday', 'register') invalid @enderror"
+                        type="text"
+                        id="register-name"
+                        name="name"
+                        placeholder="Name"
+                        value="{{ old('name') }}"
+                        autocomplete="name"
+                        maxlength="255"
+                        pattern="{{ \App\Rules\PersonName::HTML_PATTERN }}"
+                        title="{{ \App\Rules\PersonName::MESSAGE }}"
+                        class="@error('name', 'register') invalid @enderror"
                         required
                     >
-                    @error('birthday', 'register')
+                    @error('name', 'register')
                         <p class="field-msg">{{ $message }}</p>
                     @enderror
-                    <p class="auth-field-hint">Must be 15 years old or above.</p>
-                </div>
-                <fieldset class="auth-gender-field @error('sex', 'register') invalid @enderror">
-                    <legend>Sex</legend>
-                    <div class="auth-gender-options">
-                        <label class="auth-gender-option">
-                            <input type="radio" name="sex" value="male" @checked(old('sex') === 'male') required>
-                            <span>Male</span>
-                        </label>
-                        <label class="auth-gender-option">
-                            <input type="radio" name="sex" value="female" @checked(old('sex') === 'female')>
-                            <span>Female</span>
-                        </label>
+                    <div class="auth-field-block">
+                        <label class="auth-field-label" for="register-birthday">Birthday</label>
+                        <input
+                            type="date"
+                            id="register-birthday"
+                            name="birthday"
+                            value="{{ old('birthday') }}"
+                            max="{{ \App\Support\CustomerEligibility::latestEligibleBirthday() }}"
+                            autocomplete="bday"
+                            class="@error('birthday', 'register') invalid @enderror"
+                            required
+                        >
+                        @error('birthday', 'register')
+                            <p class="field-msg">{{ $message }}</p>
+                        @enderror
+                        <p class="auth-field-hint">Must be 15 years old or above.</p>
                     </div>
-                </fieldset>
-                @error('sex', 'register')
-                    <p class="field-msg">{{ $message }}</p>
-                @enderror
-                <div class="auth-password-policy-field" data-password-policy>
-                <div class="auth-password-wrap">
+                    <fieldset class="auth-gender-field @error('sex', 'register') invalid @enderror">
+                        <legend>Sex</legend>
+                        <div class="auth-gender-options">
+                            <label class="auth-gender-option">
+                                <input type="radio" name="sex" value="male" @checked(old('sex') === 'male') required>
+                                <span>Male</span>
+                            </label>
+                            <label class="auth-gender-option">
+                                <input type="radio" name="sex" value="female" @checked(old('sex') === 'female')>
+                                <span>Female</span>
+                            </label>
+                        </div>
+                    </fieldset>
+                    @error('sex', 'register')
+                        <p class="field-msg">{{ $message }}</p>
+                    @enderror
+                </section>
+                <section class="auth-registration-step" data-register-step="1" aria-labelledby="register-contact-heading">
+                    <h2 id="register-contact-heading" tabindex="-1">How can we reach you?</h2>
+                    <label class="auth-field-label" for="register-email">Email address</label>
                     <input
-                        id="register-password"
-                        type="password"
-                        name="password"
-                        placeholder="Enter Password"
-                        autocomplete="new-password"
-                        minlength="8"
-                        class="@error('password', 'register') invalid @enderror"
-                        data-password-primary
+                        type="email"
+                        id="register-email"
+                        name="email"
+                        placeholder="Enter E-mail"
+                        value="{{ old('email') }}"
+                        autocomplete="email"
+                        maxlength="255"
+                        class="@error('email', 'register') invalid @enderror"
                         required
                     >
-                    <button type="button" class="auth-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
-                        <i class="bi bi-eye" aria-hidden="true"></i>
-                    </button>
-                </div>
-                @include('partials.password-requirements')
-                </div>
-                @error('password', 'register')
-                    <p class="field-msg">{{ $message }}</p>
-                @enderror
-                <div class="auth-password-wrap">
+                    @error('email', 'register')
+                        <p class="field-msg">{{ $message }}</p>
+                    @enderror
+                    <label class="auth-field-label" for="register-contact_number">Contact number</label>
                     <input
-                        type="password"
-                        name="password_confirmation"
-                        placeholder="Confirm Password"
-                        autocomplete="new-password"
-                        minlength="8"
-                        data-password-confirmation
+                        type="tel"
+                        id="register-contact_number"
+                        name="contact_number"
+                        placeholder="Contact number"
+                        value="{{ old('contact_number') }}"
+                        autocomplete="tel"
+                        maxlength="11"
+                        pattern="^09\d{9}$"
+                        title="Use 09XXXXXXXXX (11 digits)."
+                        inputmode="numeric"
+                        class="@error('contact_number', 'register') invalid @enderror"
                         required
                     >
-                    <button type="button" class="auth-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
-                        <i class="bi bi-eye" aria-hidden="true"></i>
-                    </button>
+                    @error('contact_number', 'register')
+                        <p class="field-msg">{{ $message }}</p>
+                    @enderror
+                </section>
+                <section class="auth-registration-step" data-register-step="2" aria-labelledby="register-account-heading">
+                    <h2 id="register-account-heading" tabindex="-1">Set up your account.</h2>
+                    <label class="auth-field-label" for="register-username">Username</label>
+                    <input
+                        type="text"
+                        id="register-username"
+                        name="username"
+                        placeholder="Username"
+                        value="{{ old('username') }}"
+                        autocomplete="username"
+                        autocapitalize="none"
+                        spellcheck="false"
+                        minlength="3"
+                        maxlength="30"
+                        pattern="[A-Za-z0-9_\-]+"
+                        title="3–30 characters: letters, numbers, underscores, and hyphens only."
+                        class="@error('username', 'register') invalid @enderror"
+                        required
+                    >
+                    @error('username', 'register')
+                        <p class="field-msg">{{ $message }}</p>
+                    @enderror
+                    <label class="auth-field-label" for="register-password">Password</label>
+                    <div class="auth-password-policy-field" data-password-policy>
+                    <div class="auth-password-wrap">
+                        <input
+                            id="register-password"
+                            type="password"
+                            name="password"
+                            placeholder="Enter Password"
+                            autocomplete="new-password"
+                            minlength="8"
+                            class="@error('password', 'register') invalid @enderror"
+                            data-password-primary
+                            required
+                        >
+                        <button type="button" class="auth-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
+                            <i class="bi bi-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    @include('partials.password-requirements')
+                    </div>
+                    @error('password', 'register')
+                        <p class="field-msg">{{ $message }}</p>
+                    @enderror
+                    <label class="auth-field-label" for="register-password-confirmation">Confirm password</label>
+                    <div class="auth-password-wrap">
+                        <input
+                            id="register-password-confirmation"
+                            type="password"
+                            name="password_confirmation"
+                            placeholder="Confirm Password"
+                            autocomplete="new-password"
+                            minlength="8"
+                            data-password-confirmation
+                            required
+                        >
+                        <button type="button" class="auth-password-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">
+                            <i class="bi bi-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <label class="auth-terms-option @error('terms_accepted', 'register') invalid @enderror">
+                        <input type="checkbox" name="terms_accepted" value="1" @checked(old('terms_accepted')) required>
+                        <span>I agree to the <button type="button" class="auth-legal-link" data-auth-legal-open="terms">Terms and Conditions</button> and acknowledge the <button type="button" class="auth-legal-link" data-auth-legal-open="privacy">Privacy Policy</button>.</span>
+                    </label>
+                    @error('terms_accepted', 'register')
+                        <p class="field-msg">{{ $message }}</p>
+                    @enderror
+                </section>
+                <div class="auth-registration-actions">
+                    <button type="button" class="auth-registration-back" data-register-back hidden>Back</button>
+                    <button type="button" class="auth-registration-next" data-register-next hidden>Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    <button type="submit" data-register-submit>Sign Up</button>
                 </div>
-                <label class="auth-terms-option @error('terms_accepted', 'register') invalid @enderror">
-                    <input type="checkbox" name="terms_accepted" value="1" @checked(old('terms_accepted')) required>
-                    <span>I agree to the <button type="button" class="auth-legal-link" data-auth-legal-open="terms">Terms and Conditions</button> and acknowledge the <button type="button" class="auth-legal-link" data-auth-legal-open="privacy">Privacy Policy</button>.</span>
-                </label>
-                @error('terms_accepted', 'register')
-                    <p class="field-msg">{{ $message }}</p>
-                @enderror
-                <button type="submit">Sign Up</button>
                 <div class="mobile-toggle">
                     <span>Already have an account?</span>
                     <button type="button" class="link" data-auth-panel="login">Sign In</button>
