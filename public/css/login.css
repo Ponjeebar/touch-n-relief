@@ -1859,6 +1859,20 @@ body.auth-page #container .sign-up {
     overflow-y: auto;
 }
 
+body.auth-page #container .sign-up form .auth-gender-option {
+    position: relative;
+}
+
+body.auth-page #container .sign-up form .auth-gender-option input {
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
 body.auth-page #container .sign-up form {
     height: auto;
     min-height: 100%;

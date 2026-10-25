@@ -5,9 +5,15 @@ for (const width of [390, 768, 1366]) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/login?register=1');
         const form = page.locator('#register-form');
+        const panel = page.locator('.form-container.sign-up');
+        const expectNoHorizontalOverflow = async () => {
+            expect(await panel.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
+        };
         const name = form.locator('[name="name"]');
         await expect(name).toBeVisible();
         await page.screenshot({ path: testInfo.outputPath('personal-step.png'), fullPage: true, animations: 'disabled' });
+        await name.focus();
+        await expectNoHorizontalOverflow();
         for (const value of ['Maria123', '123', 'Maria@Clara', '---']) {
             await name.fill(value);
             expect(await name.evaluate(el => el.validity.patternMismatch), value).toBe(true);
@@ -21,10 +27,16 @@ for (const width of [390, 768, 1366]) {
         await expect(form.locator('[name="email"]')).toBeHidden();
         await form.locator('[name="birthday"]').fill('2000-01-01');
         await form.getByText('Female', { exact: true }).click();
+        await expect(form.locator('[name="sex"][value="female"]')).toBeChecked();
+        await form.locator('[name="sex"][value="female"]').focus();
+        await page.keyboard.press('ArrowLeft');
+        await expect(form.locator('[name="sex"][value="male"]')).toBeChecked();
+        await expectNoHorizontalOverflow();
         await name.press('Enter');
         await expect(form.locator('[name="email"]')).toBeVisible();
         await expect(name).toBeHidden();
         await form.locator('[name="email"]').fill('maria@example.com');
+        await expectNoHorizontalOverflow();
         const phone = form.locator('[name="contact_number"]');
         await phone.fill('0912345678x');
         expect(await phone.evaluate(el => el.validity.patternMismatch)).toBe(true);
@@ -39,6 +51,7 @@ for (const width of [390, 768, 1366]) {
         const username = form.locator('[name="username"]');
         expect(await page.locator('#container').evaluate(el => el.scrollLeft)).toBe(0);
         await page.screenshot({ path: testInfo.outputPath('account-step.png'), fullPage: true, animations: 'disabled' });
+        await expectNoHorizontalOverflow();
         await username.fill('bad username');
         expect(await username.evaluate(el => el.validity.patternMismatch)).toBe(true);
         await username.fill('maria_clara-2');
