@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test.setTimeout(180_000);
+test.use({ reducedMotion: 'reduce' });
 
 test('customer can switch therapist without a new payment and review a later cancellation', async ({ page }, testInfo) => {
     await page.goto('/login');
@@ -60,6 +61,12 @@ test('customer can switch therapist without a new payment and review a later can
         if (await upcoming.count()) await upcoming.click();
         await page.getByRole('button', { name: 'Reschedule fixture appointment' }).click();
         const modal = page.locator('#tnr-reschedule-booking-modal');
+        await expect(modal.getByRole('heading', { name: 'Current appointment', exact: true })).toBeInViewport();
+        await expect(modal.locator('#tnr-reschedule-current-time')).toContainText('10:00 AM');
+        await expect(modal.getByRole('button', { name: 'Close', exact: true })).toBeFocused();
+        const saveSize = await modal.locator('#tnr-reschedule-submit').boundingBox();
+        expect(saveSize.height).toBeGreaterThanOrEqual(44);
+        expect(saveSize.height).toBeLessThan(65);
         await expect(modal.locator('.txn-reschedule-slot').first()).toBeDisabled();
         await modal.locator('#tnr-reschedule-therapist-choice').selectOption('Juan dela Cruz');
         await expect(modal.locator('.txn-reschedule-slot').first()).toBeEnabled();

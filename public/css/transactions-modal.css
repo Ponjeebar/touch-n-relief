@@ -851,12 +851,12 @@
 .txn-reschedule-panel {
     position: relative;
     z-index: 1;
-    width: min(640px, calc(100vw - 2rem));
-    max-height: min(92vh, 820px);
+    width: min(680px, calc(100vw - 2rem));
+    max-height: min(calc(100dvh - 2rem), 900px);
     display: flex;
     flex-direction: column;
     background: #fff;
-    border-radius: 18px;
+    border-radius: 14px;
     border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
     overflow: hidden;
@@ -865,12 +865,13 @@
 
 .txn-reschedule-header {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    padding: 1rem 1.15rem;
+    padding: 1.1rem 1.5rem;
     border-bottom: 1px solid #e8eef2;
-    background: linear-gradient(180deg, #f3f9fc 0%, #fff 100%);
+    background: #fff;
 }
 
 .txn-reschedule-title {
@@ -881,7 +882,7 @@
 }
 
 .txn-reschedule-body {
-    padding: 1rem 1.15rem;
+    padding: 1.25rem 1.5rem;
     overflow-y: auto;
     flex: 1;
     min-height: 0;
@@ -895,22 +896,62 @@
 }
 
 .txn-reschedule-booking-ref {
-    margin: 0 0 1rem;
+    margin: 0.35rem 0 0;
     font-size: 0.82rem;
     font-weight: 700;
-    color: #1a5f82;
+    color: #52675c;
+    overflow-wrap: anywhere;
+}
+
+.txn-reschedule-booking-ref:empty { display: none; }
+
+.txn-reschedule-section-title {
+    margin: 0;
+    color: #214c3b;
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.txn-reschedule-editor {
+    margin-top: 1.2rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid #dce6df;
+}
+
+.txn-reschedule-editor > .txn-reschedule-lead { margin-top: 0.4rem; }
+
+.txn-reschedule-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.txn-reschedule-field { min-width: 0; }
+
+.txn-reschedule-panel .txn-search-input {
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    box-sizing: border-box;
+    border-radius: 8px;
+}
+
+.txn-reschedule-panel :is(.txn-search-input, .txn-reschedule-slot, .txn-modal-btn, .txn-modal-close):focus-visible {
+    outline: 2px solid #08764f;
+    outline-offset: 3px;
 }
 
 .txn-reschedule-summary {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem 1rem;
-    margin: 0 0 1rem;
-    padding: 0.75rem 0.85rem;
-    border-radius: 12px;
-    background: #f4f9fc;
-    border: 1px solid #d9e6ee;
+    margin: 0.85rem 0 0;
+    padding: 0;
 }
+
+.txn-reschedule-summary-date { grid-column: 1 / -1; }
+.txn-reschedule-summary > div { min-width: 0; }
 
 .txn-reschedule-summary dt {
     margin: 0 0 0.15rem;
@@ -918,7 +959,7 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #7a8f9c;
+    color: #52675c;
 }
 
 .txn-reschedule-summary dd {
@@ -926,6 +967,7 @@
     font-size: 0.9rem;
     font-weight: 600;
     color: #243843;
+    overflow-wrap: anywhere;
 }
 
 .txn-reschedule-field {
@@ -939,15 +981,15 @@
 }
 
 .txn-reschedule-slots {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(98px, 1fr));
+    gap: 0.5rem;
 }
 
 .txn-reschedule-slot {
     min-height: 44px;
     border: 1px solid #c2d3de;
-    border-radius: 999px;
+    border-radius: 7px;
     padding: 0.38rem 0.72rem;
     font-size: 0.82rem;
     font-weight: 600;
@@ -958,15 +1000,15 @@
     transition: background 0.12s ease, border-color 0.12s ease;
 }
 
-.txn-reschedule-slot:hover:not(:disabled) {
-    border-color: #2d84af;
-    background: #eef7fc;
+.txn-reschedule-slot:hover:not(:disabled):not(.is-active) {
+    border-color: #08764f;
+    background: #eef7f2;
 }
 
 .txn-reschedule-slot.is-active {
-    border-color: #1f7aa0;
-    background: #dff2fc;
-    color: #084d68;
+    border-color: #08764f;
+    background: #08764f;
+    color: #fff;
 }
 
 .txn-reschedule-slot.is-unavailable {
@@ -988,30 +1030,44 @@
 
 .txn-reschedule-footer {
     display: flex;
+    flex-shrink: 0;
     justify-content: flex-end;
     flex-wrap: wrap;
     gap: 0.5rem;
-    padding: 0.85rem 1.15rem 1.1rem;
+    padding: 1rem 1.5rem;
     border-top: 1px solid #e8eef2;
-    background: #fafcfd;
+    background: #fff;
 }
 
+.txn-reschedule-footer .txn-modal-btn { min-height: 44px; border-radius: 8px; }
+
 .txn-reschedule-back {
-    background: #eef4f7;
-    color: #1a4f63;
+    background: #eef3ef;
+    color: #244d3c;
 }
 
 .txn-reschedule-back:hover {
-    background: #e2edf2;
+    background: #e0eae2;
 }
 
 .txn-reschedule-submit {
-    background: #1f7aa0;
+    background: #08764f;
 }
 
 .txn-reschedule-submit:hover:not(:disabled) {
-    background: #186688;
+    background: #065f40;
 }
+
+.txn-reschedule-review {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    border-left: 3px solid #08764f;
+    background: #eef7f2;
+}
+
+#tnr-reschedule-proposed { margin: 0.4rem 0; font-size: 0.92rem; color: #244d3c; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+.txn-reschedule-review .txn-reschedule-lead { margin: 0; font-size: 0.82rem; }
+.txn-reschedule-policy { margin: 0.8rem 0 0; color: #52675c; font-size: 0.8rem; line-height: 1.5; }
 
 .txn-reschedule-submit:disabled {
     opacity: 0.55;
@@ -1034,8 +1090,29 @@ html[data-theme="dark"] .txn-reschedule-footer {
 }
 
 html[data-theme="dark"] .txn-reschedule-summary {
-    background: #24313b;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: transparent;
+}
+
+html[data-theme="dark"] .txn-reschedule-editor { border-color: #465c68; }
+html[data-theme="dark"] .txn-reschedule-section-title { color: #b2e4cd; }
+html[data-theme="dark"] .txn-reschedule-summary dt,
+html[data-theme="dark"] .txn-reschedule-policy { color: #b7cbd8; }
+html[data-theme="dark"] .txn-reschedule-review { background: #183b32; border-color: #70e2bd; }
+html[data-theme="dark"] #tnr-reschedule-proposed { color: #e8f5ee; }
+html[data-theme="dark"] .txn-reschedule-slot { background: #17252e; border-color: #526b78; color: #f0f6f8; }
+html[data-theme="dark"] .txn-reschedule-slot:hover:not(:disabled):not(.is-active) { background: #25473b; border-color: #70e2bd; }
+html[data-theme="dark"] .txn-reschedule-slot.is-active { background: #70e2bd; border-color: #70e2bd; color: #102b22; }
+html[data-theme="dark"] .txn-reschedule-back { background: #2c3d46; color: #e8eef2; }
+html[data-theme="dark"] .txn-reschedule-back:hover { background: #3a505c; }
+html[data-theme="dark"] .txn-reschedule-panel :is(.txn-search-input, .txn-reschedule-slot, .txn-modal-btn, .txn-modal-close):focus-visible { outline-color: #70e2bd; }
+
+@media (max-width: 540px) {
+    .txn-reschedule-modal { padding: 0.5rem; }
+    .txn-reschedule-panel { width: 100%; max-height: calc(100dvh - 1rem); }
+    .txn-reschedule-header, .txn-reschedule-body, .txn-reschedule-footer { padding: 1rem; }
+    .txn-reschedule-fields { grid-template-columns: 1fr; gap: 0; }
+    .txn-reschedule-footer { flex-direction: column-reverse; }
+    .txn-reschedule-footer .txn-modal-btn { width: 100%; flex: 0 0 auto; }
 }
 
 html[data-theme="dark"] .txn-reschedule-title,

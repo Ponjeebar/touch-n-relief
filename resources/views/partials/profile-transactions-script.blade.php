@@ -812,8 +812,8 @@
         );
         if (rescheduleProposed) {
             rescheduleProposed.textContent = rescheduleTimeInput?.value
-                ? 'New appointment: ' + activeRescheduleTherapist + ' · ' + rescheduleDate.value + ' at ' + rescheduleTimeInput.value + '.'
-                : '';
+                ? activeRescheduleTherapist + ' · ' + rescheduleDate.value + ' at ' + rescheduleTimeInput.value + '.'
+                : 'Select an available time to review your new appointment.';
         }
     }
 
@@ -971,6 +971,13 @@
         document.getElementById('tnr-reschedule-balance').textContent = btn.getAttribute('data-remaining-balance') || '—';
         activeRescheduleOriginalDate = btn.getAttribute('data-booking-date') || '';
         activeRescheduleOriginalTime = btn.getAttribute('data-time-slot') || '';
+        var currentAppointmentTime = document.getElementById('tnr-reschedule-current-time');
+        if (currentAppointmentTime) {
+            var displayDate = activeRescheduleOriginalDate
+                ? new Date(activeRescheduleOriginalDate + 'T12:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+                : '';
+            currentAppointmentTime.textContent = [displayDate, activeRescheduleOriginalTime].filter(Boolean).join(' · ');
+        }
         var currentDate = activeRescheduleOriginalDate;
 
         if (rescheduleRef) rescheduleRef.textContent = btn.getAttribute('data-booking-label') || '';
@@ -984,7 +991,7 @@
         rescheduleModal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('txn-reschedule-open');
         loadRescheduleSlots();
-        rescheduleModal.querySelector('.txn-reschedule-back')?.focus();
+        rescheduleModal.querySelector('.txn-modal-close')?.focus();
     }
 
     function updateCardAfterReschedule(card, booking) {
