@@ -44,9 +44,27 @@
 .membership-admin-card ul { grid-column: 1 / -1; margin: 4px 0 0; padding-left: 20px; color: var(--text, #17212b); }
 .membership-admin-label { color: #04724d; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 
-.membership-editor { grid-column: 1 / -1; min-width: 0; }
-.membership-editor summary { width: fit-content; cursor: pointer; font-weight: 600; }
-.membership-editor summary:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.membership-editor { grid-column: 1 / -1; min-width: 0; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--border, #bcd9d1); }
+.membership-editor summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    min-height: 44px;
+    margin-left: auto;
+    padding: 10px 18px;
+    border: 1px solid #04724d;
+    border-radius: 10px;
+    background: #04724d;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+}
+.membership-editor summary::-webkit-details-marker { display: none; }
+.membership-editor summary:hover { background: #035a3d; border-color: #035a3d; }
+.membership-editor summary:focus-visible { outline: 2px solid var(--primary, #04724d); outline-offset: 4px; }
 .membership-editor form { display: grid; gap: 16px; margin-top: 18px; max-width: 760px; }
 .membership-editor .user-action { justify-self: start; }
 .membership-editor .profile-field { min-width: 0; }

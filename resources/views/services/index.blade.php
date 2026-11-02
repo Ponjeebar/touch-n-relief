@@ -218,7 +218,7 @@
                                 @if (auth()->user()?->isAdmin())
                                     @php($editingMembership = $errors->getBag('membership')->any() && (int) old('_membership_plan_id') === $plan->id)
                                     <details class="membership-editor" @if ($editingMembership) open @endif>
-                                        <summary>Edit membership</summary>
+                                        <summary><i class="bi bi-pencil-square" aria-hidden="true"></i> Edit membership</summary>
                                         <form class="service-modal-form" method="POST" action="{{ route('membership-plans.update', $plan) }}">
                                             @csrf
                                             @method('PUT')

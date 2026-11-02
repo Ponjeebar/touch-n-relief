@@ -10,7 +10,14 @@ test('administrator edits membership in the Services CMS', async ({ page }, test
     await expect(page).toHaveURL(/\/dashboard$/, { timeout: 60_000 });
     await page.goto('/services');
     const editor = page.locator('.membership-editor').first();
-    await editor.locator('summary').click();
+    for (const width of [390, 768, 1366]) {
+        await page.setViewportSize({ width, height: 900 });
+        await expect(page.locator('.page-transition-skeleton')).toBeHidden();
+        await page.locator('.membership-admin-card').first().screenshot({ path: testInfo.outputPath(`membership-action-${width}.png`), animations: 'disabled' });
+    }
+    await editor.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(editor).toHaveAttribute('open', '');
     const form = editor.locator('form');
     const original = {};
     for (const name of ['name', 'description', 'price_amount', 'validity_days', 'benefits', 'is_active']) {
