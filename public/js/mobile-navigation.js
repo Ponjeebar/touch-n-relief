@@ -231,7 +231,30 @@
         sync();
     }
 
+    function setupCustomerAccountMenus() {
+        document.querySelectorAll('[data-user-menu]').forEach((userMenuWrap) => {
+            const btn = userMenuWrap.querySelector('.nav-user');
+            const close = () => {
+                userMenuWrap.classList.remove('open');
+                btn?.setAttribute('aria-expanded', 'false');
+            };
+            const open = () => {
+                userMenuWrap.classList.add('open');
+                btn?.setAttribute('aria-expanded', 'true');
+            };
+            btn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userMenuWrap.classList.contains('open') ? close() : open();
+            });
+            document.addEventListener('click', close);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') close();
+            });
+        });
+    }
+
     function init() {
+        setupCustomerAccountMenus();
         setupStaffSidebar();
         setupMenu('.landing-header', '.mobile-nav-toggle', 'is-mobile-nav-open', '(max-width: 900px)');
         setupLandingScrollSpy();

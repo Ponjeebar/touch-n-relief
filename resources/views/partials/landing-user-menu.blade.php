@@ -13,6 +13,8 @@
     <div class="nav-user-menu" role="menu">
         @if ($user->isAdmin())
             <a role="menuitem" href="{{ route('dashboard') }}">Dashboard</a>
+        @endif
+        @if ($user->isAdmin() && ($navMode ?? 'full') === 'full')
             <button type="button" role="menuitem" class="nav-user-menu-btn" data-open-profile-modal>Edit Profile</button>
         @else
             <a role="menuitem" href="{{ route('profile.edit') }}">Edit Profile</a>

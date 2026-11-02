@@ -2732,3 +2732,21 @@ html[data-theme="dark"] .bk-no-show-policy strong {
         min-height: 44px;
     }
 }
+
+/* Keep earlier choices visible while using the existing booking steps. */
+.booking-selection-summary { margin-bottom: 14px; padding: 10px 16px; border: 1px solid #c8dad3; border-radius: 12px; background: #f5faf7; color: #203b30; }
+.booking-selection-summary[hidden], .booking-selection-summary [hidden] { display: none; }
+.booking-selection-summary > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 4px 0; }
+.booking-selection-label { font-size: 12px; color: #50685d; }
+.booking-selection-summary strong { font-size: 14px; overflow-wrap: anywhere; }
+.booking-selection-summary button { margin-left: auto; min-height: 40px; padding: 6px 8px; border: 0; background: transparent; color: #086345; font: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.booking-selection-summary button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.bk-payment-review { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.bk-review-title { margin: 0; padding: 12px 14px; font-size: 15px; }
+.bk-checkout-explanation { margin: 0 0 12px; font-size: 14px; line-height: 1.6; }
+.bk-payment-channels-details summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 0; }
+.bk-review-title, .bk-checkout-explanation, .bk-payment-channels-details summary { color: #1f3a46; }
+html[data-theme="dark"] .booking-selection-summary { background: #203a2e; color: #e8f4ee; border-color: #537564; }
+html[data-theme="dark"] .booking-selection-label { color: #b9d2c5; }
+html[data-theme="dark"] .booking-selection-summary button { color: #a9e5cb; }
+@media (max-width: 700px) { .bk-payment-review { grid-template-columns: minmax(0, 1fr); } .booking-selection-summary { padding: 8px 12px; } }

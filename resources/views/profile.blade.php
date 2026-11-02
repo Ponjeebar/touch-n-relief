@@ -771,32 +771,7 @@
     @include('partials.chatbot-assets')
 </head>
 <body>
-    <header class="landing-header nav-solid">
-        <div class="container">
-            <div class="nav-shell">
-                <div class="brand-wrap">
-                    <img src="{{ asset('images/dashboard/logo.png') }}" alt="Buenos Touche logo" class="brand-logo">
-                    <div class="brand">TouchNRelief</div>
-                </div>
-                <nav class="nav-links" id="public-mobile-navigation">
-                    <a href="{{ route('landing') }}">Home</a>
-                    <form method="POST" action="{{ route('logout') }}" style="margin:0">
-                        @csrf
-                        <button type="submit" class="btn btn-outline" style="cursor:pointer">Logout</button>
-                    </form>
-                </nav>
-                <div class="nav-header-actions">
-                    @include('partials.customer-notifications')
-                    <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
-                        <span class="mobile-nav-icon" aria-hidden="true"></span>
-                        <span>Menu</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
-    @include('partials.customer-mobile-nav')
-    <script src="{{ asset('js/mobile-navigation.js') }}?v={{ filemtime(public_path('js/mobile-navigation.js')) }}" defer></script>
+    @include('partials.landing-nav', ['navMode' => 'profile', 'solidNav' => true])
 
     <main class="profile-page">
         <div class="container profile-layout">

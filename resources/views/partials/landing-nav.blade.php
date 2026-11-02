@@ -24,35 +24,27 @@
                     <a href="{{ $onLanding ? '#therapists' : route('landing').'#therapists' }}" class="landing-section-link" data-landing-section="therapists"><span>Therapists</span></a>
                     <a href="{{ $onLanding ? '#about' : route('landing').'#about' }}" class="landing-section-link" data-landing-section="about"><span>About</span></a>
                     <a href="{{ $onLanding ? '#contact' : route('landing').'#contact' }}" class="landing-section-link" data-landing-section="contact"><span>Contact</span></a>
-                @elseif ($navMode === 'booking')
+                @elseif (in_array($navMode, ['booking', 'profile'], true))
                     <a href="{{ route('landing') }}">Home</a>
-                    <a href="{{ route('profile.edit') }}">Profile</a>
-                    <button type="button" class="nav-txn-link" data-tnr-open-transactions>My Appointments</button>
                 @endif
-                @if ($navMode === 'full')
+                @if (in_array($navMode, ['full', 'booking', 'profile'], true))
                     @auth
                         @include('partials.landing-user-menu', ['navUserWrapperClass' => 'nav-user-wrap--mobile'])
                     @else
                         <a href="{{ route('login') }}" class="btn btn-outline">Log In</a>
                     @endauth
-                @elseif ($navMode === 'booking')
-                    <form method="POST" action="{{ route('logout') }}" style="margin:0">
-                        @csrf
-                        <button type="submit" class="btn btn-outline" style="cursor:pointer">Logout</button>
-                    </form>
                 @endif
                 </nav>
             @endif
             <div class="nav-header-actions">
-                @if ($navMode === 'full')
+                @if (in_array($navMode, ['full', 'booking', 'profile'], true))
                     @auth
                         @if ($user->isUser() && ! $user->isWalkIn())
+                            <button type="button" class="nav-appointments-direct" data-tnr-open-transactions>My Appointments</button>
                             @include('partials.customer-notifications')
                         @endif
                         @include('partials.landing-user-menu', ['navUserWrapperClass' => 'nav-user-wrap--desktop'])
                     @endauth
-                @elseif ($navMode === 'booking')
-                    @include('partials.customer-notifications')
                 @endif
                 @if ($navMode !== 'auth')
                     <button type="button" class="mobile-nav-toggle" aria-controls="public-mobile-navigation" aria-expanded="false" aria-label="Open navigation menu">
@@ -67,4 +59,5 @@
 @include('partials.customer-mobile-nav')
 @once
     <script src="{{ asset('js/mobile-navigation.js') }}?v={{ filemtime(public_path('js/mobile-navigation.js')) }}" defer></script>
+    <script src="{{ asset('js/landing-theme.js') }}?v={{ filemtime(public_path('js/landing-theme.js')) }}" defer></script>
 @endonce

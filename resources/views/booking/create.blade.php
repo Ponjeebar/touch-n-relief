@@ -113,6 +113,10 @@
                         @endforeach
                     </ol>
                 </div>
+                <section class="booking-selection-summary" id="booking-selection-summary" aria-label="Your booking selections" hidden>
+                    <div><span class="booking-selection-label">Service</span><strong id="booking-selected-service"></strong><span id="booking-selected-price"></span><button type="button" data-edit-booking-step="service">Edit service</button></div>
+                    <div id="booking-selected-therapist-row" hidden><span class="booking-selection-label">Therapist</span><strong id="booking-selected-therapist"></strong><button type="button" data-edit-booking-step="therapist">Edit therapist</button></div>
+                </section>
                 <section class="booking-panel booking-panel-schedule {{ $bookingInitialStep === 'schedule' ? 'is-mobile-active' : '' }}" id="booking-panel-schedule">
                     <h2>Choose a Date and Time</h2>
                     <form id="booking-form" method="POST" action="{{ route('booking.store') }}" enctype="multipart/form-data">
@@ -285,8 +289,6 @@
         </div>
     </main>
 
-    @include('partials.profile-transactions-modal')
-
     <div class="bk-modal bk-hidden" id="bkConfirmModal" role="dialog" aria-modal="true" aria-labelledby="bkConfirmTitle" aria-hidden="true">
         <div class="bk-backdrop" data-bk-close="true"></div>
         <div class="bk-dialog bk-dialog-payment" role="document">
@@ -304,9 +306,10 @@
             <div class="bk-body bk-payment-body">
                 <div class="bk-payment-hero">
                     <div class="bk-payment-hero-main">
-                        <span class="bk-payment-hero-label">Amount due</span>
+                        <span class="bk-payment-hero-label">Pay now</span>
                         <span class="bk-payment-hero-amount" id="bkSumAmountDue">—</span>
                         <span class="bk-payment-hero-meta">Service price <strong id="bkSumServicePrice">—</strong></span>
+                        <span class="bk-payment-hero-meta">Remaining balance after this payment <strong id="bkSumBalance"></strong></span>
                     </div>
                     <div class="bk-payment-hero-type">
                         <p class="bk-payment-label">Payment type</p>
@@ -324,13 +327,9 @@
                     </div>
                 </div>
 
-                <div class="bk-payment-layout">
-                    <div class="bk-payment-left">
-                        <details class="bk-payment-summary-toggle">
-                            <summary class="bk-payment-summary-head">
-                                <span>Booking details</span>
-                                <i class="bi bi-chevron-down" aria-hidden="true"></i>
-                            </summary>
+                <div class="bk-payment-review">
+                    <section class="bk-payment-summary-toggle" aria-labelledby="bkReviewTitle">
+                        <h4 class="bk-review-title" id="bkReviewTitle">Booking details</h4>
                             <div class="bk-summary bk-summary-compact">
                                 <div class="bk-row">
                                     <span class="bk-k">Service</span>
@@ -353,26 +352,13 @@
                                     <span class="bk-v" id="bkSumNotes">—</span>
                                 </div>
                             </div>
-                        </details>
-
-                        <div class="bk-payment-section">
-                            <div class="bk-payment-section-head">
-                                <p class="bk-payment-label">Secure online checkout</p>
-                                <span class="bk-payment-step">Step 1</span>
-                            </div>
-                            @if (empty($paymongoEnabled))
-                                <div class="bk-payment-paymongo-alert">
-                                    Online payment is not configured yet. Please contact the spa to complete your booking.
-                                </div>
-                            @else
-                                <div class="bk-payment-paymongo-panel">
-                                    <div class="bk-payment-paymongo-brand">
-                                        <span class="bk-payment-method-mark" aria-hidden="true" style="--bk-method-brand: #00a3e0">PM</span>
-                                        <div>
-                                            <p class="bk-payment-paymongo-title">Pay with PayMongo</p>
-                                            <p class="bk-payment-paymongo-sub">You will be redirected to a secure PayMongo page to complete payment.</p>
-                                        </div>
-                                    </div>
+                    </section>
+                    <section class="bk-payment-section" aria-label="Payment information">
+                        @if (empty($paymongoEnabled))
+                            <p class="bk-payment-paymongo-alert">Online payment is not configured yet. Please contact the spa to complete your booking.</p>
+                        @else
+                            <p class="bk-checkout-explanation">Continue to PayMongo, choose your payment method, and pay the amount shown above. You will return here after checkout.</p>
+                            <details class="bk-payment-channels-details"><summary>Payment methods and refund information</summary>
                                     <div class="bk-payment-paymongo-channels" aria-label="Accepted payment channels">
                                         @foreach ($paymongoChannels as $channel)
                                             <article class="bk-payment-paymongo-channel-card">
@@ -386,33 +372,13 @@
                                             </article>
                                         @endforeach
                                     </div>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-
-                    <div class="bk-payment-right">
-                        <div class="bk-qr-panel bk-paymongo-panel" id="bkQrPanel">
-                            <div class="bk-qr-panel-head">
-                                <p class="bk-payment-label">How it works</p>
-                                <span class="bk-payment-step">Step 2</span>
-                            </div>
-                            <div class="bk-paymongo-steps-card">
-                                <span class="bk-qr-placeholder-icon" aria-hidden="true"><i class="bi bi-credit-card-2-front"></i></span>
-                                <p class="bk-qr-placeholder-title">Secure hosted checkout</p>
-                                <p class="bk-qr-placeholder-sub">On PayMongo, pick <strong>GCash</strong> for wallet checkout or <strong>QR Ph</strong> to scan with any supported app.</p>
-                            </div>
-                            <ol class="bk-qr-steps">
-                                <li>Review your booking and payment type</li>
-                                <li>Continue to PayMongo to pay the exact amount</li>
-                                <li>Return here automatically after payment</li>
-                            </ol>
-                        </div>
+                            </details>
+                        @endif
                         <div class="bk-paymongo-browser-notice" id="bkPaymongoBrowserNotice" hidden role="note">
                             <i class="bi bi-browser-chrome" aria-hidden="true"></i>
                             <p><strong>Open this page in Chrome or Safari before continuing.</strong> Messenger and other in-app browsers can block PayMongo’s Download QR Code button. Tap the browser menu, then choose <em>Open in browser</em>.</p>
                         </div>
-                    </div>
+                    </section>
                 </div>
                 <label class="bk-no-show-policy" for="bkNoShowPolicyAccepted">
                     <input
@@ -597,7 +563,25 @@
                 return panelSchedule;
             }
 
+            function syncSelectionSummary() {
+                var service = selectedService();
+                var therapist = selectedTherapist();
+                document.getElementById('booking-selection-summary').hidden = !service;
+                document.getElementById('booking-selected-service').textContent = service;
+                document.getElementById('booking-selected-price').textContent = service ? formatCurrency(servicePriceFor(service)) : '';
+                document.getElementById('booking-selected-therapist-row').hidden = !therapist;
+                document.getElementById('booking-selected-therapist').textContent = therapist === anyTherapist ? 'Any available therapist' : therapist;
+            }
+
+            document.querySelectorAll('[data-edit-booking-step]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    showMobileStep(button.dataset.editBookingStep, 'back');
+                    panelForMobileStep(button.dataset.editBookingStep)?.querySelector('input:checked, input:not([disabled])')?.focus({ preventScroll: true });
+                });
+            });
+
             function updateMobileProgress() {
+                syncSelectionSummary();
                 var activeIndex = mobileSteps.indexOf(currentMobileStep);
                 mobileProgressItems.forEach(function (item, index) {
                     item.classList.toggle('is-active', index === activeIndex);
@@ -826,6 +810,7 @@
                 var due = paymentAmountFor(serviceName, selectedPaymentType);
                 if (sumServicePrice) sumServicePrice.textContent = formatCurrency(price);
                 if (sumAmountDue) sumAmountDue.textContent = formatCurrency(due);
+                document.getElementById('bkSumBalance').textContent = formatCurrency(Math.max(0, Math.round((price - due) * 100) / 100));
             }
 
             function paintPaymentTypeButtons() {
@@ -970,6 +955,7 @@
             }
 
             function paintServiceCards() {
+                syncSelectionSummary();
                 serviceInputs.forEach(function (input) {
                     var parent = input.closest('.service-item');
                     if (!parent) return;
@@ -996,6 +982,7 @@
             }
 
             function applyTherapistCardStates() {
+                syncSelectionSummary();
                 var service = selectedService();
                 var hint = document.getElementById('booking-therapist-hint');
                 var selected = therapistInputs.find(function (i) { return i.checked; }) || null;

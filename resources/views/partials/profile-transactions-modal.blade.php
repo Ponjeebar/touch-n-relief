@@ -9,28 +9,21 @@
             <div>
                 <p class="txn-modal-label">Account</p>
                 <h2 class="txn-modal-title" id="tnr-transactions-modal-title">My Appointments</h2>
-                @if (!empty($customerBirthday) || !empty($customerAge))
-                    <p class="txn-modal-client-meta">
-                        @if (!empty($customerBirthday))
-                            <span>DOB: {{ $customerBirthday }}</span>
-                        @endif
-                        @if (!empty($customerAge))
-                            <span>Age: {{ $customerAge }}</span>
-                        @endif
-                    </p>
-                @endif
             </div>
             <button type="button" class="txn-modal-close" data-tnr-txn-close="true" aria-label="Close">&times;</button>
         </header>
         <div class="txn-modal-body">
             <p class="txn-modal-sub">Your appointments, payment status, and completed spa sessions — most recent activity shown first.</p>
+            <details class="txn-arrival-policy">
+                <summary>Arrival and no-show policy</summary>
             <p class="txn-modal-note">
                 <i class="bi bi-info-circle" aria-hidden="true"></i>
                 @php
                     $attendanceRules = app(\App\Services\SiteSettingsService::class);
                 @endphp
-                <span class="txn-modal-note-text"><strong>Late note:</strong> after the {{ $attendanceRules->lateGraceMinutes() }}-minute grace period, staff have {{ $attendanceRules->noShowReviewMinutes() }} minutes to review attendance. If they do not update the appointment, it is automatically recorded as a no-show at {{ $attendanceRules->lateGraceMinutes() + $attendanceRules->noShowReviewMinutes() }} minutes late.</span>
+                <span class="txn-modal-note-text">Please arrive on time. A {{ $attendanceRules->lateGraceMinutes() }}-minute grace period applies. Staff then have {{ $attendanceRules->noShowReviewMinutes() }} minutes to confirm attendance. If attendance is not updated, your appointment is automatically marked as a no-show {{ $attendanceRules->lateGraceMinutes() + $attendanceRules->noShowReviewMinutes() }} minutes after the scheduled start.</span>
             </p>
+            </details>
             @include('partials.profile-transactions-list')
         </div>
         <footer class="txn-modal-footer">

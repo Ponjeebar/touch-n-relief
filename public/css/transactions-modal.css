@@ -1785,3 +1785,8 @@ html[data-theme="dark"] .txn-rebook-btn:hover {
     background: #205343;
     border-color: #73c7aa;
 }
+
+.txn-arrival-policy { margin-bottom: 14px; }
+.txn-arrival-policy summary { cursor: pointer; padding: 8px 0; font-size: 13px; font-weight: 600; }
+.txn-arrival-policy summary:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.txn-arrival-policy .txn-modal-note { margin-top: 8px; }

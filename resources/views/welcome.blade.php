@@ -175,6 +175,7 @@
                                 </div>
                                 <p class="duration">{{ $service['duration'] }}</p>
                                 <p>{{ $service['desc'] }}</p>
+                                <span class="service-details-action" aria-hidden="true">View details <i class="bi bi-arrow-right"></i></span>
                             </article>
                         @endforeach
                     </div>
@@ -906,29 +907,8 @@
                 }, 3500);
             }
 
-            document.querySelectorAll('[data-user-menu]').forEach((userMenuWrap) => {
-                const btn = userMenuWrap.querySelector('.nav-user');
-                const menu = userMenuWrap.querySelector('.nav-user-menu');
-                const close = () => {
-                    userMenuWrap.classList.remove('open');
-                    btn?.setAttribute('aria-expanded', 'false');
-                };
-                const open = () => {
-                    userMenuWrap.classList.add('open');
-                    btn?.setAttribute('aria-expanded', 'true');
-                };
-                btn?.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    userMenuWrap.classList.contains('open') ? close() : open();
-                });
-                document.addEventListener('click', close);
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape') close();
-                });
-            });
         })();
     </script>
-    <script src="{{ asset('js/landing-theme.js') }}?v={{ filemtime(public_path('js/landing-theme.js')) }}" defer></script>
     @auth
         @include('partials.registration-onboarding-modal')
         @include('partials.profile-transactions-modal')
