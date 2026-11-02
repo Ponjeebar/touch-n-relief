@@ -509,6 +509,31 @@ body {
 
 .landing-header.nav-wide .brand-wrap {
     justify-self: start;
+    gap: 0.75rem;
+}
+
+.landing-header.nav-wide .brand-logo {
+    width: 58px;
+    height: 58px;
+    flex: 0 0 58px;
+    object-fit: contain;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.landing-header.nav-wide .brand {
+    font-family: "Poppins", "Segoe UI", sans-serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
+    animation: none;
+}
+
+.landing-header.nav-wide .brand-link:focus-visible {
+    outline: 2px solid #08764f;
+    outline-offset: 4px;
 }
 
 .landing-header.nav-wide .nav-links {
@@ -920,7 +945,7 @@ html[data-theme="dark"] .landing-theme-icon-light {
 .landing-header.nav-wide:not(.nav-solid):not(.scrolled) .nav-shell {
     background: rgba(255, 255, 255, 0.97);
     border-color: rgba(22, 18, 16, 0.12);
-    box-shadow: 0 5px 18px rgba(22, 18, 16, 0.12);
+    box-shadow: none;
 }
 
 .landing-header.nav-wide:not(.nav-solid):not(.scrolled) :is(.brand, .nav-links a, .nav-txn-link) {
@@ -2423,6 +2448,16 @@ html[data-theme="dark"] .landing-theme-icon-light {
         min-height: 64px;
         padding: 0.55rem clamp(0.75rem, 3vw, 1.25rem);
         border-radius: 0;
+    }
+
+    .landing-header.nav-wide .brand-logo {
+        width: 46px;
+        height: 46px;
+        flex-basis: 46px;
+    }
+
+    .landing-header.nav-wide .brand {
+        font-size: 1.15rem;
     }
 
     .landing-header .nav-shell {

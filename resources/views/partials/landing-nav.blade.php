@@ -16,7 +16,7 @@
     <div class="nav-container">
         <div class="nav-shell">
             <a href="{{ $onLanding ? '#top' : route('landing') }}" class="brand-wrap brand-link">
-                <img src="{{ asset('images/dashboard/logo.png') }}" alt="Buenos Touche logo" class="brand-logo">
+                <img src="{{ asset('images/dashboard/logo.png') }}" alt="TouchNRelief logo" class="brand-logo" width="58" height="58">
                 <div class="brand">TouchNRelief</div>
             </a>
             @if ($navMode !== 'auth')

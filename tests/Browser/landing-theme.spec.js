@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test.setTimeout(180_000);
 test.use({ actionTimeout: 60_000, navigationTimeout: 60_000 });
 
-for (const width of [390, 1366]) {
+for (const width of [390, 768, 1366]) {
     test(`guest header keeps booking and login actions reachable at ${width}px`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
@@ -29,6 +29,11 @@ for (const width of [390, 1366]) {
         }
         await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
         await page.screenshot({ path: testInfo.outputPath(`guest-header-${width}.png`), animations: 'disabled' });
+        if (width <= 1100) await page.getByRole('button', { name: 'Close navigation menu', exact: true }).click();
+        await page.evaluate(() => window.scrollTo(0, 180));
+        await expect(page.locator('.landing-header')).toHaveClass(/scrolled/);
+        await expect(page.locator('.landing-header .brand-logo')).toBeInViewport();
+        await page.screenshot({ path: testInfo.outputPath(`guest-header-scrolled-${width}.png`), animations: 'disabled' });
     });
 }
 
