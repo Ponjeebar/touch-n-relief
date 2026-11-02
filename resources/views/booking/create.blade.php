@@ -396,13 +396,15 @@
             </div>
 
             <div class="bk-foot bk-foot-payment">
-                <p class="bk-foot-note"><i class="bi bi-lock-fill" aria-hidden="true"></i> You will be redirected to PayMongo to complete payment securely.</p>
+                <p class="bk-foot-note" id="bkCheckoutHint" role="status">Check “I understand the no-show payment policy” to continue.</p>
                 <div class="bk-foot-actions">
                     <button type="button" class="bk-btn bk-cancel" data-bk-close="true">Cancel</button>
-                    <button type="button" class="bk-btn bk-confirm" id="bkConfirmSubmit" disabled>
-                        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
-                        Continue to PayMongo
-                    </button>
+                    <span class="bk-checkout-control" id="bkCheckoutControl" tabindex="0" title="Check the no-show payment policy checkbox first." aria-describedby="bkCheckoutHint">
+                        <button type="button" class="bk-btn bk-confirm" id="bkConfirmSubmit" aria-describedby="bkCheckoutHint" disabled>
+                            <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                            Continue to PayMongo
+                        </button>
+                    </span>
                 </div>
             </div>
         </div>
@@ -832,6 +834,17 @@
             function syncConfirmButton() {
                 if (!confirmBtn) return;
                 confirmBtn.disabled = !paymongoEnabled || !noShowPolicyAccepted?.checked;
+                var checkoutControl = document.getElementById('bkCheckoutControl');
+                var checkoutHint = document.getElementById('bkCheckoutHint');
+                var message = !noShowPolicyAccepted?.checked
+                    ? 'Check “I understand the no-show payment policy” to continue.'
+                    : (!paymongoEnabled ? 'Online payment is unavailable. Please contact the spa.' : 'You will continue to PayMongo to complete payment.');
+                if (checkoutHint) checkoutHint.textContent = message;
+                if (checkoutControl) {
+                    checkoutControl.title = confirmBtn.disabled ? message : '';
+                    if (confirmBtn.disabled) checkoutControl.setAttribute('tabindex', '0');
+                    else checkoutControl.removeAttribute('tabindex');
+                }
             }
 
             noShowPolicyAccepted?.addEventListener('change', syncConfirmButton);

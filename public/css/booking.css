@@ -2718,3 +2718,66 @@ html[data-theme="dark"] .booking-selection-summary { background: #203a2e; color:
 html[data-theme="dark"] .booking-selection-label { color: #b9d2c5; }
 html[data-theme="dark"] .booking-selection-summary button { color: #a9e5cb; }
 @media (max-width: 700px) { .bk-payment-review { grid-template-columns: minmax(0, 1fr); } .booking-selection-summary { padding: 8px 12px; } }
+
+/* Payment review keeps the amount and policy acknowledgement distinct. */
+.bk-dialog-payment { border-radius: 14px; }
+.bk-dialog-payment .bk-head-payment { background: #fff; align-items: center; padding: 16px 20px; }
+.bk-dialog-payment .bk-payment-badge { border-radius: 9px; background: #e2f1e9; color: #086345; box-shadow: none; }
+.bk-dialog-payment .bk-payment-tagline { font-weight: 400; }
+.bk-dialog-payment .bk-payment-hero { border-radius: 9px; background: #f1f7f3; box-shadow: none; padding: 16px; gap: 20px; }
+.bk-dialog-payment .bk-payment-hero-amount { margin: 4px 0; font-size: 1.9rem; }
+.bk-dialog-payment .bk-payment-type-group { border: 0; padding: 0; background: transparent; border-radius: 0; }
+.bk-dialog-payment .bk-payment-type { border-radius: 7px; box-shadow: none; }
+.bk-dialog-payment .bk-payment-type.is-active { background: #086345; border-color: #086345; box-shadow: none; }
+.bk-dialog-payment .bk-payment-type:hover { box-shadow: none; border-color: #086345; }
+.bk-dialog-payment .bk-summary { border-radius: 8px; box-shadow: none; }
+.bk-dialog-payment .bk-no-show-policy { margin: 16px 0 0; padding: 14px; border-radius: 7px; }
+.bk-dialog-payment .bk-no-show-policy input { flex-shrink: 0; }
+.bk-dialog-payment .bk-no-show-policy:has(input:checked) { border-color: #78a68a; background: #eef7f1; color: #294e39; }
+.bk-dialog-payment .bk-no-show-policy:has(input:checked) strong { color: #164a33; }
+.bk-dialog-payment .bk-foot-payment { background: #fff; box-shadow: none; gap: 12px; padding: 14px 20px; }
+.bk-dialog-payment .bk-foot-note { display: block; flex: 1 1 240px; font-weight: 400; line-height: 1.5; }
+.bk-dialog-payment .bk-foot-actions { align-items: stretch; }
+.bk-dialog-payment .bk-btn { border-radius: 7px; min-height: 46px; }
+.bk-dialog-payment .bk-confirm { background: #086345; color: #fff; }
+.bk-dialog-payment .bk-confirm:hover:not(:disabled) { background: #064e36; }
+.bk-checkout-control { display: inline-flex; border-radius: 7px; }
+.bk-checkout-control:has(button:disabled) { cursor: not-allowed; }
+.bk-checkout-control:focus-visible { outline: 2px solid #086345; outline-offset: 3px; }
+.bk-dialog-payment .bk-confirm:disabled,
+.bk-dialog-payment .bk-confirm:disabled:hover { background: #dce2e5; border-color: #bfc9ce; color: #52616a; opacity: 1; box-shadow: none; transform: none; pointer-events: none; }
+
+html[data-theme="dark"] .bk-dialog-payment { background: #192d26; color: #edf5ef; border-color: #496556; }
+html[data-theme="dark"] .bk-dialog-payment :is(.bk-head-payment, .bk-foot-payment) { background: #192d26; border-color: #496556; }
+html[data-theme="dark"] .bk-dialog-payment .bk-title { color: #edf5ef; }
+html[data-theme="dark"] .bk-dialog-payment .bk-x { background: #2d4538; border-color: #62816e; color: #edf5ef; }
+html[data-theme="dark"] .bk-dialog-payment :is(.bk-payment-tagline, .bk-payment-hero-label, .bk-payment-hero-meta, .bk-foot-note, .bk-payment-label) { color: #b9d0c2; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-badge { background: #254b38; color: #a9e5c5; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-hero { background: #15251f; border-color: #496556; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-hero-amount { color: #9de0b9; }
+html[data-theme="dark"] .bk-dialog-payment :is(.bk-payment-hero-meta strong, .bk-review-title, .bk-checkout-explanation, .bk-payment-channels-details summary, .bk-k, .bk-v) { color: #edf5ef; }
+html[data-theme="dark"] .bk-dialog-payment :is(.bk-summary, .bk-summary .bk-row, .bk-payment-summary-toggle) { background: #1d3329; border-color: #496556; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-type { background: #20392d; color: #edf5ef; border-color: #62816e; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-type-sub { color: #b9d0c2; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-type.is-active { background: #086345; border-color: #70c99a; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-type.is-active .bk-payment-type-sub { color: #d9f5e5; }
+html[data-theme="dark"] .bk-dialog-payment .bk-no-show-policy:has(input:checked) { background: #203d2d; border-color: #78a68a; color: #c8e5d2; }
+html[data-theme="dark"] .bk-dialog-payment .bk-no-show-policy:has(input:checked) strong { color: #d9f5e5; }
+html[data-theme="dark"] .bk-dialog-payment .bk-cancel { background: #2d4538; color: #edf5ef; border-color: #62816e; }
+html[data-theme="dark"] .bk-dialog-payment .bk-confirm:disabled,
+html[data-theme="dark"] .bk-dialog-payment .bk-confirm:disabled:hover { background: #3c4741; border-color: #67746c; color: #c1ccc5; }
+html[data-theme="dark"] .bk-checkout-control:focus-visible { outline-color: #9de0b9; }
+
+@media (max-width: 860px) {
+    .bk-dialog-payment .bk-foot-note { flex: 0 0 auto; margin: 0; font-size: 0.78rem; }
+    .bk-checkout-control { flex: 2 1 0; min-width: 0; }
+    .bk-checkout-control .bk-btn { width: 100%; }
+    .bk-dialog-payment .bk-foot-actions > .bk-cancel { flex: 1 1 0; }
+}
+@media (max-width: 640px) {
+    .bk-dialog-payment { border-radius: 12px 12px 0 0; }
+    .bk-dialog-payment .bk-head-payment, .bk-dialog-payment .bk-foot-payment { padding: 12px 14px; }
+    .bk-dialog-payment .bk-payment-hero { padding: 12px; gap: 14px; }
+    .bk-dialog-payment .bk-payment-type-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bk-dialog-payment .bk-no-show-policy { padding: 11px; }
+}

@@ -183,6 +183,63 @@ test('landing header changes from light at the top to dark after scrolling', asy
     }
 });
 
+test('checkout stays gray until the no-show policy is accepted', async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await login(page);
+    // Only simulate configured checkout in the browser. Do not submit a payment.
+    let configured = true;
+    await page.route('**/booking', async route => {
+        const response = await route.fetch();
+        const body = (await response.text()).replace(/var paymongoEnabled = (true|false);/, `var paymongoEnabled = ${configured};`);
+        await route.fulfill({ response, body });
+    });
+    for (const scenario of [{ width: 390, enabled: true }, { width: 768, enabled: true }, { width: 1366, enabled: true }, { width: 1366, enabled: false }]) {
+        const width = scenario.width;
+        configured = scenario.enabled;
+        await page.setViewportSize({ width, height: 900 });
+        await page.evaluate(theme => localStorage.setItem('tnr-theme', theme), width === 390 ? 'dark' : 'light');
+        await page.goto('/booking');
+        await dismissTour(page);
+        await page.locator('.service-item').first().click();
+        await page.locator('.therapist-item-any').click();
+        const date = page.locator('#booking_date');
+        const monday = await date.evaluate(input => {
+            const next = new Date(input.min + 'T12:00:00');
+            next.setDate(next.getDate() + ((8 - next.getDay()) % 7 || 7));
+            return next.toISOString().slice(0, 10);
+        });
+        await date.fill(monday);
+        await page.locator('#time-slots .time-slot:not([disabled])').first().click();
+        await page.locator('.booking-submit').click();
+        const modal = page.locator('#bkConfirmModal');
+        const submit = modal.locator('#bkConfirmSubmit');
+        const checkbox = modal.locator('#bkNoShowPolicyAccepted');
+        const wrapper = modal.locator('#bkCheckoutControl');
+        await expect(modal).toBeVisible();
+        await expect(submit).toBeDisabled();
+        await expect(submit).toHaveCSS('background-color', width === 390 ? 'rgb(60, 71, 65)' : 'rgb(220, 226, 229)');
+        await expect(wrapper).toHaveAttribute('title', /Check/);
+        await wrapper.focus();
+        await expect(wrapper).toBeFocused();
+        await expect(modal.locator('#bkCheckoutHint')).toContainText('Check “I understand');
+        await page.screenshot({ path: testInfo.outputPath(`payment-unchecked-${width}.png`), animations: 'disabled' });
+        await checkbox.check();
+        await expect(submit).toBeEnabled({ enabled: configured });
+        await expect(modal.locator('#bkCheckoutHint')).toContainText(configured ? 'You will continue to PayMongo' : 'Online payment is unavailable');
+        await checkbox.uncheck();
+        await expect(submit).toBeDisabled();
+        await checkbox.check();
+        const amount = async id => Number((await modal.locator(id).textContent()).replace(/[^\d.]/g, ''));
+        expect(await amount('#bkSumAmountDue') + await amount('#bkSumBalance')).toBeCloseTo(await amount('#bkSumServicePrice'), 2);
+        await modal.locator('[data-payment-type="full"]').click();
+        expect(await amount('#bkSumBalance')).toBe(0);
+        await expect(submit).toBeEnabled({ enabled: configured });
+        await page.screenshot({ path: testInfo.outputPath(`payment-accepted-${width}-${configured}.png`), animations: 'disabled' });
+        expect(await modal.locator('.bk-payment-body').evaluate(body => body.scrollWidth <= body.clientWidth + 1)).toBe(true);
+        await modal.getByRole('button', { name: 'Close', exact: true }).click();
+    }
+});
+
 test('booking selections and payment amounts remain clear when choices change', async ({ page }, testInfo) => {
     await login(page);
     for (const width of [390, 768, 1366]) {
