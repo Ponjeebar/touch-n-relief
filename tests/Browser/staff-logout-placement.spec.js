@@ -12,6 +12,16 @@ for (const role of ['admin', 'receptionist']) {
         const sidebarLogout = page.locator('.sidebar .logout');
         const profileLogout = page.locator('.staff-profile-logout button');
         const confirmation = page.locator('#tnr-logout-confirm-modal');
+        for (const height of [650, 900]) {
+            await page.setViewportSize({ width: 1366, height });
+            await page.locator('.sidebar').hover();
+            await page.locator('.sidebar .nav-group-details').evaluateAll(groups => groups.forEach(group => { group.open = true; }));
+            await expect(sidebarLogout).toBeInViewport();
+            await page.locator('.sidebar .nav-list .nav-link').last().focus();
+            await expect(page.locator('.sidebar .nav-list .nav-link').last()).toBeInViewport();
+            await expect(sidebarLogout).toBeInViewport();
+            await page.screenshot({ path: testInfo.outputPath(`expanded-sidebar-${height}.png`), animations: 'disabled' });
+        }
         for (const width of [1366, 768, 390]) {
             await page.setViewportSize({ width, height: 768 });
             if (width > 1024) {

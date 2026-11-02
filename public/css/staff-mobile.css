@@ -1,7 +1,20 @@
 /* Staff phone and tablet layout. Loaded after page styles so desktop rules stay intact. */
 @media (min-width: 1025px) {
     .staff-profile-logout { display: none; }
-    .sidebar .nav-list { min-height: 0; overflow-y: auto; overflow-x: hidden; }
+    .sidebar .brand { flex-shrink: 0; }
+    .sidebar .nav-list {
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        align-content: start;
+        gap: 6px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
+    }
+    .sidebar .nav-list::-webkit-scrollbar { width: 4px; }
+    .sidebar .nav-list::-webkit-scrollbar-track { background: transparent; }
+    .sidebar .nav-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.4); border-radius: 4px; }
+    .sidebar .nav-section-label { margin-top: 10px; margin-bottom: 2px; }
     .sidebar .sidebar-footer {
         flex-shrink: 0;
         border-top: 1px solid rgba(255, 255, 255, 0.25);
@@ -13,19 +26,21 @@
         width: 100%;
         min-height: 44px;
         padding: 11px 12px;
-        border: 1px solid transparent;
+        border: 1px solid #cde0df;
         border-radius: 12px;
-        background: transparent;
-        color: #fff;
+        background: #f5fbfa;
+        color: #035a3d;
         font: inherit;
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
         text-align: left;
         cursor: pointer;
     }
     .sidebar:not(:hover):not(:focus-within) .logout { justify-content: center; gap: 0; }
-    .sidebar .logout:hover { background: rgba(255, 255, 255, 0.15); }
+    .sidebar .logout:hover { background: #dcefe9; }
     .sidebar .logout:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    html[data-theme="dark"] .sidebar .logout { background: #dcefe9; color: #103d2e; border-color: #bcd9d1; }
+    html[data-theme="dark"] .sidebar .logout:hover { background: #c5e4d8; }
 }
 
 @media (max-width: 1024px) {
