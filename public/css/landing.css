@@ -472,12 +472,12 @@ body {
 }
 
 .nav-login {
-    border-color: rgba(22, 18, 16, 0.38);
+    border-color: transparent;
     background: transparent;
 }
 
 .nav-login:hover {
-    border-color: #08764f;
+    border-color: transparent;
     background: rgba(8, 118, 79, 0.06);
 }
 
@@ -510,6 +510,20 @@ body {
 .landing-header.nav-wide .brand-wrap {
     justify-self: start;
     gap: 0.75rem;
+}
+
+.brand-identity {
+    min-width: 0;
+}
+
+.landing-header.nav-wide .brand-spa-name {
+    display: block;
+    margin-top: 5px;
+    color: #506052;
+    font-size: 0.7rem;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0.06em;
 }
 
 .landing-header.nav-wide .brand-logo {
@@ -943,9 +957,13 @@ html[data-theme="dark"] .landing-theme-icon-light {
 
 /* Landing page header is light at the hero and dark after the page begins to scroll. */
 .landing-header.nav-wide:not(.nav-solid):not(.scrolled) .nav-shell {
-    background: rgba(255, 255, 255, 0.97);
-    border-color: rgba(22, 18, 16, 0.12);
+    background: #f7f5f1;
+    border-color: rgba(23, 79, 59, 0.2);
     box-shadow: none;
+}
+
+.landing-header.nav-wide:not(.nav-solid):not(.scrolled) .landing-section-link > span::after {
+    background: #04724d;
 }
 
 .landing-header.nav-wide:not(.nav-solid):not(.scrolled) :is(.brand, .nav-links a, .nav-txn-link) {
@@ -1033,13 +1051,17 @@ html[data-theme="dark"] .landing-theme-icon-light {
 }
 
 .landing-header.nav-wide.scrolled:not(.nav-solid) .nav-login {
-    border-color: rgba(255, 255, 255, 0.62);
+    border-color: transparent;
     color: #fff;
 }
 
 .landing-header.nav-wide.scrolled:not(.nav-solid) .nav-login:hover {
-    border-color: #fff;
+    border-color: transparent;
     background: rgba(255, 255, 255, 0.09);
+}
+
+.landing-header.nav-wide.scrolled:not(.nav-solid) .brand-spa-name {
+    color: #b7c9be;
 }
 
 .landing-header.nav-wide.scrolled:not(.nav-solid) .nav-user-menu {
@@ -2458,6 +2480,11 @@ html[data-theme="dark"] .landing-theme-icon-light {
 
     .landing-header.nav-wide .brand {
         font-size: 1.15rem;
+    }
+
+    .landing-header.nav-wide .brand-spa-name {
+        margin-top: 3px;
+        font-size: 0.63rem;
     }
 
     .landing-header .nav-shell {

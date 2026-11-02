@@ -3,10 +3,11 @@ import { expect, test } from '@playwright/test';
 test.setTimeout(180_000);
 test.use({ actionTimeout: 60_000, navigationTimeout: 60_000 });
 
-for (const width of [390, 768, 1366]) {
+for (const width of [320, 390, 768, 1024, 1440]) {
     test(`guest header keeps booking and login actions reachable at ${width}px`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
+        await expect(page.locator('.landing-header .brand-spa-name')).toBeVisible();
         await expect(page.locator('#tnr-landing-theme-toggle, [data-landing-theme-toggle]')).toHaveCount(0);
         const actions = page.locator(width <= 1100 ? '.nav-guest-actions--mobile' : '.nav-guest-actions--desktop');
         if (width <= 1100) {

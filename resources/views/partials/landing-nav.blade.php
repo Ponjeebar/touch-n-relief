@@ -17,7 +17,12 @@
         <div class="nav-shell">
             <a href="{{ $onLanding ? '#top' : route('landing') }}" class="brand-wrap brand-link">
                 <img src="{{ asset('images/dashboard/logo.png') }}" alt="TouchNRelief logo" class="brand-logo" width="58" height="58">
-                <div class="brand">TouchNRelief</div>
+                <div class="brand-identity">
+                    <div class="brand">TouchNRelief</div>
+                    @if ($navMode === 'full')
+                        <span class="brand-spa-name">Buenos Touché Spa</span>
+                    @endif
+                </div>
             </a>
             @if ($navMode !== 'auth')
                 <nav class="nav-links" id="public-mobile-navigation">

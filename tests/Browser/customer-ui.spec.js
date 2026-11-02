@@ -25,7 +25,7 @@ test('landing header changes from light at the top to dark after scrolling', asy
         const landingHeader = page.locator('.landing-header');
         const shell = landingHeader.locator('.nav-shell');
         await expect(landingHeader).not.toHaveClass(/scrolled/);
-        await expect.poll(() => shell.evaluate(node => getComputedStyle(node).backgroundColor)).toBe('rgba(255, 255, 255, 0.97)');
+        await expect.poll(() => shell.evaluate(node => getComputedStyle(node).backgroundColor)).toBe('rgb(247, 245, 241)');
         await expect(landingHeader.locator('.brand')).toHaveCSS('color', 'rgb(23, 19, 17)');
         await page.screenshot({ path: testInfo.outputPath(`header-top-${width}.png`), animations: 'disabled' });
         await page.evaluate(() => window.scrollTo(0, 180));
