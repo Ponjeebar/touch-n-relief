@@ -44,6 +44,9 @@ test('booking selections and payment amounts remain clear when choices change', 
         await page.evaluate(theme => localStorage.setItem('tnr-theme', theme), width === 390 ? 'dark' : 'light');
         await page.goto('/booking');
         await dismissTour(page);
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await expect(page.locator('.landing-header')).toHaveCount(0);
+        await expect(page.getByRole('link', { name: 'Back to home', exact: true })).toBeInViewport();
         await expect(page.locator('#tnr-transactions-modal')).toHaveCount(1);
         await expect(page.locator('#booking-selection-summary')).toBeHidden();
         await page.locator('.service-item').first().click();
@@ -105,47 +108,56 @@ test('booking selections and payment amounts remain clear when choices change', 
     }
 });
 
-test('customer account navigation and appointments work across customer pages', async ({ page }, testInfo) => {
+test('customer navigation, back links, and appointments work across customer pages', async ({ page }, testInfo) => {
     await login(page);
     for (const width of [390, 1024, 1366]) {
         await page.setViewportSize({ width, height: 900 });
         for (const path of ['/', '/booking', '/profile']) {
             await page.goto(path);
             await dismissTour(page);
-            const header = await page.locator('.landing-header .nav-shell').boundingBox();
-            expect(header.x).toBeLessThanOrEqual(2);
-            expect(Math.abs(header.width - width)).toBeLessThanOrEqual(2);
-            if (width > 1100) {
-                const brand = await page.locator('.landing-header .brand-wrap').boundingBox();
-                const links = await page.locator('.landing-header .nav-links').boundingBox();
-                const actions = await page.locator('.landing-header .nav-header-actions').boundingBox();
-                expect(brand.x).toBeLessThan(links.x);
-                expect(Math.abs(links.x + links.width / 2 - width / 2)).toBeLessThanOrEqual(2);
-                expect(actions.x).toBeGreaterThan(links.x + links.width);
-            }
-            if (width <= 1100) await page.locator('.mobile-nav-toggle').click();
-            const menu = page.locator('[data-user-menu]:visible');
-            await menu.locator('.nav-user').click();
-            await expect(menu.locator('.nav-user-menu')).toBeVisible();
-            await expect(menu.getByRole('menuitem', { name: 'Logout', exact: true })).toBeVisible();
-            await expect(menu.getByRole('menuitem', { name: 'My Appointments', exact: true })).toHaveCount(0);
-            await menu.locator('.nav-user').click();
-            if (width <= 1100) {
-                await page.locator('.mobile-nav-toggle').click();
-                await page.locator('.customer-mobile-shortcuts [data-tnr-open-transactions]').click();
+            if (path === '/') {
+                const header = await page.locator('.landing-header .nav-shell').boundingBox();
+                expect(header.x).toBeLessThanOrEqual(2);
+                expect(Math.abs(header.width - width)).toBeLessThanOrEqual(2);
+                if (width > 1100) {
+                    const brand = await page.locator('.landing-header .brand-wrap').boundingBox();
+                    const links = await page.locator('.landing-header .nav-links').boundingBox();
+                    const actions = await page.locator('.landing-header .nav-header-actions').boundingBox();
+                    expect(brand.x).toBeLessThan(links.x);
+                    expect(Math.abs(links.x + links.width / 2 - width / 2)).toBeLessThanOrEqual(2);
+                    expect(actions.x).toBeGreaterThan(links.x + links.width);
+                }
+                if (width <= 1100) await page.locator('.mobile-nav-toggle').click();
+                const menu = page.locator('[data-user-menu]:visible');
+                await menu.locator('.nav-user').click();
+                await expect(menu.locator('.nav-user-menu')).toBeVisible();
+                await expect(menu.getByRole('menuitem', { name: 'Logout', exact: true })).toBeVisible();
+                await expect(menu.getByRole('menuitem', { name: 'My Appointments', exact: true })).toHaveCount(0);
+                await menu.locator('.nav-user').click();
+                if (width <= 1100) await page.locator('.mobile-nav-toggle').click();
             } else {
+                await expect(page.locator('.landing-header')).toHaveCount(0);
+                await page.evaluate(() => window.scrollTo(0, 0));
+                await expect(page.getByRole('link', { name: 'Back to home', exact: true })).toBeInViewport();
+            }
+            let appointmentsOpened = false;
+            if (width <= 1100) {
+                await page.locator('.customer-mobile-shortcuts [data-tnr-open-transactions]').click();
+                appointmentsOpened = true;
+            } else if (path === '/') {
                 await page.locator('.nav-appointments-direct').click();
+                appointmentsOpened = true;
+            } else if (path === '/profile') {
+                await page.locator('.profile-txn-open').click();
+                appointmentsOpened = true;
             }
             const appointments = page.locator('#tnr-transactions-modal');
-            await expect(appointments).toBeVisible();
-            await expect(appointments.locator('.txn-modal-client-meta')).toHaveCount(0);
-            await expect(appointments.locator('.txn-arrival-policy')).not.toHaveAttribute('open', '');
-            await appointments.locator('.txn-arrival-policy summary').click();
-            await expect(appointments.locator('.txn-modal-note')).toContainText('grace period');
-            await appointments.getByRole('button', { name: 'Close', exact: true }).last().click();
-            if (width > 1100) {
-                await page.locator('.nav-appointments-direct').click();
+            if (appointmentsOpened) {
                 await expect(appointments).toBeVisible();
+                await expect(appointments.locator('.txn-modal-client-meta')).toHaveCount(0);
+                await expect(appointments.locator('.txn-arrival-policy')).not.toHaveAttribute('open', '');
+                await appointments.locator('.txn-arrival-policy summary').click();
+                await expect(appointments.locator('.txn-modal-note')).toContainText('grace period');
                 await appointments.getByRole('button', { name: 'Close', exact: true }).last().click();
             }
             expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
@@ -158,11 +170,12 @@ test('customer account navigation and appointments work across customer pages', 
             await page.screenshot({ path: testInfo.outputPath(`customer-${path.replace(/\W/g, '') || 'home'}-${width}.png`) });
         }
     }
+    await page.goto('/');
     const menu = page.locator('[data-user-menu]:visible');
     await menu.locator('.nav-user').click();
     await menu.getByRole('menuitem', { name: 'Logout', exact: true }).click();
     await page.getByRole('button', { name: 'Stay signed in', exact: true }).click();
-    await expect(page).toHaveURL(/\/profile$/);
+    await expect(page).toHaveURL(/\/$/);
     await menu.locator('.nav-user').click();
     await menu.getByRole('menuitem', { name: 'Logout', exact: true }).click();
     await page.getByRole('button', { name: 'Yes, log out', exact: true }).click();

@@ -6,7 +6,7 @@ body:has(.booking-page) {
     position: relative;
     isolation: isolate;
     min-height: 100vh;
-    padding: 7.2rem 0 3rem;
+    padding: 1.5rem 0 3rem;
     font-size: 15px;
     line-height: 1.5;
     color: #1a2d38;
@@ -262,7 +262,7 @@ body:has(.booking-page) {
 #booking-panel-schedule,
 #booking-panel-service,
 #booking-panel-therapist {
-    scroll-margin-top: 7.5rem;
+    scroll-margin-top: 1.25rem;
 }
 
 .booking-grid {
@@ -1141,7 +1141,7 @@ body:has(.booking-page) {
 
 @media (max-width: 760px) {
     .booking-page {
-        padding: 6.6rem 0 1.4rem;
+        padding: 0.85rem 0 1.4rem;
     }
 
     .booking-wrap {
@@ -1200,7 +1200,7 @@ body:has(.booking-page) {
     .booking-grid.booking-mobile-wizard-ready {
         display: block;
         overflow: hidden;
-        scroll-margin-top: 6.4rem;
+        scroll-margin-top: 0.75rem;
     }
 
     .booking-mobile-wizard-ready .booking-mobile-progress {

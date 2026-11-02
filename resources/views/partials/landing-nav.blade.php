@@ -1,5 +1,6 @@
 @php
     $navMode = $navMode ?? 'full';
+    $hideHeader = $hideHeader ?? false;
     $onLanding = request()->routeIs('landing');
     $user = auth()->user();
     $source = trim($user?->name ?: $user?->email ?: 'User');
@@ -10,6 +11,7 @@
         ->map(fn (string $part) => strtoupper(substr($part, 0, 1)))
         ->implode('') ?: 'U';
 @endphp
+@unless ($hideHeader)
 <header class="landing-header {{ $navMode !== 'auth' ? 'nav-wide' : '' }} {{ ($navMode === 'auth' || ($solidNav ?? false)) ? 'nav-solid' : '' }} {{ ($navMode === 'auth') ? 'auth-page-header' : '' }}">
     <div class="nav-container">
         <div class="nav-shell">
@@ -56,6 +58,7 @@
         </div>
     </div>
 </header>
+@endunless
 @include('partials.customer-mobile-nav')
 @once
     <script src="{{ asset('js/mobile-navigation.js') }}?v={{ filemtime(public_path('js/mobile-navigation.js')) }}" defer></script>

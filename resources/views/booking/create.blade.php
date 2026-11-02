@@ -18,7 +18,7 @@
     @include('partials.customer-tour-assets', ['tourPage' => 'booking.create'])
 </head>
 <body class="booking-page-body">
-    @include('partials.landing-nav', ['navMode' => 'booking', 'solidNav' => true])
+    @include('partials.landing-nav', ['navMode' => 'booking', 'hideHeader' => true])
 
     <main class="booking-page">
         <div class="container booking-wrap">

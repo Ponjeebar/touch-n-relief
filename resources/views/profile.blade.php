@@ -32,7 +32,7 @@
         }
         .profile-page{
             min-height:100vh;
-            padding:7.4rem 0 3.2rem;
+            padding:1.5rem 0 3.2rem;
             background:#f1f5f3;
             position:relative;
             overflow:hidden;
@@ -40,6 +40,27 @@
         .profile-page > .container{
             width:min(1100px,94%);
         }
+        .profile-page-actions{
+            width:min(1100px,94%);
+            margin:0 auto .9rem;
+        }
+        .profile-back-link{
+            display:inline-flex;
+            align-items:center;
+            gap:.5rem;
+            min-height:42px;
+            padding:.62rem .9rem;
+            border:1px solid #9eb9aa;
+            border-radius:8px;
+            background:#fff;
+            color:#176247;
+            font-size:.9rem;
+            font-weight:700;
+            text-decoration:none;
+            box-shadow:0 3px 10px rgba(18,42,38,.06);
+        }
+        .profile-back-link:hover{background:#e8f2ed;border-color:#6f9a82}
+        .profile-back-link:focus-visible{outline:3px solid rgba(8,118,79,.28);outline-offset:2px}
         .profile-shell{
             max-width:100%;
             margin:0 auto;
@@ -701,11 +722,13 @@
         .profile-category-nav{display:flex;flex-wrap:wrap;gap:.35rem 1.25rem;padding:.9rem 2rem;border-top:1px solid #dce8df;border-bottom:1px solid #dce8df;background:#fff}
         .profile-category-nav a{color:#245b47;font-size:.85rem;font-weight:600;padding:.35rem 0;text-decoration:none;border-bottom:2px solid transparent}
         .profile-category-nav a:hover,.profile-category-nav a:focus-visible{border-bottom-color:currentColor}
-        .profile-category,.profile-password-block,.profile-wellness,#profile-appointments{scroll-margin-top:110px}
+        .profile-category,.profile-password-block,.profile-wellness,#profile-appointments{scroll-margin-top:24px}
         .profile-grid,.profile-password-block,.profile-section{border-radius:10px;box-shadow:none}
         .profile-wellness{background:#f5faf7}
         .profile-avatar-edit{opacity:1;pointer-events:auto;transform:none;background:#08764f}
         html[data-theme="dark"] .profile-page{background:#10251e}
+        html[data-theme="dark"] .profile-back-link{background:#203a2e;color:#e9f6ee;border-color:#6c927b}
+        html[data-theme="dark"] .profile-back-link:hover{background:#294b3a;border-color:#83ad94}
         html[data-theme="dark"] .profile-shell{background:#172e25;border-color:#355345}
         html[data-theme="dark"] .profile-grid,html[data-theme="dark"] .profile-password-block,html[data-theme="dark"] .profile-section,html[data-theme="dark"] .profile-category-nav{background:#203a2e;border-color:#426251}
         html[data-theme="dark"] .profile-title,html[data-theme="dark"] .profile-category-heading h2,html[data-theme="dark"] .profile-password-block h2,html[data-theme="dark"] .profile-section-head h2,html[data-theme="dark"] .profile-field label,html[data-theme="dark"] .profile-wellness-label{color:#eff7f1}
@@ -766,14 +789,20 @@
         html[data-theme="dark"] .profile-grid,html[data-theme="dark"] .profile-password-block,html[data-theme="dark"] .profile-section{background:transparent;border-color:#426251}
         html[data-theme="dark"] .profile-category + .profile-category,html[data-theme="dark"] .profile-head{border-color:#426251}
         html[data-theme="dark"] .profile-category-heading .btn{background:#203a2e;color:#e9f6ee;border-color:#6c927b}
-        @media(max-width:600px){.profile-head{padding:1.25rem 1rem}.profile-body{padding:1.25rem 1rem}.profile-category-heading{gap:.5rem}.profile-category-heading .profile-local-actions.is-editing{grid-column:1 / -1;justify-content:flex-start}}
+        @media(max-width:600px){.profile-page{padding-top:.85rem}.profile-page-actions{margin-bottom:.7rem}.profile-back-link{min-height:40px;padding:.55rem .75rem}.profile-head{padding:1.25rem 1rem}.profile-body{padding:1.25rem 1rem}.profile-category-heading{gap:.5rem}.profile-category-heading .profile-local-actions.is-editing{grid-column:1 / -1;justify-content:flex-start}}
     </style>
     @include('partials.chatbot-assets')
 </head>
 <body>
-    @include('partials.landing-nav', ['navMode' => 'profile', 'solidNav' => true])
+    @include('partials.landing-nav', ['navMode' => 'profile', 'hideHeader' => true])
 
     <main class="profile-page">
+        <div class="profile-page-actions">
+            <a class="profile-back-link" href="{{ route('landing') }}">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                <span>Back to home</span>
+            </a>
+        </div>
         <div class="container profile-layout">
             <nav class="profile-category-nav" aria-label="Profile sections"><details open><summary>Profile categories</summary><a href="#personal-information">Personal information</a><a href="#account-details">Account details</a><a href="#password-section">Password</a><a href="#wellness-section">Wellness preferences</a><a href="#profile-appointments">My Appointments</a></details></nav>
             <div class="profile-shell">
