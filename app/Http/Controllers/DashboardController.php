@@ -1241,6 +1241,33 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function updateMembershipPlan(Request $request, MembershipPlan $membershipPlan): RedirectResponse
+    {
+        $validated = $request->validateWithBag('membership', [
+            'name' => ['required', 'string', 'max:255', Rule::unique('membership_plans', 'name')->ignore($membershipPlan->id)],
+            'description' => ['required', 'string', 'max:5000'],
+            'price_amount' => ['required', 'numeric', 'min:1', 'max:99999999.99', 'decimal:0,2'],
+            'validity_days' => ['required', 'integer', 'min:1', 'max:3650'],
+            'benefits' => ['nullable', 'string', 'max:5000'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $membershipPlan->update([
+            ...$validated,
+            'benefits' => array_values(array_filter(array_map('trim', preg_split('/\R/u', $validated['benefits'] ?? '') ?: []), fn ($benefit) => $benefit !== '')),
+        ]);
+
+        ActivityLogger::log(
+            'membership_plan.updated',
+            'Updated membership plan '.$membershipPlan->name,
+            ['membership_plan_id' => $membershipPlan->id],
+            subject: $membershipPlan,
+            request: $request,
+        );
+
+        return redirect()->route('services.index')->with('status', 'Membership plan updated successfully.');
+    }
+
     public function storeService(Request $request, BookingSlotService $slots): RedirectResponse
     {
         $validated = $this->validateServiceRequest($request);

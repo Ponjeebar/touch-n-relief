@@ -136,6 +136,7 @@ Route::middleware(['auth', 'current.staff.session', 'admin', 'staff.activity'])-
     Route::get('/users', [DashboardController::class, 'users'])->name('users.index');
     Route::post('/services', [DashboardController::class, 'storeService'])->name('services.store');
     Route::put('/services/{spaService}', [DashboardController::class, 'updateService'])->name('services.update');
+    Route::put('/membership-plans/{membershipPlan}', [DashboardController::class, 'updateMembershipPlan'])->name('membership-plans.update');
     Route::post('/services/{spaService}/timeslots', [DashboardController::class, 'storeServiceTimeSlot'])->name('services.timeslots.store');
     Route::put('/services/{spaService}/timeslots', [DashboardController::class, 'updateServiceTimeSlots'])->name('services.timeslots.update');
     Route::post('/services/{spaService}/toggle-availability', [DashboardController::class, 'toggleServiceAvailability'])->name('services.toggle-availability');

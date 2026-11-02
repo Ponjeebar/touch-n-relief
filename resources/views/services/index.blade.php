@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/services.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/services.css') }}?v={{ filemtime(public_path('css/services.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}">
     @include('partials.staff-mobile-style')
 </head>
@@ -214,6 +214,55 @@
                                 <div><span class="membership-admin-label">Membership plan</span><h3>{{ $plan->name }}</h3><p>{{ $plan->description }}</p></div>
                                 <strong>PHP {{ number_format((float) $plan->price_amount, 2) }} · {{ (int) ($plan->validity_days ?? 365) }} days</strong>
                                 @if (!empty($plan->benefits))<ul>@foreach ($plan->benefits as $benefit)<li>{{ $benefit }}</li>@endforeach</ul>@endif
+                                @if (!$plan->is_active)<p>Unavailable for new purchases</p>@endif
+                                @if (auth()->user()?->isAdmin())
+                                    @php($editingMembership = $errors->getBag('membership')->any() && (int) old('_membership_plan_id') === $plan->id)
+                                    <details class="membership-editor" @if ($editingMembership) open @endif>
+                                        <summary>Edit membership</summary>
+                                        <form class="service-modal-form" method="POST" action="{{ route('membership-plans.update', $plan) }}">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="hidden" name="_membership_plan_id" value="{{ $plan->id }}">
+                                            <p class="services-field-hint">Changes apply to the advertised plan and future purchases. Existing purchases keep their price and validity.</p>
+                                            @if ($editingMembership)
+                                                <ul class="services-error-list" role="alert">
+                                                    @foreach ($errors->getBag('membership')->all() as $message)<li>{{ $message }}</li>@endforeach
+                                                </ul>
+                                            @endif
+                                            <div class="profile-field">
+                                                <label for="membership-name-{{ $plan->id }}">Membership name</label>
+                                                <input id="membership-name-{{ $plan->id }}" name="name" value="{{ $editingMembership ? old('name') : $plan->name }}" maxlength="255" required>
+                                            </div>
+                                            <div class="profile-field">
+                                                <label for="membership-description-{{ $plan->id }}">Description</label>
+                                                <textarea id="membership-description-{{ $plan->id }}" name="description" rows="3" maxlength="5000" required>{{ $editingMembership ? old('description') : $plan->description }}</textarea>
+                                            </div>
+                                            <div class="profile-field two-col">
+                                                <div>
+                                                    <label for="membership-price-{{ $plan->id }}">Price (PHP)</label>
+                                                    <input id="membership-price-{{ $plan->id }}" type="number" name="price_amount" value="{{ $editingMembership ? old('price_amount') : $plan->price_amount }}" min="1" max="99999999.99" step="0.01" required>
+                                                </div>
+                                                <div>
+                                                    <label for="membership-validity-{{ $plan->id }}">Validity (days)</label>
+                                                    <input id="membership-validity-{{ $plan->id }}" type="number" name="validity_days" value="{{ $editingMembership ? old('validity_days') : $plan->validity_days }}" min="1" max="3650" step="1" required>
+                                                </div>
+                                            </div>
+                                            <div class="profile-field">
+                                                <label for="membership-benefits-{{ $plan->id }}">Benefits (one per line)</label>
+                                                <textarea id="membership-benefits-{{ $plan->id }}" name="benefits" rows="4" maxlength="5000">{{ $editingMembership ? old('benefits') : implode("\n", $plan->benefits ?? []) }}</textarea>
+                                                <span class="services-field-hint">Describes the benefits shown to customers. Package member rates are edited in Packages.</span>
+                                            </div>
+                                            <div class="profile-field">
+                                                <label for="membership-active-{{ $plan->id }}">Availability</label>
+                                                <select id="membership-active-{{ $plan->id }}" name="is_active" required>
+                                                    <option value="1" @selected((string) ($editingMembership ? old('is_active') : (int) $plan->is_active) === '1')>Available for new purchases</option>
+                                                    <option value="0" @selected((string) ($editingMembership ? old('is_active') : (int) $plan->is_active) === '0')>Unavailable for new purchases</option>
+                                                </select>
+                                            </div>
+                                            <button type="submit" class="user-action add">Save membership</button>
+                                        </form>
+                                    </details>
+                                @endif
                             </article>
                         @empty
                             <div class="services-empty">No membership plan is configured.</div>
