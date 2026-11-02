@@ -33,7 +33,10 @@
                     @auth
                         @include('partials.landing-user-menu', ['navUserWrapperClass' => 'nav-user-wrap--mobile'])
                     @else
-                        <a href="{{ route('login') }}" class="btn btn-outline">Log In</a>
+                        <div class="nav-guest-actions nav-guest-actions--mobile">
+                            <a href="{{ route('booking.index') }}" class="nav-guest-action nav-book-now">BOOK NOW</a>
+                            <a href="{{ route('login') }}" class="nav-guest-action nav-login">Log In</a>
+                        </div>
                     @endauth
                 @endif
                 </nav>
@@ -46,6 +49,11 @@
                             @include('partials.customer-notifications')
                         @endif
                         @include('partials.landing-user-menu', ['navUserWrapperClass' => 'nav-user-wrap--desktop'])
+                    @else
+                        <div class="nav-guest-actions nav-guest-actions--desktop">
+                            <a href="{{ route('booking.index') }}" class="nav-guest-action nav-book-now">BOOK NOW</a>
+                            <a href="{{ route('login') }}" class="nav-guest-action nav-login">Log In</a>
+                        </div>
                     @endauth
                 @endif
                 @if ($navMode !== 'auth')

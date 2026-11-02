@@ -4,12 +4,31 @@ test.setTimeout(180_000);
 test.use({ actionTimeout: 60_000, navigationTimeout: 60_000 });
 
 for (const width of [390, 1366]) {
-    test(`guests have no theme control at ${width}px`, async ({ page }) => {
+    test(`guest header keeps booking and login actions reachable at ${width}px`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
         await expect(page.locator('#tnr-landing-theme-toggle, [data-landing-theme-toggle]')).toHaveCount(0);
-        if (width <= 1100) await page.getByRole('button', { name: 'Open navigation menu', exact: true }).click();
-        await expect(page.locator('.nav-links').getByRole('link', { name: 'Log In', exact: true })).toBeVisible();
+        const actions = page.locator(width <= 1100 ? '.nav-guest-actions--mobile' : '.nav-guest-actions--desktop');
+        if (width <= 1100) {
+            await expect(actions).toBeHidden();
+            await page.getByRole('button', { name: 'Open navigation menu', exact: true }).click();
+        }
+        const bookNow = actions.getByRole('link', { name: 'BOOK NOW', exact: true });
+        const login = actions.getByRole('link', { name: 'Log In', exact: true });
+        await expect(bookNow).toBeVisible();
+        await expect(bookNow).toHaveAttribute('href', /\/booking$/);
+        await expect(login).toBeVisible();
+        if (width <= 1100) {
+            await expect(page.locator('.nav-links').getByRole('link', { name: 'Services', exact: true })).toHaveCSS('color', 'rgb(255, 255, 255)');
+            await expect(login).toHaveCSS('color', 'rgb(255, 255, 255)');
+        }
+        if (width > 1100) {
+            const bookBox = await bookNow.boundingBox();
+            const loginBox = await login.boundingBox();
+            expect(loginBox.x).toBeGreaterThan(bookBox.x);
+        }
+        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+        await page.screenshot({ path: testInfo.outputPath(`guest-header-${width}.png`), animations: 'disabled' });
     });
 }
 
