@@ -912,6 +912,48 @@
     font-weight: 700;
 }
 
+.txn-reschedule-current {
+    padding: 1rem;
+    background: #f1f5f2;
+    border: 1px solid #b7cdbf;
+    border-left: 4px solid #08764f;
+    border-radius: 8px;
+}
+
+.txn-reschedule-current .txn-reschedule-section-title {
+    font-size: 1.08rem;
+    color: #164a33;
+}
+
+.txn-reschedule-current-note {
+    margin: 0.35rem 0 0;
+    color: #455d50;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.txn-reschedule-current .txn-reschedule-summary-date dd {
+    font-size: 1.03rem;
+    font-weight: 700;
+    color: #164a33;
+}
+
+.txn-reschedule-current-payment {
+    padding-top: 0.75rem;
+    border-top: 1px solid #c7d8cc;
+}
+
+html[data-theme="dark"] .txn-reschedule-current {
+    background: #152d26;
+    border-color: #567969;
+    border-left-color: #70e2bd;
+}
+
+html[data-theme="dark"] .txn-reschedule-current .txn-reschedule-section-title,
+html[data-theme="dark"] .txn-reschedule-current .txn-reschedule-summary-date dd { color: #d9f5e7; }
+html[data-theme="dark"] .txn-reschedule-current-note { color: #b8d0c4; }
+html[data-theme="dark"] .txn-reschedule-current-payment { border-color: #456657; }
+
 .txn-reschedule-editor {
     margin-top: 1.2rem;
     padding-top: 1.2rem;

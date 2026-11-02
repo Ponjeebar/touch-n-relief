@@ -6,8 +6,9 @@
             <button type="button" class="txn-modal-close" data-tnr-reschedule-close="true" aria-label="Close">&times;</button>
         </header>
         <div class="txn-reschedule-body">
-            <section aria-labelledby="tnr-reschedule-current-label">
+            <section class="txn-reschedule-current" aria-labelledby="tnr-reschedule-current-label">
                 <h3 class="txn-reschedule-section-title" id="tnr-reschedule-current-label">Current appointment</h3>
+                <p class="txn-reschedule-current-note">Before your changes. This appointment stays booked until you save a new schedule.</p>
                 <p class="txn-reschedule-booking-ref" id="tnr-reschedule-booking-ref"></p>
                 <dl class="txn-reschedule-summary">
                     <div>
@@ -19,8 +20,8 @@
                         <dd id="tnr-reschedule-therapist">—</dd>
                     </div>
                     <div class="txn-reschedule-summary-date"><dt>Date and time</dt><dd id="tnr-reschedule-current-time"></dd></div>
-                    <div><dt>Already paid</dt><dd id="tnr-reschedule-paid">—</dd></div>
-                    <div><dt>Remaining balance</dt><dd id="tnr-reschedule-balance">—</dd></div>
+                    <div class="txn-reschedule-current-payment"><dt>Already paid</dt><dd id="tnr-reschedule-paid">—</dd></div>
+                    <div class="txn-reschedule-current-payment"><dt>Remaining balance</dt><dd id="tnr-reschedule-balance">—</dd></div>
                 </dl>
             </section>
             <section class="txn-reschedule-editor" aria-labelledby="tnr-reschedule-new-label">
