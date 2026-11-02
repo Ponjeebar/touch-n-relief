@@ -47,6 +47,14 @@ test('booking selections and payment amounts remain clear when choices change', 
         await page.evaluate(() => window.scrollTo(0, 0));
         await expect(page.locator('.landing-header')).toHaveCount(0);
         await expect(page.getByRole('link', { name: 'Back to home', exact: true })).toBeInViewport();
+        await page.evaluate(() => document.fonts.ready);
+        const back = await page.locator('.booking-return-link').first().boundingBox();
+        const guide = await page.getByRole('button', { name: 'Booking guide', exact: true }).boundingBox();
+        const heading = await page.getByRole('heading', { name: 'Book an appointment', exact: true }).boundingBox();
+        expect(Math.abs(back.y - guide.y)).toBeLessThanOrEqual(2);
+        expect(heading.y).toBeGreaterThan(back.y + back.height);
+        expect(Math.abs(heading.x - back.x)).toBeLessThanOrEqual(2);
+        await page.screenshot({ path: testInfo.outputPath(`booking-introduction-${width}.png`), animations: 'disabled' });
         await expect(page.locator('#tnr-transactions-modal')).toHaveCount(1);
         await expect(page.locator('#booking-selection-summary')).toBeHidden();
         await page.locator('.service-item').first().click();

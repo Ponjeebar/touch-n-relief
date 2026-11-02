@@ -45,9 +45,8 @@
                         @endif
                     </div>
                     <div class="booking-head-copy">
-                        <p class="booking-eyebrow">Appointment Booking</p>
-                        <h1>Secure Your Wellness Session</h1>
-                        <p>Choose your service, therapist, then date and available time. Each step unlocks after you complete the one before it.</p>
+                        <h1>Book an appointment</h1>
+                        <p>Choose a service and therapist, then select an available date and time.</p>
                     </div>
                 </div>
             </section>
