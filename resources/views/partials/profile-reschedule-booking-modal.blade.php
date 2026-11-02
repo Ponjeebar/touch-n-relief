@@ -20,8 +20,14 @@
                         <dd id="tnr-reschedule-therapist">—</dd>
                     </div>
                     <div class="txn-reschedule-summary-date"><dt>Date and time</dt><dd id="tnr-reschedule-current-time"></dd></div>
-                    <div class="txn-reschedule-current-payment"><dt>Already paid</dt><dd id="tnr-reschedule-paid">—</dd></div>
-                    <div class="txn-reschedule-current-payment"><dt>Remaining balance</dt><dd id="tnr-reschedule-balance">—</dd></div>
+                    <div class="txn-reschedule-current-payment txn-reschedule-payment-received">
+                        <dt>Already paid</dt>
+                        <dd><span id="tnr-reschedule-paid">—</span><span class="txn-reschedule-payment-hint">Payment received</span></dd>
+                    </div>
+                    <div class="txn-reschedule-current-payment txn-reschedule-payment-remaining">
+                        <dt>Remaining balance</dt>
+                        <dd><span id="tnr-reschedule-balance">—</span><span class="txn-reschedule-payment-hint">Amount left to pay</span></dd>
+                    </div>
                 </dl>
             </section>
             <section class="txn-reschedule-editor" aria-labelledby="tnr-reschedule-new-label">

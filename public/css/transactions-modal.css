@@ -939,9 +939,17 @@
 }
 
 .txn-reschedule-current-payment {
-    padding-top: 0.75rem;
-    border-top: 1px solid #c7d8cc;
+    padding: 0.75rem;
+    border: 1px solid;
+    border-radius: 6px;
 }
+
+.txn-reschedule-payment-received { background: #e1f2e7; border-color: #9fc9af; }
+.txn-reschedule-payment-remaining { background: #fff4df; border-color: #d6b676; }
+.txn-reschedule-current .txn-reschedule-payment-received :is(dt, dd) { color: #155a36; }
+.txn-reschedule-current .txn-reschedule-payment-remaining :is(dt, dd) { color: #754a09; }
+.txn-reschedule-current-payment dd > span:first-child { font-size: 1.15rem; font-weight: 700; line-height: 1.5; }
+.txn-reschedule-payment-hint { display: block; margin-top: 0.2rem; font-size: 0.74rem; font-weight: 400; line-height: 1.45; }
 
 html[data-theme="dark"] .txn-reschedule-current {
     background: #152d26;
@@ -952,7 +960,10 @@ html[data-theme="dark"] .txn-reschedule-current {
 html[data-theme="dark"] .txn-reschedule-current .txn-reschedule-section-title,
 html[data-theme="dark"] .txn-reschedule-current .txn-reschedule-summary-date dd { color: #d9f5e7; }
 html[data-theme="dark"] .txn-reschedule-current-note { color: #b8d0c4; }
-html[data-theme="dark"] .txn-reschedule-current-payment { border-color: #456657; }
+html[data-theme="dark"] .txn-reschedule-payment-received { background: #1b4230; border-color: #56856a; }
+html[data-theme="dark"] .txn-reschedule-payment-remaining { background: #3c301b; border-color: #94723f; }
+html[data-theme="dark"] .txn-reschedule-current .txn-reschedule-payment-received :is(dt, dd) { color: #c0f0d1; }
+html[data-theme="dark"] .txn-reschedule-current .txn-reschedule-payment-remaining :is(dt, dd) { color: #ffe0a3; }
 
 .txn-reschedule-editor {
     margin-top: 1.2rem;
