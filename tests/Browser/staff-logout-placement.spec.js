@@ -12,6 +12,17 @@ for (const role of ['admin', 'receptionist']) {
         const sidebarLogout = page.locator('.sidebar .logout');
         const profileLogout = page.locator('.staff-profile-logout button');
         const confirmation = page.locator('#tnr-logout-confirm-modal');
+        await page.setViewportSize({ width: 1366, height: 900 });
+        const sidebar = page.locator('.sidebar');
+        await expect(page.locator('[data-staff-sidebar-toggle]')).toHaveCount(0);
+        await page.mouse.click(1250, 880);
+        await expect(sidebar).toHaveCSS('width', '90px');
+        await sidebar.hover();
+        await expect(sidebar).toHaveCSS('width', '280px');
+        await page.mouse.move(1250, 880);
+        await expect(sidebar).toHaveCSS('width', '280px');
+        await page.mouse.click(1250, 880);
+        await expect(sidebar).toHaveCSS('width', '90px');
         for (const height of [650, 900]) {
             await page.setViewportSize({ width: 1366, height });
             await page.locator('.sidebar').hover();

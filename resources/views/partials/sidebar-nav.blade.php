@@ -9,9 +9,6 @@
     $moreActive = in_array($active, ['completed', 'therapist-monitoring', 'users', 'users-receptionists', 'users-customers', 'reporting', 'services', 'therapist-manage', 'landing-settings', 'system-settings'], true);
 @endphp
 <div class="staff-mobile-header-actions" data-staff-mobile-header-actions></div>
-<button type="button" class="staff-sidebar-pin" data-staff-sidebar-toggle aria-controls="staff-mobile-navigation" aria-expanded="true" aria-label="Collapse sidebar">
-    <i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i><span class="nav-text">Collapse sidebar</span>
-</button>
 <button type="button" class="staff-sidebar-help" data-staff-chat-open aria-label="Staff help">
     <i class="bi bi-chat-dots" aria-hidden="true"></i><span class="nav-text">Staff help</span>
 </button>

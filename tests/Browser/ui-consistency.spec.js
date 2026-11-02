@@ -8,26 +8,27 @@ async function login(page, role) {
     await expect(page).toHaveURL(new RegExp(role === 'admin' ? '/dashboard$' : '/receptionist-dashboard$'), { timeout: 60_000 });
 }
 
-test('sidebar preference, staff Help, and modal focus remain usable', async ({ page }, testInfo) => {
+test('sidebar hover, staff Help, and modal focus remain usable', async ({ page }, testInfo) => {
     test.setTimeout(180_000);
     page.setDefaultNavigationTimeout(60_000);
     await page.setViewportSize({ width: 1366, height: 768 });
     await login(page, 'admin');
     const sidebar = page.locator('.sidebar');
-    const toggle = page.locator('[data-staff-sidebar-toggle]');
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    await page.mouse.move(1200, 500);
-    await expect(sidebar.locator('.nav-text').filter({ hasText: 'Dashboard' }).first()).toBeVisible();
-    await toggle.click();
-    await page.reload();
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await sidebar.hover();
+    await expect(page.locator('[data-staff-sidebar-toggle]')).toHaveCount(0);
+    await page.mouse.click(1200, 500);
     await expect(sidebar).toHaveCSS('width', '90px');
-    await toggle.click();
-    await page.reload();
+    await sidebar.hover();
+    await expect(sidebar).toHaveCSS('width', '280px');
     await page.mouse.move(1200, 500);
     await expect(sidebar).toHaveCSS('width', '280px');
-    await expect(sidebar.locator('.nav-text').filter({ hasText: 'Dashboard' }).first()).toBeVisible();
+    await page.reload();
+    await expect(sidebar).toHaveCSS('width', '280px');
+    await page.mouse.click(1200, 500);
+    await expect(sidebar).toHaveCSS('width', '90px');
+    await page.reload();
+    await expect(sidebar).toHaveCSS('width', '90px');
+    await sidebar.locator('.nav-link').first().focus();
+    await expect(sidebar).toHaveCSS('width', '280px');
     await page.goto('/services');
     await expect(page.getByRole('heading', { name: 'Services & Membership', exact: true })).toBeVisible();
     await expect(page.locator('.tnr-chat-launcher')).toBeHidden();
