@@ -304,15 +304,19 @@
                     </article>
 
                     <article class="rep-data-panel" id="operational-checks">
-                        <h3>Operational checks</h3>
-                        <p>Current processing health across all dates. These checks do not change appointments or financial records.</p>
-                        <p id="repOperationalSummary">{{ ($operationalMonitoring['status'] ?? 'unverified') === 'unverified' ? 'Processor history is not yet available' : 'Checking processor history' }}</p>
-                        <ul id="repOperationalProcessors"></ul>
-                        <ul id="repOperationalIssues"></ul>
-                        <p>Review allowances: {{ config('touchnrelief.monitoring.processing_delay_minutes', 5) }} minutes after an automatic processing deadline; {{ config('touchnrelief.monitoring.processor_stale_minutes', 10) }} minutes without a successful processor run; {{ config('touchnrelief.monitoring.gateway_review_hours', 24) }} hours for an unresolved gateway case.</p>
+                        <p class="rep-health-status" id="repOperationalStatus" role="status">{{ match ($operationalMonitoring['status'] ?? 'unverified') { 'healthy' => 'No issues detected.', 'attention' => 'Administrator review is required.', default => 'Processor history is not yet available.' } }}</p>
+                        <details id="repSystemHealth" @if (($operationalMonitoring['status'] ?? '') === 'attention') open @endif>
+                            <summary>System Health</summary>
+                            <h3>Operational checks</h3>
+                            <p>Current processing health across all dates. These checks do not change appointments or financial records.</p>
+                            <p id="repOperationalSummary">{{ ($operationalMonitoring['status'] ?? 'unverified') === 'unverified' ? 'Processor history is not yet available' : 'Checking processor history' }}</p>
+                            <ul id="repOperationalProcessors"></ul>
+                            <ul id="repOperationalIssues"></ul>
+                            <p>Review allowances: {{ config('touchnrelief.monitoring.processing_delay_minutes', 5) }} minutes after an automatic processing deadline; {{ config('touchnrelief.monitoring.processor_stale_minutes', 10) }} minutes without a successful processor run; {{ config('touchnrelief.monitoring.gateway_review_hours', 24) }} hours for an unresolved gateway case.</p>
+                        </details>
                     </article>
 
-                    <article class="rep-data-panel rep-ledger-panel" id="gateway-reconciliation">
+                    <article class="rep-data-panel rep-ledger-panel" id="gateway-reconciliation" @if (empty($gatewayReconciliations)) hidden @endif>
                         <h3>Gateway payments requiring review</h3>
                         <p>Payments received in this period that are not allocated to a booking or membership. These are excluded from sales totals. Verify the gateway records before any payout.</p>
                         <p>Known PHP amounts awaiting review: <strong id="repUnallocatedGatewayAmount">{{ number_format($unallocatedGatewayAmount ?? 0, 2) }}</strong></p>
@@ -893,6 +897,9 @@
                 const check = d.operationalMonitoring;
                 const checkedAt = new Date(check.checkedAt).toLocaleString('en-PH', { timeZone: @json(config('app.timezone')) });
                 const summaries = { healthy: 'No overdue processing or aged gateway cases detected.', attention: 'Administrator review is required.', unverified: 'Processor history is not yet available.' };
+                setText('repOperationalStatus', check.status === 'healthy' ? 'No issues detected.' : (check.status === 'attention' ? 'Administrator review is required.' : summaries.unverified));
+                const healthDetails = document.getElementById('repSystemHealth');
+                if (check.status === 'attention' || window.location.hash === '#operational-checks') healthDetails.open = true;
                 setText('repOperationalSummary', `${summaries[check.status] || summaries.unverified} Checked ${checkedAt} (${ @json(config('app.timezone')) }).`);
                 const processors = document.getElementById('repOperationalProcessors');
                 processors.replaceChildren();
@@ -1002,7 +1009,9 @@
             const reviewBody = document.getElementById('repGatewayReviewRows');
             reviewBody.replaceChildren();
             (d.gatewayReconciliations || []).forEach((row) => appendTableRow(reviewBody, [row.receivedAt, row.subject, row.client, row.reference, row.amount === null ? 'Amount requires verification' : `${row.currency} ${Number(row.amount).toFixed(2)}`, row.reason === 'distinct_paid_reference' ? 'Separate payment reference' : 'Payment details require verification']));
-            document.getElementById('repGatewayReviewEmpty').hidden = (d.gatewayReconciliations || []).length > 0;
+            const hasGatewayReviews = (d.gatewayReconciliations || []).length > 0;
+            document.getElementById('gateway-reconciliation').hidden = !hasGatewayReviews;
+            document.getElementById('repGatewayReviewEmpty').hidden = hasGatewayReviews;
         }
 
         async function loadReporting(period, periodValue, updateHistory = true) {
@@ -1084,6 +1093,10 @@
 
         document.getElementById('repLedgerSearch')?.addEventListener('input', renderLedgerRows);
         document.getElementById('repLedgerType')?.addEventListener('change', renderLedgerRows);
+
+        window.addEventListener('hashchange', () => {
+            if (window.location.hash === '#operational-checks') document.getElementById('repSystemHealth').open = true;
+        });
 
         window.addEventListener('popstate', () => {
             closePeriodMenus();

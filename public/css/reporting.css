@@ -812,6 +812,36 @@ html[data-theme="dark"] .rep-period-options button[aria-pressed="true"] {
     color: #173a30;
 }
 
+#operational-checks .rep-health-status {
+    margin: 0;
+    font-weight: 600;
+}
+
+#repSystemHealth {
+    margin-top: 8px;
+}
+
+#repSystemHealth summary {
+    width: fit-content;
+    cursor: pointer;
+    color: inherit;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#repSystemHealth summary:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+}
+
+#repSystemHealth[open] summary {
+    margin-bottom: 16px;
+}
+
+#gateway-reconciliation[hidden] {
+    display: none;
+}
+
 .rep-calculation-notes ul {
     margin: 12px 0 0;
     padding-left: 20px;
