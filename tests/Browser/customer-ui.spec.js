@@ -96,7 +96,14 @@ test('customer account navigation and appointments work across customer pages', 
             await menu.locator('.nav-user').click();
             await expect(menu.locator('.nav-user-menu')).toBeVisible();
             await expect(menu.getByRole('menuitem', { name: 'Logout', exact: true })).toBeVisible();
-            await menu.getByRole('menuitem', { name: 'My Appointments', exact: true }).click();
+            await expect(menu.getByRole('menuitem', { name: 'My Appointments', exact: true })).toHaveCount(0);
+            await menu.locator('.nav-user').click();
+            if (width <= 900) {
+                await page.locator('.mobile-nav-toggle').click();
+                await page.locator('.customer-mobile-shortcuts [data-tnr-open-transactions]').click();
+            } else {
+                await page.locator('.nav-appointments-direct').click();
+            }
             const appointments = page.locator('#tnr-transactions-modal');
             await expect(appointments).toBeVisible();
             await expect(appointments.locator('.txn-modal-client-meta')).toHaveCount(0);
