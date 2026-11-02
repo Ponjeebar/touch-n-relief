@@ -1886,3 +1886,108 @@ html[data-theme="dark"] .txn-rebook-btn:hover {
 .txn-arrival-policy summary { cursor: pointer; padding: 8px 0; font-size: 13px; font-weight: 600; }
 .txn-arrival-policy summary:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .txn-arrival-policy .txn-modal-note { margin-top: 8px; }
+
+/* Customer appointment list: prioritize schedule, status, and available actions. */
+.txn-modal--appointments .txn-modal-panel { max-height: min(calc(100dvh - 2rem), 900px); border-radius: 14px; }
+.txn-modal--appointments .txn-modal-header,
+.txn-modal--appointments .txn-modal-footer { flex-shrink: 0; background: #fff; border-color: #dce6df; }
+.txn-modal--appointments .txn-modal-header { align-items: center; }
+.txn-modal--appointments .txn-modal-title { font-size: 1.4rem; }
+.txn-modal--appointments .txn-modal-sub { margin: 0.4rem 0 0; color: #52675c; }
+.txn-modal--appointments .txn-modal-body { background: #f7f8f6; overscroll-behavior: contain; }
+.txn-modal--appointments .txn-arrival-policy { margin-bottom: 1rem; color: #52675c; }
+.txn-modal--appointments .txn-arrival-policy summary { min-height: 44px; display: list-item; padding: 0.65rem 0; box-sizing: border-box; }
+.txn-modal--appointments .txn-modal-note { background: #eef7f2; border-color: #c8dfd1; color: #244d3c; font-weight: 400; }
+.txn-modal--appointments .txn-modal-note .bi { color: #08764f; }
+.txn-modal--appointments .txn-group-tabs { display: flex; gap: 1rem; padding: 0; border: 0; border-bottom: 1px solid #cad9cf; border-radius: 0; background: transparent; }
+.txn-modal--appointments .txn-group-tab { min-height: 46px; padding: 0.65rem 0.3rem; border: 0; border-bottom: 3px solid transparent; border-radius: 0; color: #52675c; }
+.txn-modal--appointments .txn-group-tab:hover { color: #08764f; background: transparent; }
+.txn-modal--appointments .txn-group-tab.is-active { background: transparent; color: #075b3e; border-bottom-color: #08764f; box-shadow: none; }
+.txn-modal--appointments .txn-group-count { background: #e6eee8; color: #365d49; }
+.txn-modal--appointments .txn-group-tab.is-active .txn-group-count { background: #d5ecdf; color: #075b3e; }
+.txn-modal--appointments .txn-group-description { margin-top: 0.6rem; color: #52675c; }
+.txn-modal--appointments .txn-toolbar { padding: 0; margin: 1rem 0; border: 0; border-radius: 0; background: transparent; }
+.txn-modal--appointments .txn-toolbar-search { grid-column: 1 / -1; }
+.txn-modal--appointments .txn-toolbar-field { min-width: 0; }
+.txn-modal--appointments :is(.txn-search-input, .txn-sort-select) { width: 100%; min-width: 0; min-height: 44px; border-radius: 7px; }
+.txn-modal--appointments :is(.txn-sort-label, .txn-meta dt, .txn-payment-item dt) { color: #52675c; }
+.txn-modal--appointments :is(.txn-search-input, .txn-sort-select):focus { border-color: #08764f; box-shadow: 0 0 0 3px rgba(8, 118, 79, 0.14); }
+.txn-modal--appointments .txn-card { background: #fff; border-radius: 10px; border-color: #d4e0d8; box-shadow: none; }
+.txn-modal--appointments .txn-card:hover { border-color: #a5bdaf; box-shadow: none; }
+.txn-modal--appointments .txn-card.is-booked { border-left-color: #08764f; }
+.txn-modal--appointments .txn-ref { color: #52675c; overflow-wrap: anywhere; }
+.txn-modal--appointments .txn-card-mid { margin-top: 0.6rem; margin-bottom: 1rem; }
+.txn-modal--appointments .txn-service { font-size: 1.1rem; }
+.txn-modal--appointments .txn-badge { white-space: normal; line-height: 1.4; text-align: center; max-width: 180px; }
+.txn-modal--appointments .txn-badge-booked { color: #075b3e; background: #e7f4ec; border-color: #b4d6c2; }
+.txn-modal--appointments .txn-payment-toggle-row { display: block; }
+.txn-modal--appointments .txn-payment-block { display: none; }
+.txn-modal--appointments .txn-payment-block.is-expanded { display: block; }
+.txn-modal--appointments .txn-payment-details-toggle { min-height: 44px; background: transparent; border-color: #d4e0d8; border-radius: 7px; color: #244d3c; }
+.txn-modal--appointments .txn-payment-details-toggle:hover { background: #eef7f2; }
+.txn-modal--appointments .txn-payment-grid { background: #f3f7f4; border-color: #d4e0d8; border-radius: 7px; }
+.txn-modal--appointments .txn-payment-item-status { align-items: flex-start; text-align: left; }
+.txn-modal--appointments .txn-payment-item-status dd { justify-content: flex-start; }
+.txn-modal--appointments .txn-card-actions { gap: 0.6rem; border-color: #dce6df; }
+.txn-modal--appointments :is(.txn-reschedule-btn, .txn-cancel-btn, .txn-rebook-btn, .txn-payment-btn) { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; box-sizing: border-box; border-radius: 7px; }
+.txn-modal--appointments .txn-reschedule-btn { background: #08764f; border-color: #08764f; color: #fff; }
+.txn-modal--appointments .txn-reschedule-btn:hover { background: #065f40; border-color: #065f40; }
+.txn-modal--appointments .txn-cancel-btn { background: transparent; }
+.txn-modal--appointments .txn-cancel-btn:hover { background: #fff0ef; }
+.txn-modal--appointments .txn-modal-footer .txn-modal-btn { min-height: 44px; border-radius: 7px; background: #08764f; }
+.txn-modal--appointments .txn-modal-footer .txn-modal-btn:hover { background: #065f40; }
+.txn-modal--appointments .txn-modal-footer .txn-modal-btn-secondary { background: transparent; color: #244d3c; border: 1px solid #bacfc2; }
+.txn-modal--appointments .txn-modal-footer .txn-modal-btn-secondary:hover { background: #eef7f2; }
+.txn-modal--appointments .txn-load-more { min-height: 44px; background: #eef7f2; border-color: #bacfc2; color: #244d3c; }
+.txn-modal--appointments .txn-load-more:hover { background: #deeee4; }
+.txn-modal--appointments :is(.txn-filter-empty, .txn-empty) { padding: 1.25rem; border: 1px dashed #bacfc2; border-radius: 8px; background: #fff; color: #52675c; }
+.txn-modal--appointments :is(button, a, summary):focus-visible { outline: 2px solid #08764f; outline-offset: 3px; }
+
+html[data-theme="dark"] .txn-modal--appointments .txn-modal-body { background: #15251f; }
+html[data-theme="dark"] .txn-modal--appointments :is(.txn-modal-panel, .txn-modal-header, .txn-modal-footer) { background: #192d26; border-color: #3f5a4c; }
+html[data-theme="dark"] .txn-modal--appointments :is(.txn-modal-sub, .txn-arrival-policy, .txn-group-description, .txn-sort-label, .txn-meta dt, .txn-payment-item dt, .txn-ref) { color: #b5cbbf; }
+html[data-theme="dark"] .txn-modal--appointments .txn-group-tabs { background: transparent; border-color: #3f5a4c; }
+html[data-theme="dark"] .txn-modal--appointments .txn-toolbar { background: transparent; }
+html[data-theme="dark"] .txn-modal--appointments .txn-group-tab { background: transparent; color: #b5cbbf; }
+html[data-theme="dark"] .txn-modal--appointments .txn-group-tab:hover { background: transparent; color: #eaf5ee; }
+html[data-theme="dark"] .txn-modal--appointments .txn-group-tab.is-active { background: transparent; color: #9de3c3; border-color: transparent; border-bottom-color: #70e2bd; }
+html[data-theme="dark"] .txn-modal--appointments .txn-group-count { background: #304b3e; color: #eaf5ee; }
+html[data-theme="dark"] .txn-modal--appointments .txn-group-tab.is-active .txn-group-count { background: #24583f; color: #bff4d9; }
+html[data-theme="dark"] .txn-modal--appointments .txn-card { background: #1e332a; border-color: #3f5a4c; }
+html[data-theme="dark"] .txn-modal--appointments .txn-card:hover { border-color: #729482; }
+html[data-theme="dark"] .txn-modal--appointments .txn-card.is-booked { border-left-color: #70e2bd; }
+html[data-theme="dark"] .txn-modal--appointments :is(.txn-search-input, .txn-sort-select, .txn-payment-grid, .txn-payment-details-toggle) { background: #15251f; border-color: #526e5f; }
+html[data-theme="dark"] .txn-modal--appointments .txn-payment-details-toggle { color: #bff4d9; }
+html[data-theme="dark"] .txn-modal--appointments .txn-payment-details-toggle:hover { background: #254b38; }
+html[data-theme="dark"] .txn-modal--appointments .txn-badge-booked { background: #24583f; color: #bff4d9; border-color: #52896b; }
+html[data-theme="dark"] .txn-modal--appointments .txn-card-actions { border-color: #3f5a4c; }
+html[data-theme="dark"] .txn-modal--appointments .txn-reschedule-btn { background: #08764f; border-color: #3dba8b; color: #fff; }
+html[data-theme="dark"] .txn-modal--appointments .txn-reschedule-btn:hover { background: #065f40; }
+html[data-theme="dark"] .txn-modal--appointments .txn-cancel-btn { color: #ffc4c4; border-color: #aa6e6e; }
+html[data-theme="dark"] .txn-modal--appointments .txn-cancel-btn:hover { background: #4b292b; }
+html[data-theme="dark"] .txn-modal--appointments .txn-modal-footer .txn-modal-btn-secondary { color: #bff4d9; border-color: #526e5f; }
+html[data-theme="dark"] .txn-modal--appointments .txn-modal-footer .txn-modal-btn-secondary:hover { background: #254b38; }
+html[data-theme="dark"] .txn-modal--appointments :is(.txn-empty, .txn-filter-empty, .txn-load-more, .txn-modal-note) { background: #1e332a; color: #b5cbbf; border-color: #526e5f; }
+html[data-theme="dark"] .txn-modal--appointments .txn-load-more:hover { background: #254b38; }
+html[data-theme="dark"] .txn-modal--appointments .txn-modal-note .bi { color: #70e2bd; }
+html[data-theme="dark"] .txn-modal--appointments :is(button, a, summary):focus-visible { outline-color: #70e2bd; }
+
+@media (min-width: 720px) {
+    .txn-modal--appointments .txn-toolbar { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1.3fr); }
+    .txn-modal--appointments .txn-toolbar-search { grid-column: auto; }
+}
+@media (max-width: 719px) {
+    .txn-modal--appointments .txn-modal-panel { max-height: 100dvh; border-radius: 0; }
+    .txn-modal--appointments .txn-modal-title { font-size: 1.3rem; }
+    .txn-modal--appointments .txn-modal-sub { font-size: 0.8rem; }
+    .txn-modal--appointments .txn-toolbar { gap: 0.65rem; }
+    .txn-modal--appointments .txn-toolbar-field:last-child { grid-column: 1 / -1; }
+    .txn-modal--appointments .txn-group-tab { min-height: 44px; font-size: 0.85rem; }
+    .txn-modal--appointments :is(.txn-sort-label, .txn-meta dt, .txn-payment-item dt) { font-size: 10px; }
+    .txn-modal--appointments .txn-service { font-size: 1rem; }
+    .txn-modal--appointments .txn-card-mid { grid-template-columns: 1fr; gap: 0.5rem; }
+    .txn-modal--appointments .txn-badge { justify-self: start; font-size: 11px; }
+    .txn-modal--appointments .txn-card-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .txn-modal--appointments .txn-card-actions > :only-child { grid-column: 1 / -1; }
+    .txn-modal--appointments .txn-modal-footer .txn-modal-btn { flex: 1 1 auto; }
+}

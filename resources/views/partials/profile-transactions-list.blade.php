@@ -33,13 +33,13 @@
             : 'Completed, cancelled, expired, and past appointments.' }}
     </p>
     <div class="txn-toolbar">
+        <div class="txn-toolbar-field txn-toolbar-search">
+            <label class="txn-sort-label" for="txn-search">Search</label>
+            <input type="search" id="txn-search" class="txn-search-input" aria-label="Search transactions" placeholder="Search service, therapist, date">
+        </div>
         <div class="txn-toolbar-field">
             <label class="txn-sort-label" for="txn-date-filter">Date</label>
             <input type="date" id="txn-date-filter" class="txn-search-input" aria-label="Filter transactions by date">
-        </div>
-        <div class="txn-toolbar-field">
-            <label class="txn-sort-label" for="txn-search">Search</label>
-            <input type="search" id="txn-search" class="txn-search-input" aria-label="Search transactions" placeholder="Search service, therapist, date">
         </div>
         <div class="txn-toolbar-field">
             <label class="txn-sort-label" for="txn-filter-select">Filter</label>

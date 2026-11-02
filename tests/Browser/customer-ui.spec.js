@@ -16,6 +16,55 @@ async function dismissTour(page) {
     if (await skip.isVisible()) await skip.click();
 }
 
+test('appointments keep search, history, and payment details usable across screen sizes', async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await login(page);
+    for (const width of [320, 390, 768, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.evaluate(theme => localStorage.setItem('tnr-theme', theme), width <= 390 ? 'dark' : 'light');
+        await page.goto('/');
+        await dismissTour(page);
+        await page.locator(width <= 1100 ? '.customer-mobile-shortcuts [data-tnr-open-transactions]' : '.nav-appointments-direct').click();
+        const modal = page.locator('#tnr-transactions-modal');
+        await expect(modal.getByRole('heading', { name: 'My Appointments', exact: true })).toBeInViewport();
+        await modal.locator('[data-txn-group="upcoming"]').click();
+        const visibleCards = modal.locator('.txn-card:visible');
+        await expect(visibleCards.first()).toBeVisible();
+        const firstCard = visibleCards.first();
+        const service = await firstCard.getAttribute('data-service');
+        await modal.locator('#txn-search').fill(service);
+        await expect(visibleCards.first()).toHaveAttribute('data-service', service);
+        await modal.locator('#txn-search').fill('no-matching-appointment-xyz');
+        await expect(modal.locator('#txn-filter-empty')).toBeVisible();
+        await expect(visibleCards).toHaveCount(0);
+        await modal.locator('#txn-search').clear();
+        const date = await visibleCards.first().getAttribute('data-sort-date');
+        await modal.locator('#txn-date-filter').fill(date);
+        await expect(visibleCards.first()).toHaveAttribute('data-sort-date', date);
+        await modal.locator('#txn-date-filter').clear();
+        await modal.locator('#txn-filter-select').selectOption('with-amount');
+        await expect(visibleCards.first()).toHaveAttribute('data-has-amount', '1');
+        await modal.locator('#txn-filter-select').selectOption('all');
+        await modal.locator('#txn-sort-select').selectOption('amount-desc');
+        const amounts = await visibleCards.evaluateAll(cards => cards.map(card => Number(card.dataset.amountRaw)));
+        expect(amounts).toEqual([...amounts].sort((a, b) => b - a));
+        const paymentCard = visibleCards.filter({ has: page.locator('[data-txn-payment-toggle]') }).first();
+        const toggle = paymentCard.locator('[data-txn-payment-toggle]');
+        await toggle.click();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        await expect(paymentCard.locator('[data-txn-payment-details]')).toBeVisible();
+        await toggle.click();
+        await expect(paymentCard.locator('[data-txn-payment-details]')).toBeHidden();
+        await page.screenshot({ path: testInfo.outputPath(`appointments-upcoming-${width}.png`), animations: 'disabled' });
+        await modal.locator('[data-txn-group="history"]').click();
+        await expect(visibleCards.first()).toHaveAttribute('data-appointment-group', 'history');
+        await page.screenshot({ path: testInfo.outputPath(`appointments-history-${width}.png`), animations: 'disabled' });
+        expect(await modal.locator('.txn-modal-body').evaluate(body => body.scrollWidth <= body.clientWidth + 1)).toBe(true);
+        await modal.locator('.txn-modal-header .txn-modal-close').click();
+        await expect(modal).toBeHidden();
+    }
+});
+
 test('appointment badges count upcoming records and decrease after cancellation', async ({ page }, testInfo) => {
     await login(page);
     let upcoming = 2;

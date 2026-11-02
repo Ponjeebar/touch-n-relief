@@ -2,18 +2,17 @@
     <link rel="stylesheet" href="{{ asset('css/transactions-modal.css') }}?v={{ filemtime(public_path('css/transactions-modal.css')) }}">
 @endonce
 
-<div class="txn-modal txn-modal-hidden" id="tnr-transactions-modal" role="dialog" aria-modal="true" aria-labelledby="tnr-transactions-modal-title" aria-hidden="true">
+<div class="txn-modal txn-modal--appointments txn-modal-hidden" id="tnr-transactions-modal" role="dialog" aria-modal="true" aria-labelledby="tnr-transactions-modal-title" aria-describedby="tnr-appointments-description" aria-hidden="true">
     <div class="txn-modal-backdrop" data-tnr-txn-close="true" tabindex="-1"></div>
     <div class="txn-modal-panel" role="document">
         <header class="txn-modal-header">
             <div>
-                <p class="txn-modal-label">Account</p>
                 <h2 class="txn-modal-title" id="tnr-transactions-modal-title">My Appointments</h2>
+                <p class="txn-modal-sub" id="tnr-appointments-description">Manage upcoming visits and review past appointments.</p>
             </div>
             <button type="button" class="txn-modal-close" data-tnr-txn-close="true" aria-label="Close">&times;</button>
         </header>
         <div class="txn-modal-body">
-            <p class="txn-modal-sub">Your appointments, payment status, and completed spa sessions — most recent activity shown first.</p>
             <details class="txn-arrival-policy">
                 <summary>Arrival and no-show policy</summary>
             <p class="txn-modal-note">
