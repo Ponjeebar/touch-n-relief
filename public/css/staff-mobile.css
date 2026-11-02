@@ -2,11 +2,14 @@
 .staff-sidebar-help { display: none; }
 @media (min-width: 1025px) {
     .staff-sidebar-help {
-        display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-        min-height: 40px; margin-bottom: 12px; padding: 8px 10px;
+        display: grid; grid-template-columns: 22px minmax(0, 1fr) 22px; align-items: center; gap: 8px; flex-shrink: 0;
+        min-height: 44px; margin-bottom: 12px; padding: 10px 12px;
         border: 1px solid rgba(255,255,255,.35); border-radius: 10px;
-        background: transparent; color: #fff; font: inherit; font-size: 12px; cursor: pointer;
+        background: transparent; color: #fff; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
     }
+    .staff-sidebar-help .nav-text { text-align: center; }
+    .staff-sidebar-help > i { text-align: center; font-size: 16px; line-height: 1; }
+    .staff-sidebar-help:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.6); }
     .staff-sidebar-help:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
     html:root[data-staff-sidebar="expanded"] .sidebar { width: 280px; }
     html:root[data-staff-sidebar="expanded"] .sidebar .brand-copy { display: flex; max-height: 90px; }
@@ -17,6 +20,7 @@
     html:root[data-staff-sidebar="expanded"] .sidebar .nav-group-details[open] .nav-sublist { display: grid; }
     html:root[data-staff-sidebar="expanded"] .sidebar :is(.nav-link, .logout) { justify-content: flex-start; gap: 12px; }
     html:root[data-staff-sidebar="collapsed"] .sidebar { width: 90px; }
+    html:root[data-staff-sidebar="collapsed"] .staff-sidebar-help { display: flex; }
     html:root[data-staff-sidebar="collapsed"] .sidebar :is(.brand-copy, .nav-text, .nav-chevron, .nav-section-label, .nav-sublist) { display: none; }
     html:root[data-staff-sidebar="collapsed"] .sidebar :is(.nav-link, .logout, .staff-sidebar-help) { justify-content: center; gap: 0; }
     .staff-profile-logout { display: none; }
@@ -33,9 +37,10 @@
     .sidebar .nav-list::-webkit-scrollbar { width: 4px; }
     .sidebar .nav-list::-webkit-scrollbar-track { background: transparent; }
     .sidebar .nav-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.4); border-radius: 4px; }
-    .sidebar .nav-section-label { margin-top: 10px; margin-bottom: 2px; }
+    .sidebar .nav-section-label { margin-top: 10px; margin-bottom: 2px; color: rgba(255,255,255,.75); }
     .sidebar .sidebar-footer {
         flex-shrink: 0;
+        padding: 12px 0 0;
         border-top: 1px solid rgba(255, 255, 255, 0.25);
     }
     .sidebar .logout {
