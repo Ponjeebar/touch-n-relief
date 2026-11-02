@@ -296,39 +296,16 @@
                     <span class="bk-payment-badge" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
                     <div>
                         <h3 class="bk-title" id="bkConfirmTitle">Complete your payment</h3>
-                        <p class="bk-payment-tagline">Secure checkout powered by PayMongo</p>
+                        <p class="bk-payment-tagline">Review your appointment and choose how much to pay.</p>
                     </div>
                 </div>
                 <button type="button" class="bk-x" data-bk-close="true" aria-label="Close">&times;</button>
             </div>
 
             <div class="bk-body bk-payment-body">
-                <div class="bk-payment-hero">
-                    <div class="bk-payment-hero-main">
-                        <span class="bk-payment-hero-label">Pay now</span>
-                        <span class="bk-payment-hero-amount" id="bkSumAmountDue">—</span>
-                        <span class="bk-payment-hero-meta">Service price <strong id="bkSumServicePrice">—</strong></span>
-                        <span class="bk-payment-hero-meta">Remaining balance after this payment <strong id="bkSumBalance"></strong></span>
-                    </div>
-                    <div class="bk-payment-hero-type">
-                        <p class="bk-payment-label">Payment type</p>
-                        <div class="bk-payment-type-group" role="radiogroup" aria-label="Payment type">
-                            <button type="button" class="bk-payment-type is-active" data-payment-type="downpayment">
-                                <span class="bk-payment-type-title">Downpayment</span>
-                                <span class="bk-payment-type-sub">{{ $downpaymentPercentage }}% to confirm</span>
-                            </button>
-                            <button type="button" class="bk-payment-type" data-payment-type="full">
-                                <span class="bk-payment-type-title">Full payment</span>
-                                <span class="bk-payment-type-sub">Pay in full now</span>
-                            </button>
-                        </div>
-                        <p class="time-slots-hint" id="bkFullPaymentNotice" hidden>Appointments starting in less than 1 hour require full payment.</p>
-                    </div>
-                </div>
-
-                <div class="bk-payment-review">
-                    <section class="bk-payment-summary-toggle" aria-labelledby="bkReviewTitle">
-                        <h4 class="bk-review-title" id="bkReviewTitle">Booking details</h4>
+                <div class="bk-checkout-layout">
+                    <section class="bk-payment-summary-toggle bk-appointment-review" aria-labelledby="bkReviewTitle">
+                        <h4 class="bk-review-title" id="bkReviewTitle">Your appointment</h4>
                             <div class="bk-summary bk-summary-compact">
                                 <div class="bk-row">
                                     <span class="bk-k">Service</span>
@@ -352,47 +329,71 @@
                                 </div>
                             </div>
                     </section>
-                    <section class="bk-payment-section" aria-label="Payment information">
-                        @if (empty($paymongoEnabled))
-                            <p class="bk-payment-paymongo-alert">Online payment is not configured yet. Please contact the spa to complete your booking.</p>
-                        @else
-                            <p class="bk-checkout-explanation">Continue to PayMongo, choose your payment method, and pay the amount shown above. You will return here after checkout.</p>
-                            <details class="bk-payment-channels-details"><summary>Payment methods and refund information</summary>
-                                    <div class="bk-payment-paymongo-channels" aria-label="Accepted payment channels">
-                                        @foreach ($paymongoChannels as $channel)
-                                            <article class="bk-payment-paymongo-channel-card">
-                                                <div class="bk-payment-paymongo-channel-head">
-                                                    <span class="bk-payment-method-mark" aria-hidden="true" style="--bk-method-brand: {{ $channel['brand'] }}">{{ $channel['initials'] }}</span>
-                                                    <div>
-                                                        <p class="bk-payment-paymongo-channel-title">{{ $channel['label'] }}</p>
-                                                        <p class="bk-payment-paymongo-channel-note">{{ $channel['refund_note'] }}</p>
-                                                    </div>
-                                                </div>
-                                            </article>
-                                        @endforeach
-                                    </div>
-                            </details>
-                        @endif
-                        <div class="bk-paymongo-browser-notice" id="bkPaymongoBrowserNotice" hidden role="note">
-                            <i class="bi bi-browser-chrome" aria-hidden="true"></i>
-                            <p><strong>Open this page in Chrome or Safari before continuing.</strong> Messenger and other in-app browsers can block PayMongo’s Download QR Code button. Tap the browser menu, then choose <em>Open in browser</em>.</p>
+                    <div class="bk-checkout-review">
+                        <div class="bk-payment-hero">
+                            <div class="bk-payment-hero-main">
+                                <span class="bk-payment-hero-label">Amount to pay now</span>
+                                <span class="bk-payment-hero-amount" id="bkSumAmountDue">—</span>
+                                <span class="bk-payment-hero-meta">Service price <strong id="bkSumServicePrice">—</strong></span>
+                                <span class="bk-payment-hero-meta">Balance after payment <strong id="bkSumBalance"></strong></span>
+                            </div>
+                            <div class="bk-payment-hero-type">
+                                <p class="bk-payment-label">Payment type</p>
+                                <div class="bk-payment-type-group" role="group" aria-label="Payment type">
+                                    <button type="button" class="bk-payment-type is-active" data-payment-type="downpayment">
+                                        <span class="bk-payment-type-title">Downpayment</span>
+                                        <span class="bk-payment-type-sub">{{ $downpaymentPercentage }}% to confirm</span>
+                                    </button>
+                                    <button type="button" class="bk-payment-type" data-payment-type="full">
+                                        <span class="bk-payment-type-title">Full payment</span>
+                                        <span class="bk-payment-type-sub">Pay in full now</span>
+                                    </button>
+                                </div>
+                                <p class="time-slots-hint" id="bkFullPaymentNotice" hidden>Appointments starting in less than 1 hour require full payment.</p>
+                            </div>
                         </div>
-                    </section>
+                        <section class="bk-payment-section" aria-label="Payment information">
+                            @if (empty($paymongoEnabled))
+                                <p class="bk-payment-paymongo-alert">Online payment is not configured yet. Please contact the spa to complete your booking.</p>
+                            @else
+                                <p class="bk-checkout-explanation">Continue to PayMongo, choose your payment method, and pay the amount shown above. You will return here after checkout.</p>
+                                <details class="bk-payment-channels-details"><summary>Payment methods and refund information</summary>
+                                        <div class="bk-payment-paymongo-channels" aria-label="Accepted payment channels">
+                                            @foreach ($paymongoChannels as $channel)
+                                                <article class="bk-payment-paymongo-channel-card">
+                                                    <div class="bk-payment-paymongo-channel-head">
+                                                        <span class="bk-payment-method-mark" aria-hidden="true" style="--bk-method-brand: {{ $channel['brand'] }}">{{ $channel['initials'] }}</span>
+                                                        <div>
+                                                            <p class="bk-payment-paymongo-channel-title">{{ $channel['label'] }}</p>
+                                                            <p class="bk-payment-paymongo-channel-note">{{ $channel['refund_note'] }}</p>
+                                                        </div>
+                                                    </div>
+                                                </article>
+                                            @endforeach
+                                        </div>
+                                </details>
+                            @endif
+                            <div class="bk-paymongo-browser-notice" id="bkPaymongoBrowserNotice" hidden role="note">
+                                <i class="bi bi-browser-chrome" aria-hidden="true"></i>
+                                <p><strong>Open this page in Chrome or Safari before continuing.</strong> Messenger and other in-app browsers can block PayMongo’s Download QR Code button. Tap the browser menu, then choose <em>Open in browser</em>.</p>
+                            </div>
+                        </section>
+                        <label class="bk-no-show-policy" for="bkNoShowPolicyAccepted">
+                            <input
+                                id="bkNoShowPolicyAccepted"
+                                name="no_show_policy_accepted"
+                                type="checkbox"
+                                value="1"
+                                form="booking-form"
+                                {{ old('no_show_policy_accepted') ? 'checked' : '' }}
+                            >
+                            <span>
+                                <strong>I understand the no-show payment policy.</strong>
+                                Payments already collected are nonrefundable when an appointment is recorded as a no-show because the therapist and schedule were reserved. An unpaid balance will not be collected. Management may approve an exception after review; contact the spa for assistance.
+                            </span>
+                        </label>
+                    </div>
                 </div>
-                <label class="bk-no-show-policy" for="bkNoShowPolicyAccepted">
-                    <input
-                        id="bkNoShowPolicyAccepted"
-                        name="no_show_policy_accepted"
-                        type="checkbox"
-                        value="1"
-                        form="booking-form"
-                        {{ old('no_show_policy_accepted') ? 'checked' : '' }}
-                    >
-                    <span>
-                        <strong>I understand the no-show payment policy.</strong>
-                        Payments already collected are nonrefundable when an appointment is recorded as a no-show because the therapist and schedule were reserved. An unpaid balance will not be collected. Management may approve an exception after review; contact the spa for assistance.
-                    </span>
-                </label>
             </div>
 
             <div class="bk-foot bk-foot-payment">
@@ -818,6 +819,7 @@
                 paymentTypeButtons.forEach(function (btn) {
                     var type = btn.getAttribute('data-payment-type') || '';
                     btn.classList.toggle('is-active', type === selectedPaymentType);
+                    btn.setAttribute('aria-pressed', type === selectedPaymentType ? 'true' : 'false');
                     var disabled = type === 'downpayment' && fullPaymentRequiredSlots.indexOf(hiddenSlot?.value || '') !== -1;
                     btn.disabled = disabled;
                     btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');

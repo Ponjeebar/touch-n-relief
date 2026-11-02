@@ -2719,19 +2719,38 @@ html[data-theme="dark"] .booking-selection-label { color: #b9d2c5; }
 html[data-theme="dark"] .booking-selection-summary button { color: #a9e5cb; }
 @media (max-width: 700px) { .bk-payment-review { grid-template-columns: minmax(0, 1fr); } .booking-selection-summary { padding: 8px 12px; } }
 
-/* Payment review keeps the amount and policy acknowledgement distinct. */
+/* Appointment summary and checkout occupy distinct columns. */
+.bk-checkout-layout { display: grid; grid-template-columns: minmax(240px, 0.85fr) minmax(0, 1.4fr); gap: 28px; align-items: start; }
+.bk-checkout-review { min-width: 0; }
+.bk-dialog-payment .bk-payment-body { padding: 24px; background: #fff; }
+.bk-dialog-payment .bk-appointment-review { border: 0; border-radius: 0; background: #f3f5f1; padding: 18px; }
+.bk-dialog-payment .bk-review-title { padding: 0 0 14px; font-size: 1rem; border-bottom: 1px solid #ccd9d0; }
+.bk-dialog-payment .bk-appointment-review .bk-summary { border: 0; border-radius: 0; background: transparent; }
+.bk-dialog-payment .bk-appointment-review .bk-row { grid-template-columns: 1fr; gap: 3px; padding: 12px 0; background: transparent; border-color: #dbe3dc; }
+.bk-dialog-payment .bk-appointment-review .bk-k { font-size: 0.72rem; font-weight: 500; color: #52675c; }
+.bk-dialog-payment .bk-appointment-review .bk-v { font-size: 0.9rem; line-height: 1.5; }
+.bk-dialog-payment .bk-appointment-review .bk-row:first-child .bk-v { font-size: 1.12rem; font-weight: 700; }
 .bk-dialog-payment { border-radius: 14px; }
 .bk-dialog-payment .bk-head-payment { background: #fff; align-items: center; padding: 16px 20px; }
 .bk-dialog-payment .bk-payment-badge { border-radius: 9px; background: #e2f1e9; color: #086345; box-shadow: none; }
 .bk-dialog-payment .bk-payment-tagline { font-weight: 400; }
-.bk-dialog-payment .bk-payment-hero { border-radius: 9px; background: #f1f7f3; box-shadow: none; padding: 16px; gap: 20px; }
-.bk-dialog-payment .bk-payment-hero-amount { margin: 4px 0; font-size: 1.9rem; }
+.bk-dialog-payment .bk-payment-hero { grid-template-columns: 1fr; border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 0; gap: 24px; margin: 0 0 20px; }
+.bk-dialog-payment .bk-payment-hero-main { padding-bottom: 18px; border-bottom: 1px solid #ccd9d0; }
+.bk-dialog-payment .bk-payment-hero-amount { margin: 8px 0 16px; font-size: clamp(2rem, 3vw, 2.5rem); }
+.bk-dialog-payment .bk-payment-hero-meta { display: flex; justify-content: space-between; gap: 12px; font-size: 0.82rem; font-weight: 400; }
+.bk-dialog-payment .bk-payment-hero-meta strong { white-space: nowrap; }
 .bk-dialog-payment .bk-payment-type-group { border: 0; padding: 0; background: transparent; border-radius: 0; }
-.bk-dialog-payment .bk-payment-type { border-radius: 7px; box-shadow: none; }
-.bk-dialog-payment .bk-payment-type.is-active { background: #086345; border-color: #086345; box-shadow: none; }
+.bk-dialog-payment .bk-payment-type { position: relative; border-radius: 7px; box-shadow: none; padding: 14px 12px 14px 38px; min-height: 76px; }
+.bk-dialog-payment .bk-payment-type::before { content: ''; position: absolute; top: 17px; left: 12px; width: 15px; height: 15px; border: 1px solid #9caf9f; border-radius: 50%; box-sizing: border-box; }
+.bk-dialog-payment .bk-payment-type.is-active { background: #edf7f0; border-color: #08764f; color: #164a33; box-shadow: inset 0 0 0 1px #08764f; }
+.bk-dialog-payment .bk-payment-type.is-active::before { border: 4px solid #08764f; background: #fff; }
+.bk-dialog-payment .bk-payment-type.is-active .bk-payment-type-sub { color: #456453; }
 .bk-dialog-payment .bk-payment-type:hover { box-shadow: none; border-color: #086345; }
 .bk-dialog-payment .bk-summary { border-radius: 8px; box-shadow: none; }
 .bk-dialog-payment .bk-no-show-policy { margin: 16px 0 0; padding: 14px; border-radius: 7px; }
+.bk-dialog-payment .bk-no-show-policy strong { font-size: 0.82rem; margin-bottom: 6px; }
+.bk-dialog-payment .bk-checkout-explanation { font-size: 0.8rem; margin: 0; }
+.bk-dialog-payment .bk-payment-channels-details summary { font-weight: 500; font-size: 0.8rem; }
 .bk-dialog-payment .bk-no-show-policy input { flex-shrink: 0; }
 .bk-dialog-payment .bk-no-show-policy:has(input:checked) { border-color: #78a68a; background: #eef7f1; color: #294e39; }
 .bk-dialog-payment .bk-no-show-policy:has(input:checked) strong { color: #164a33; }
@@ -2748,18 +2767,25 @@ html[data-theme="dark"] .booking-selection-summary button { color: #a9e5cb; }
 .bk-dialog-payment .bk-confirm:disabled:hover { background: #dce2e5; border-color: #bfc9ce; color: #52616a; opacity: 1; box-shadow: none; transform: none; pointer-events: none; }
 
 html[data-theme="dark"] .bk-dialog-payment { background: #192d26; color: #edf5ef; border-color: #496556; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-body { background: #192d26; }
+html[data-theme="dark"] .bk-dialog-payment .bk-appointment-review { background: #14251e; }
+html[data-theme="dark"] .bk-dialog-payment :is(.bk-review-title, .bk-payment-hero-main) { border-color: #496556; }
 html[data-theme="dark"] .bk-dialog-payment :is(.bk-head-payment, .bk-foot-payment) { background: #192d26; border-color: #496556; }
 html[data-theme="dark"] .bk-dialog-payment .bk-title { color: #edf5ef; }
 html[data-theme="dark"] .bk-dialog-payment .bk-x { background: #2d4538; border-color: #62816e; color: #edf5ef; }
 html[data-theme="dark"] .bk-dialog-payment :is(.bk-payment-tagline, .bk-payment-hero-label, .bk-payment-hero-meta, .bk-foot-note, .bk-payment-label) { color: #b9d0c2; }
 html[data-theme="dark"] .bk-dialog-payment .bk-payment-badge { background: #254b38; color: #a9e5c5; }
-html[data-theme="dark"] .bk-dialog-payment .bk-payment-hero { background: #15251f; border-color: #496556; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-hero { background: transparent; }
 html[data-theme="dark"] .bk-dialog-payment .bk-payment-hero-amount { color: #9de0b9; }
 html[data-theme="dark"] .bk-dialog-payment :is(.bk-payment-hero-meta strong, .bk-review-title, .bk-checkout-explanation, .bk-payment-channels-details summary, .bk-k, .bk-v) { color: #edf5ef; }
 html[data-theme="dark"] .bk-dialog-payment :is(.bk-summary, .bk-summary .bk-row, .bk-payment-summary-toggle) { background: #1d3329; border-color: #496556; }
+html[data-theme="dark"] .bk-dialog-payment .bk-appointment-review .bk-summary,
+html[data-theme="dark"] .bk-dialog-payment .bk-appointment-review .bk-row { background: transparent; }
+html[data-theme="dark"] .bk-dialog-payment .bk-appointment-review .bk-k { color: #b9d0c2; }
 html[data-theme="dark"] .bk-dialog-payment .bk-payment-type { background: #20392d; color: #edf5ef; border-color: #62816e; }
 html[data-theme="dark"] .bk-dialog-payment .bk-payment-type-sub { color: #b9d0c2; }
-html[data-theme="dark"] .bk-dialog-payment .bk-payment-type.is-active { background: #086345; border-color: #70c99a; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-type.is-active { background: #244b36; border-color: #70c99a; box-shadow: inset 0 0 0 1px #70c99a; }
+html[data-theme="dark"] .bk-dialog-payment .bk-payment-type.is-active::before { border-color: #70c99a; background: #14251e; }
 html[data-theme="dark"] .bk-dialog-payment .bk-payment-type.is-active .bk-payment-type-sub { color: #d9f5e5; }
 html[data-theme="dark"] .bk-dialog-payment .bk-no-show-policy:has(input:checked) { background: #203d2d; border-color: #78a68a; color: #c8e5d2; }
 html[data-theme="dark"] .bk-dialog-payment .bk-no-show-policy:has(input:checked) strong { color: #d9f5e5; }
@@ -2775,9 +2801,15 @@ html[data-theme="dark"] .bk-checkout-control:focus-visible { outline-color: #9de
     .bk-dialog-payment .bk-foot-actions > .bk-cancel { flex: 1 1 0; }
 }
 @media (max-width: 640px) {
+    .bk-checkout-layout { grid-template-columns: 1fr; gap: 20px; }
     .bk-dialog-payment { border-radius: 12px 12px 0 0; }
     .bk-dialog-payment .bk-head-payment, .bk-dialog-payment .bk-foot-payment { padding: 12px 14px; }
-    .bk-dialog-payment .bk-payment-hero { padding: 12px; gap: 14px; }
+    .bk-dialog-payment .bk-payment-body { padding: 14px; }
+    .bk-dialog-payment .bk-appointment-review { padding: 12px 14px; }
+    .bk-dialog-payment .bk-appointment-review .bk-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+    .bk-dialog-payment .bk-appointment-review .bk-row { padding: 8px 0; }
+    .bk-dialog-payment .bk-appointment-review .bk-row:nth-child(-n+2), .bk-dialog-payment .bk-row-notes { grid-column: 1 / -1; }
+    .bk-dialog-payment .bk-payment-hero { gap: 18px; }
     .bk-dialog-payment .bk-payment-type-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .bk-dialog-payment .bk-no-show-policy { padding: 11px; }
 }

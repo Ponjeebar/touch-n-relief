@@ -216,6 +216,7 @@ test('checkout stays gray until the no-show policy is accepted', async ({ page }
         const checkbox = modal.locator('#bkNoShowPolicyAccepted');
         const wrapper = modal.locator('#bkCheckoutControl');
         await expect(modal).toBeVisible();
+        await expect(modal.locator('[data-payment-type="downpayment"]')).toHaveAttribute('aria-pressed', 'true');
         await expect(submit).toBeDisabled();
         await expect(submit).toHaveCSS('background-color', width === 390 ? 'rgb(60, 71, 65)' : 'rgb(220, 226, 229)');
         await expect(wrapper).toHaveAttribute('title', /Check/);
@@ -232,6 +233,8 @@ test('checkout stays gray until the no-show policy is accepted', async ({ page }
         const amount = async id => Number((await modal.locator(id).textContent()).replace(/[^\d.]/g, ''));
         expect(await amount('#bkSumAmountDue') + await amount('#bkSumBalance')).toBeCloseTo(await amount('#bkSumServicePrice'), 2);
         await modal.locator('[data-payment-type="full"]').click();
+        await expect(modal.locator('[data-payment-type="full"]')).toHaveAttribute('aria-pressed', 'true');
+        await expect(modal.locator('[data-payment-type="downpayment"]')).toHaveAttribute('aria-pressed', 'false');
         expect(await amount('#bkSumBalance')).toBe(0);
         await expect(submit).toBeEnabled({ enabled: configured });
         await page.screenshot({ path: testInfo.outputPath(`payment-accepted-${width}-${configured}.png`), animations: 'disabled' });
