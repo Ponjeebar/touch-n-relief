@@ -64,6 +64,28 @@ html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .customer-notif
     outline-offset: 2px;
 }
 
+.landing-header.nav-wide:not(.nav-solid):not(.scrolled) .customer-notif-btn {
+    border-color: rgba(22, 18, 16, 0.24);
+    background: rgba(22, 18, 16, 0.04);
+    color: #171311;
+}
+
+.landing-header.nav-wide:not(.nav-solid):not(.scrolled) .customer-notif-btn:hover {
+    border-color: rgba(22, 18, 16, 0.42);
+    background: rgba(22, 18, 16, 0.09);
+}
+
+.landing-header.nav-wide.scrolled:not(.nav-solid) .customer-notif-btn {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.09);
+    color: #f8f0e9;
+}
+
+.landing-header.nav-wide.scrolled:not(.nav-solid) .customer-notif-btn:hover {
+    border-color: rgba(255, 255, 255, 0.46);
+    background: rgba(255, 255, 255, 0.16);
+}
+
 .customer-notif-badge {
     position: absolute;
     top: -5px;
@@ -93,6 +115,14 @@ html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .customer-notif
 
 html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .customer-notif-badge {
     border-color: #0c1412;
+}
+
+.landing-header.nav-wide:not(.nav-solid):not(.scrolled) .customer-notif-badge {
+    border-color: rgba(255, 255, 255, 0.97);
+}
+
+.landing-header.nav-wide.scrolled:not(.nav-solid) .customer-notif-badge {
+    border-color: rgba(17, 14, 13, 0.97);
 }
 
 .customer-notif-badge[hidden] {

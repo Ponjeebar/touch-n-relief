@@ -16,6 +16,27 @@ async function dismissTour(page) {
     if (await skip.isVisible()) await skip.click();
 }
 
+test('landing header changes from light at the top to dark after scrolling', async ({ page }, testInfo) => {
+    await login(page);
+    for (const width of [390, 1366]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto('/');
+        await dismissTour(page);
+        const landingHeader = page.locator('.landing-header');
+        const shell = landingHeader.locator('.nav-shell');
+        await expect(landingHeader).not.toHaveClass(/scrolled/);
+        await expect.poll(() => shell.evaluate(node => getComputedStyle(node).backgroundColor)).toBe('rgba(255, 255, 255, 0.97)');
+        await expect(landingHeader.locator('.brand')).toHaveCSS('color', 'rgb(23, 19, 17)');
+        await page.screenshot({ path: testInfo.outputPath(`header-top-${width}.png`), animations: 'disabled' });
+        await page.evaluate(() => window.scrollTo(0, 180));
+        await expect(landingHeader).toHaveClass(/scrolled/);
+        await expect.poll(() => shell.evaluate(node => getComputedStyle(node).backgroundColor)).toBe('rgba(17, 14, 13, 0.97)');
+        await expect(landingHeader.locator('.brand')).toHaveCSS('color', 'rgb(248, 240, 233)');
+        await page.screenshot({ path: testInfo.outputPath(`header-scrolled-${width}.png`), animations: 'disabled' });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
+    }
+});
+
 test('booking selections and payment amounts remain clear when choices change', async ({ page }, testInfo) => {
     await login(page);
     for (const width of [390, 768, 1366]) {
