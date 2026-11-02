@@ -10,7 +10,7 @@
         ->map(fn (string $part) => strtoupper(substr($part, 0, 1)))
         ->implode('') ?: 'U';
 @endphp
-<header class="landing-header {{ ($navMode === 'auth' || ($solidNav ?? false)) ? 'nav-solid' : '' }} {{ ($navMode === 'auth') ? 'auth-page-header' : '' }}">
+<header class="landing-header {{ $navMode !== 'auth' ? 'nav-wide' : '' }} {{ ($navMode === 'auth' || ($solidNav ?? false)) ? 'nav-solid' : '' }} {{ ($navMode === 'auth') ? 'auth-page-header' : '' }}">
     <div class="nav-container">
         <div class="nav-shell">
             <a href="{{ $onLanding ? '#top' : route('landing') }}" class="brand-wrap brand-link">

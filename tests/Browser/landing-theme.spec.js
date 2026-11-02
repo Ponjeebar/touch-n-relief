@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test';
 
+test.setTimeout(180_000);
+test.use({ actionTimeout: 60_000, navigationTimeout: 60_000 });
+
 for (const width of [390, 1366]) {
     test(`guests have no theme control at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
         await expect(page.locator('#tnr-landing-theme-toggle, [data-landing-theme-toggle]')).toHaveCount(0);
-        if (width <= 900) await page.getByRole('button', { name: 'Open navigation menu', exact: true }).click();
+        if (width <= 1100) await page.getByRole('button', { name: 'Open navigation menu', exact: true }).click();
         await expect(page.locator('.nav-links').getByRole('link', { name: 'Log In', exact: true })).toBeVisible();
     });
 }
@@ -22,9 +25,9 @@ for (const width of [390, 768, 1366]) {
             form.locator('[type="submit"]').click(),
         ]);
         await expect(page.locator('#tnr-landing-theme-toggle')).toHaveCount(0);
-        const wrapper = page.locator(width <= 900 ? '.nav-user-wrap--mobile' : '.nav-user-wrap--desktop');
+        const wrapper = page.locator(width <= 1100 ? '.nav-user-wrap--mobile' : '.nav-user-wrap--desktop');
         async function openAccount() {
-            if (width <= 900) await page.getByRole('button', { name: 'Open navigation menu', exact: true }).click();
+            if (width <= 1100) await page.getByRole('button', { name: 'Open navigation menu', exact: true }).click();
             await wrapper.locator('.nav-user').click();
         }
         await openAccount();

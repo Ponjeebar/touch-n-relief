@@ -258,7 +258,7 @@
     function init() {
         setupCustomerAccountMenus();
         setupStaffSidebar();
-        setupMenu('.landing-header', '.mobile-nav-toggle', 'is-mobile-nav-open', '(max-width: 900px)');
+        setupMenu('.landing-header', '.mobile-nav-toggle', 'is-mobile-nav-open', '(max-width: 1100px)');
         setupLandingScrollSpy();
         setupStaffHeaderActions();
         setupStaffMoreMenu();

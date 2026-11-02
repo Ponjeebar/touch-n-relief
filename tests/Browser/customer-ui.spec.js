@@ -91,14 +91,25 @@ test('customer account navigation and appointments work across customer pages', 
         for (const path of ['/', '/booking', '/profile']) {
             await page.goto(path);
             await dismissTour(page);
-            if (width <= 900) await page.locator('.mobile-nav-toggle').click();
+            const header = await page.locator('.landing-header .nav-shell').boundingBox();
+            expect(header.x).toBeLessThanOrEqual(2);
+            expect(Math.abs(header.width - width)).toBeLessThanOrEqual(2);
+            if (width > 1100) {
+                const brand = await page.locator('.landing-header .brand-wrap').boundingBox();
+                const links = await page.locator('.landing-header .nav-links').boundingBox();
+                const actions = await page.locator('.landing-header .nav-header-actions').boundingBox();
+                expect(brand.x).toBeLessThan(links.x);
+                expect(Math.abs(links.x + links.width / 2 - width / 2)).toBeLessThanOrEqual(2);
+                expect(actions.x).toBeGreaterThan(links.x + links.width);
+            }
+            if (width <= 1100) await page.locator('.mobile-nav-toggle').click();
             const menu = page.locator('[data-user-menu]:visible');
             await menu.locator('.nav-user').click();
             await expect(menu.locator('.nav-user-menu')).toBeVisible();
             await expect(menu.getByRole('menuitem', { name: 'Logout', exact: true })).toBeVisible();
             await expect(menu.getByRole('menuitem', { name: 'My Appointments', exact: true })).toHaveCount(0);
             await menu.locator('.nav-user').click();
-            if (width <= 900) {
+            if (width <= 1100) {
                 await page.locator('.mobile-nav-toggle').click();
                 await page.locator('.customer-mobile-shortcuts [data-tnr-open-transactions]').click();
             } else {
@@ -111,7 +122,7 @@ test('customer account navigation and appointments work across customer pages', 
             await appointments.locator('.txn-arrival-policy summary').click();
             await expect(appointments.locator('.txn-modal-note')).toContainText('grace period');
             await appointments.getByRole('button', { name: 'Close', exact: true }).last().click();
-            if (width > 900) {
+            if (width > 1100) {
                 await page.locator('.nav-appointments-direct').click();
                 await expect(appointments).toBeVisible();
                 await appointments.getByRole('button', { name: 'Close', exact: true }).last().click();

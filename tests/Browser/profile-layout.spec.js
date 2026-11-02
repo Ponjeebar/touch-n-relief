@@ -38,8 +38,10 @@ for (const theme of ['light', 'dark']) {
             await expect(categories).toBeVisible();
             const panel = await page.locator('.profile-shell').boundingBox();
             const header = await page.locator('.landing-header .nav-shell').boundingBox();
-            expect(Math.abs(panel.x - header.x)).toBeLessThanOrEqual(2);
-            expect(Math.abs(panel.width - header.width)).toBeLessThanOrEqual(2);
+            expect(header.x).toBeLessThanOrEqual(2);
+            expect(Math.abs(header.width - width)).toBeLessThanOrEqual(2);
+            expect(panel.x).toBeGreaterThanOrEqual(header.x);
+            expect(panel.x + panel.width).toBeLessThanOrEqual(header.x + header.width + 2);
             if (width >= 1600) {
                 const navigationBox = await categories.boundingBox();
                 const panelBox = await page.locator('.profile-shell').boundingBox();
