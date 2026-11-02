@@ -53,7 +53,7 @@ class MembershipPlanEditingTest extends TestCase
                 ...$this->changes(), '_membership_plan_id' => $plan->id,
                 'name' => '', 'price_amount' => -1, 'validity_days' => 0, 'is_active' => 'invalid',
             ])->assertRedirect(route('services.index'))->assertSessionHasErrors(['name', 'price_amount', 'validity_days', 'is_active'], null, 'membership');
-        $this->get(route('services.index'))->assertOk()->assertSee('Updated member benefits.')->assertSee('class="membership-editor"', false);
+        $this->get(route('services.index'))->assertOk()->assertSee('Updated member benefits.')->assertSee('data-membership-errors', false);
         $this->assertSame($original, $plan->fresh()->getAttributes());
     }
 
