@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="{{ asset('css/ui-consistency.css') }}?v={{ filemtime(public_path('css/ui-consistency.css')) }}">
 <script>
 (function () {
     try {
