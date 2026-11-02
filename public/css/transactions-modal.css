@@ -1070,6 +1070,12 @@ html[data-theme="dark"] .txn-reschedule-current .txn-reschedule-payment-remainin
     text-decoration: line-through;
 }
 
+.txn-reschedule-slots-explanation { margin: 0.4rem 0 0.65rem; color: #52675c; font-size: 0.8rem; line-height: 1.5; }
+.txn-reschedule-slot.is-current { border-style: dashed; border-color: #52675c; background: #f1f5f2; color: #3d5547; cursor: default; }
+.txn-reschedule-slot-note { display: block; margin-top: 2px; font-size: 0.65rem; font-weight: 400; }
+html[data-theme="dark"] .txn-reschedule-slots-explanation { color: #b7cbd8; }
+html[data-theme="dark"] .txn-reschedule-slot.is-current { background: #2c3d46; border-color: #a8bdc9; color: #e8eef2; }
+
 .txn-reschedule-error {
     margin: 0.5rem 0 0;
     font-size: 0.86rem;

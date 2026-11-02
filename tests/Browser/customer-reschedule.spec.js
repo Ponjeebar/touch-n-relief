@@ -28,7 +28,8 @@ test('customer can switch therapist without a new payment and review a later can
         await route.fulfill({ response, body });
     });
     await page.route('**/bookings/990001/reschedule/availability?*', route => route.fulfill({ json: {
-        offered_slots: ['10:00 AM', '11:00 AM'], booked_slots: [], past_slots: [], user_conflicts: {},
+        offered_slots: ['10:00 AM', '11:00 AM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM'],
+        booked_slots: ['1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM'], past_slots: [], user_conflicts: {},
         therapists: { 'Maria Santos': { bookable: true }, 'Juan dela Cruz': { bookable: true } },
         therapist_schedule: { bookable: true },
     } }));
@@ -68,6 +69,10 @@ test('customer can switch therapist without a new payment and review a later can
         expect(saveSize.height).toBeGreaterThanOrEqual(44);
         expect(saveSize.height).toBeLessThan(65);
         await expect(modal.locator('.txn-reschedule-slot').first()).toBeDisabled();
+        await expect(modal.locator('.txn-reschedule-slot').first()).toContainText('Current time');
+        await expect(modal.locator('.txn-reschedule-slot').first()).not.toHaveClass(/is-unavailable/);
+        await expect(modal.locator('.txn-reschedule-slot.is-unavailable')).toHaveCount(7);
+        for (const slot of await modal.locator('.txn-reschedule-slot.is-unavailable').all()) await expect(slot).toBeDisabled();
         await modal.locator('#tnr-reschedule-therapist-choice').selectOption('Juan dela Cruz');
         await expect(modal.locator('.txn-reschedule-slot').first()).toBeEnabled();
         await modal.locator('.txn-reschedule-slot').first().click();

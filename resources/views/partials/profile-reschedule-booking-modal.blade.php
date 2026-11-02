@@ -49,6 +49,7 @@
                 </div>
                 <div class="txn-reschedule-field">
                     <span class="txn-sort-label" id="tnr-reschedule-slots-label">New time</span>
+                    <p class="txn-reschedule-slots-explanation">Times are start times. Unavailable times overlap another appointment or fall outside booking rules. Your current appointment is replaced when you save, so a new start time may overlap its old time range.</p>
                     <p class="txn-reschedule-slots-hint" id="tnr-reschedule-slots-hint" role="status">Select a date to see available times.</p>
                     <div class="txn-reschedule-slots" id="tnr-reschedule-slots" role="listbox" aria-labelledby="tnr-reschedule-slots-label" aria-describedby="tnr-reschedule-slots-hint"></div>
                     <input type="hidden" id="tnr-reschedule-time-slot" value="">

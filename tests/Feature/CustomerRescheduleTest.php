@@ -124,6 +124,36 @@ class CustomerRescheduleTest extends TestCase
         $this->assertSame('Ada', $booking->fresh()->therapist_name);
     }
 
+    public function test_two_hour_booking_blocks_every_overlapping_reschedule_start(): void
+    {
+        $booking = $this->booking(['duration_minutes' => 120]);
+        $this->booking(['therapist_name' => 'Bea', 'time_slot' => '2:30 PM', 'duration_minutes' => 120]);
+        $response = $this->actingAs($booking->user)->getJson(route('booking.reschedule.availability', [
+            $booking, 'booking_date' => '2026-11-05', 'therapist' => 'Bea',
+        ]))->assertOk();
+        foreach (['1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM'] as $slot) {
+            $this->assertContains($slot, $response->json('booked_slots'));
+            $this->patchJson(route('booking.reschedule', $booking), $this->change(['time_slot' => $slot]))
+                ->assertUnprocessable()->assertJsonValidationErrors('time_slot');
+        }
+        $this->assertNotContains('12:30 PM', $response->json('booked_slots'));
+        $this->assertSame('Ada', $booking->fresh()->therapist_name);
+        $this->assertSame('10:00 AM', $booking->fresh()->time_slot);
+    }
+
+    public function test_rescheduling_can_move_into_its_own_original_two_hour_window(): void
+    {
+        $booking = $this->booking(['time_slot' => '2:30 PM', 'duration_minutes' => 120]);
+        $response = $this->actingAs($booking->user)->getJson(route('booking.reschedule.availability', [
+            $booking, 'booking_date' => '2026-11-05', 'therapist' => 'Ada',
+        ]))->assertOk();
+        foreach (['2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM'] as $slot) {
+            $this->assertNotContains($slot, $response->json('booked_slots'));
+        }
+        $this->patchJson(route('booking.reschedule', $booking), $this->change(['therapist' => 'Ada', 'time_slot' => '3:00 PM']))->assertOk();
+        $this->assertSame('3:00 PM', $booking->fresh()->time_slot);
+    }
+
     public function test_customer_cannot_access_another_customers_booking_or_choose_unknown_therapist(): void
     {
         $booking = $this->booking();

@@ -842,11 +842,15 @@
             var unavailable = userConflict || therapistBooked || isCurrentSlot || isUnavailableByTime;
             var btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'txn-reschedule-slot' + (unavailable ? ' is-unavailable' : '') + (selected === slot ? ' is-active' : '');
+            btn.className = 'txn-reschedule-slot' + (isCurrentSlot ? ' is-current' : (unavailable ? ' is-unavailable' : '')) + (selected === slot ? ' is-active' : '');
             btn.textContent = slot;
             btn.disabled = unavailable;
             if (isCurrentSlot) {
-                btn.title = 'This is your current appointment time. Choose a different slot.';
+                var currentLabel = document.createElement('span');
+                currentLabel.className = 'txn-reschedule-slot-note';
+                currentLabel.textContent = 'Current time';
+                btn.appendChild(currentLabel);
+                btn.title = 'Your current start time. Choose a different time or therapist to reschedule.';
             } else if (isUnavailableByTime) {
                 btn.title = 'This time is no longer available for online booking.';
             } else if (userConflict) {
