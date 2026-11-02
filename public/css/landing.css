@@ -1081,6 +1081,70 @@ html[data-theme="dark"] .landing-theme-icon-light {
     color: #ffdad6;
 }
 
+/* Honor the saved theme at the top of the page as well as after scrolling. */
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-shell {
+    background: #111816;
+    border-color: rgba(179, 220, 204, 0.18);
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) :is(.brand, .nav-links a, .nav-txn-link) {
+    color: #f4f8f5;
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .brand-spa-name {
+    color: #b7c9be;
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .landing-section-link > span::after {
+    background: #70e2bd;
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) :is(.nav-user, .mobile-nav-toggle, .nav-avatar, .nav-appointments-direct) {
+    border-color: rgba(179, 220, 204, 0.34);
+    background: rgba(179, 220, 204, 0.08);
+    color: #d8f4e8;
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) :is(.brand-link, .mobile-nav-toggle):focus-visible {
+    outline-color: #d8f4e8;
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-book-now {
+    border-color: #70e2bd;
+    background: #70e2bd;
+    color: #102b22;
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-book-now:hover {
+    border-color: #92ebce;
+    background: #92ebce;
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-login {
+    color: #f4f8f5;
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-login:hover {
+    background: rgba(179, 220, 204, 0.08);
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-user-menu {
+    background: #0f2421;
+    border-color: rgba(179, 220, 204, 0.18);
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-user-menu :is(a, button) {
+    color: #f4f8f5;
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-user-menu :is(a, button):hover {
+    background: rgba(179, 220, 204, 0.08);
+}
+
+html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-user-menu .nav-user-logout {
+    color: #ffdad6;
+}
+
 .intro-card {
     margin-top: -60px;
     position: relative;

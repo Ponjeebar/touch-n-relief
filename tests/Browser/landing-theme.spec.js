@@ -62,6 +62,20 @@ for (const width of [390, 768, 1366]) {
         await page.keyboard.press('Enter');
         await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
         await expect(page.locator('[data-landing-theme-label]')).toHaveText(['Switch to light mode', 'Switch to light mode']);
+        await expect(page.locator('.landing-header .nav-shell')).toHaveCSS('background-color', 'rgb(17, 24, 22)');
+        await expect(page.locator('.landing-header .brand')).toHaveCSS('color', 'rgb(244, 248, 245)');
+        await wrapper.locator('.nav-user').click();
+        await expect(wrapper.locator('.nav-user-menu')).toHaveCSS('background-color', 'rgb(15, 36, 33)');
+        await expect(wrapper.getByRole('menuitem', { name: 'Edit Profile', exact: true })).toHaveCSS('color', 'rgb(244, 248, 245)');
+        if (width > 1100) {
+            await expect(page.locator('.nav-appointments-direct')).toHaveCSS('color', 'rgb(216, 244, 232)');
+            await expect(page.locator('.nav-header-actions .customer-notif-btn')).toHaveCSS('color', 'rgb(216, 244, 232)');
+        }
+        await page.screenshot({ path: testInfo.outputPath('header-dark-top.png') });
+        await page.evaluate(() => window.scrollTo({ top: 180, behavior: 'instant' }));
+        await expect(page.locator('.landing-header')).toHaveClass(/scrolled/);
+        await expect(page.locator('.landing-header .nav-shell')).toHaveCSS('background-color', 'rgb(17, 24, 22)');
+        await page.screenshot({ path: testInfo.outputPath('header-dark-scrolled.png') });
         await page.reload();
         await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
         await openAccount();
@@ -71,5 +85,8 @@ for (const width of [390, 768, 1366]) {
         await expect(page.locator('[data-landing-theme-label]')).toHaveText(['Switch to dark mode', 'Switch to dark mode']);
         await page.reload();
         await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'dark');
+        await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+        await expect(page.locator('.landing-header')).not.toHaveClass(/scrolled/);
+        await expect(page.locator('.landing-header .nav-shell')).toHaveCSS('background-color', 'rgb(247, 245, 241)');
     });
 }
