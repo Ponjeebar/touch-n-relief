@@ -74,11 +74,11 @@
                 <span>My Appointments</span>
             </button>
         @endif
-        <form method="POST" action="{{ route('logout') }}">
+        <form method="POST" action="{{ route('logout') }}" @class(['staff-profile-logout' => $u->isAdmin() || $u->isReceptionist()])>
             @csrf
             <button type="submit" class="profile-dropdown-item profile-dropdown-item-logout" role="menuitem">
                 <span class="profile-dropdown-icon" aria-hidden="true"><i class="bi bi-box-arrow-right"></i></span>
-                <span>Logout</span>
+                <span>Log out</span>
             </button>
         </form>
     </div>

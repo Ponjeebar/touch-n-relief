@@ -1,5 +1,36 @@
 /* Staff phone and tablet layout. Loaded after page styles so desktop rules stay intact. */
+@media (min-width: 1025px) {
+    .staff-profile-logout { display: none; }
+    .sidebar .nav-list { min-height: 0; overflow-y: auto; overflow-x: hidden; }
+    .sidebar .sidebar-footer {
+        flex-shrink: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.25);
+    }
+    .sidebar .logout {
+        display: flex !important;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 44px;
+        padding: 11px 12px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        background: transparent;
+        color: #fff;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        text-align: left;
+        cursor: pointer;
+    }
+    .sidebar:not(:hover):not(:focus-within) .logout { justify-content: center; gap: 0; }
+    .sidebar .logout:hover { background: rgba(255, 255, 255, 0.15); }
+    .sidebar .logout:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+}
+
 @media (max-width: 1024px) {
+    .sidebar .sidebar-footer,
+    .sidebar.is-mobile-nav-open .sidebar-footer { display: none; }
     html, body { max-width: 100%; overflow-x: clip; }
     .app-shell, .dashboard, .main, .analytics,
     .appointments-grid, .appointments-card, .appointments-side,

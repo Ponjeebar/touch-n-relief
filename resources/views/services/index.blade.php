@@ -37,7 +37,7 @@
                 <div class="sidebar-footer">
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button class="logout" type="submit"><span class="nav-icon"><i class="bi bi-box-arrow-right"></i></span><span class="nav-text">Logout</span></button>
+                        <button class="logout" type="submit" aria-label="Log out"><span class="nav-icon"><i class="bi bi-box-arrow-right"></i></span><span class="nav-text">Log out</span></button>
                     </form>
                 </div>
             </aside>
