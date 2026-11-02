@@ -12,7 +12,7 @@
     <title>Edit Profile — TouchNRelief</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ asset('css/profile-app-modal.css') }}">
@@ -25,7 +25,7 @@
     @include('partials.customer-tour-assets', ['tourPage' => 'profile.edit'])
     <style>
         body{
-            font-family:"Inter","Segoe UI",Arial,sans-serif;
+            font-family:"Poppins","Segoe UI",Arial,sans-serif;
             color:#1d2a32;
             -webkit-font-smoothing:antialiased;
             text-rendering:optimizeLegibility;
@@ -61,7 +61,7 @@
             gap:1rem;
         }
         .profile-topbar strong{
-            font-family:"Manrope","Inter",sans-serif;
+            font-family:"Poppins",sans-serif;
             font-size:1.05rem;
             font-weight:800;
             letter-spacing:.01em;
@@ -199,7 +199,7 @@
         }
         .profile-title{
             margin:0 0 .35rem;
-            font-family:"Manrope","Inter",sans-serif;
+            font-family:"Poppins",sans-serif;
             font-size:1.75rem;
             color:#15242d;
             font-weight:800;
@@ -232,7 +232,7 @@
         }
         .profile-password-block h2{
             margin:0 0 1rem;
-            font-family:"Manrope","Inter",sans-serif;
+            font-family:"Poppins",sans-serif;
             font-size:1.02rem;
             font-weight:800;
             color:#15242d;
@@ -495,7 +495,7 @@
         }
         .profile-section-head h2{
             margin:0;
-            font-family:"Manrope","Inter",sans-serif;
+            font-family:"Poppins",sans-serif;
             font-size:1.05rem;
             font-weight:800;
             color:#15242d;
@@ -696,7 +696,7 @@
 
         .profile-category + .profile-category{margin-top:1.5rem}
         .profile-category-heading{margin-bottom:.85rem}
-        .profile-category-heading h2{margin:0 0 .35rem;font-family:"Manrope","Inter",sans-serif;font-size:1.1rem;color:#15242d}
+        .profile-category-heading h2{margin:0 0 .35rem;font-family:"Poppins",sans-serif;font-size:1.1rem;color:#15242d}
         .profile-category-heading p,.profile-category-description{margin:0 0 1rem;color:#526875;font-size:.9rem;line-height:1.6}
         .profile-category-nav{display:flex;flex-wrap:wrap;gap:.35rem 1.25rem;padding:.9rem 2rem;border-top:1px solid #dce8df;border-bottom:1px solid #dce8df;background:#fff}
         .profile-category-nav a{color:#245b47;font-size:.85rem;font-weight:600;padding:.35rem 0;text-decoration:none;border-bottom:2px solid transparent}

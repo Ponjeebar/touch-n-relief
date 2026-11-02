@@ -34,11 +34,13 @@ test('administrator edits membership in the Services CMS', async ({ page }, test
     await form.getByLabel('Description', { exact: true }).fill('Updated through the membership editor.');
     await form.getByRole('button', { name: 'Save membership' }).click({ timeout: 60_000 });
     await expect(page.locator('#status-toast')).toContainText('Membership plan updated successfully.');
+    await page.waitForLoadState('load');
     await expect(page.locator('.membership-admin-card').first()).toContainText('Updated through the membership editor.');
     await trigger.click();
     await form.getByLabel('Description', { exact: true }).fill(original.description);
     await form.getByRole('button', { name: 'Save membership' }).click({ timeout: 60_000 });
     await expect(page.locator('#status-toast')).toContainText('Membership plan updated successfully.');
+    await page.waitForLoadState('load');
     await trigger.click();
     for (const width of [390, 768, 1366]) {
         await page.setViewportSize({ width, height: 900 });

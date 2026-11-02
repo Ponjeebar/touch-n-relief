@@ -1,4 +1,5 @@
 {{-- Apply saved theme before paint to avoid flash --}}
+<link rel="stylesheet" href="{{ asset('css/ui-consistency.css') }}?v={{ filemtime(public_path('css/ui-consistency.css')) }}">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <link rel="icon" type="image/png" sizes="64x64" href="{{ asset('favicon-64.png') }}">
 <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">

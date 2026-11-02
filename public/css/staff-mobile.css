@@ -1,5 +1,25 @@
 /* Staff phone and tablet layout. Loaded after page styles so desktop rules stay intact. */
+.staff-sidebar-pin, .staff-sidebar-help { display: none; }
 @media (min-width: 1025px) {
+    .staff-sidebar-pin, .staff-sidebar-help {
+        display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+        min-height: 40px; margin-bottom: 12px; padding: 8px 10px;
+        border: 1px solid rgba(255,255,255,.35); border-radius: 10px;
+        background: transparent; color: #fff; font: inherit; font-size: 12px; cursor: pointer;
+    }
+    .staff-sidebar-pin:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .staff-sidebar-help:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    html:root[data-staff-sidebar="expanded"] .sidebar { width: 280px; }
+    html:root[data-staff-sidebar="expanded"] .sidebar .brand-copy { display: flex; max-height: 90px; }
+    html:root[data-staff-sidebar="expanded"] .sidebar :is(.brand-copy, .brand-text, .brand-subtext, .nav-text, .nav-chevron) { opacity: 1; max-width: 100%; transform: none; }
+    html:root[data-staff-sidebar="expanded"] .sidebar .nav-text { display: block; }
+    html:root[data-staff-sidebar="expanded"] .sidebar .nav-chevron { display: inline-flex; }
+    html:root[data-staff-sidebar="expanded"] .sidebar .nav-section-label { display: block; }
+    html:root[data-staff-sidebar="expanded"] .sidebar .nav-group-details[open] .nav-sublist { display: grid; }
+    html:root[data-staff-sidebar="expanded"] .sidebar :is(.nav-link, .logout) { justify-content: flex-start; gap: 12px; }
+    html:root[data-staff-sidebar="collapsed"] .sidebar { width: 90px; }
+    html:root[data-staff-sidebar="collapsed"] .sidebar :is(.brand-copy, .nav-text, .nav-chevron, .nav-section-label, .nav-sublist) { display: none; }
+    html:root[data-staff-sidebar="collapsed"] .sidebar :is(.nav-link, .logout, .staff-sidebar-pin, .staff-sidebar-help) { justify-content: center; gap: 0; }
     .staff-profile-logout { display: none; }
     .sidebar .brand { flex-shrink: 0; }
     .sidebar .nav-list {

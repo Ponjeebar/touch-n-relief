@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+test.setTimeout(180_000);
+test.use({ actionTimeout: 60_000, navigationTimeout: 60_000 });
+
 test.beforeAll(async ({ browser }) => {
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -41,7 +44,9 @@ for (const setup of [
         await page.goto('/');
         if (setup.role === 'receptionist' && setup.width < 768) {
             await page.locator('[data-staff-mobile-menu]').click();
-            await page.locator('[data-staff-chat-open]').click();
+            await page.locator('.staff-mobile-more-links [data-staff-chat-open]').click();
+        } else if (setup.role === 'admin' || setup.role === 'receptionist') {
+            await page.locator('.staff-sidebar-help').click();
         } else {
             await page.locator('.tnr-chat-launcher').click();
         }

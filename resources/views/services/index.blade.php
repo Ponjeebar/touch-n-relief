@@ -5,7 +5,7 @@
     @include('partials.theme-head')
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Spa services catalog">
-    <title>Services</title>
+    <title>Services &amp; Membership</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -46,8 +46,8 @@
                 <div class="topbar">
                     <div class="welcome">
                         @include('partials.topbar-panel-badge')
-                        <h1>Services</h1>
-                        <div class="subtitle">View massage offerings, pricing, and availability</div>
+                        <h1>Services &amp; Membership</h1>
+                        <div class="subtitle">Manage individual services, packages, and membership</div>
                     </div>
                     <div class="right">
                         <div class="actions" aria-label="Services actions">

@@ -9,6 +9,12 @@
     $moreActive = in_array($active, ['completed', 'therapist-monitoring', 'users', 'users-receptionists', 'users-customers', 'reporting', 'services', 'therapist-manage', 'landing-settings', 'system-settings'], true);
 @endphp
 <div class="staff-mobile-header-actions" data-staff-mobile-header-actions></div>
+<button type="button" class="staff-sidebar-pin" data-staff-sidebar-toggle aria-controls="staff-mobile-navigation" aria-expanded="true" aria-label="Collapse sidebar">
+    <i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i><span class="nav-text">Collapse sidebar</span>
+</button>
+<button type="button" class="staff-sidebar-help" data-staff-chat-open aria-label="Staff help">
+    <i class="bi bi-chat-dots" aria-hidden="true"></i><span class="nav-text">Staff help</span>
+</button>
 <ul class="nav-list" id="staff-mobile-navigation">
     <li class="nav-section-label">Overview</li>
     @if ($admin || $receptionist)
@@ -152,7 +158,7 @@
                 <li>
                     <a href="{{ route('services.index') }}" class="nav-link nav-sublink {{ $active === 'services' ? 'active' : '' }}">
                         <span class="nav-icon"><i class="bi bi-grid"></i></span>
-                        <span class="nav-text">Services</span>
+                        <span class="nav-text">Services &amp; Membership</span>
                     </a>
                 </li>
                 <li>
@@ -208,7 +214,7 @@
                     <i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Reports</span>
                 </a>
                 <a href="{{ route('services.index') }}" @if($active === 'services') aria-current="page" @endif>
-                    <i class="bi bi-grid" aria-hidden="true"></i><span>Services</span>
+                    <i class="bi bi-grid" aria-hidden="true"></i><span>Services &amp; Membership</span>
                 </a>
                 <a href="{{ route('therapist-tracking.index', ['manage' => 1]) }}" @if($active === 'therapist-manage') aria-current="page" @endif>
                     <i class="bi bi-people" aria-hidden="true"></i><span>Team Profiles</span>

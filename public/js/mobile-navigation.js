@@ -199,7 +199,40 @@
         sync();
     }
 
+    function setupStaffSidebar() {
+        var sidebar = document.querySelector('.sidebar');
+        var toggle = document.querySelector('[data-staff-sidebar-toggle]');
+        if (!sidebar || !toggle) return;
+        var key = 'tnr-staff-sidebar';
+        var desktop = window.matchMedia('(min-width: 1025px)');
+        var expanded = true;
+        try { expanded = localStorage.getItem(key) !== 'collapsed'; } catch (_) {}
+
+        function sync() {
+            document.documentElement.dataset.staffSidebar = expanded ? 'expanded' : 'collapsed';
+            toggle.setAttribute('aria-expanded', String(expanded));
+            toggle.setAttribute('aria-label', expanded ? 'Collapse sidebar' : 'Expand sidebar');
+            toggle.querySelector('.nav-text').textContent = expanded ? 'Collapse sidebar' : 'Expand sidebar';
+        }
+        function save() {
+            try { localStorage.setItem(key, expanded ? 'expanded' : 'collapsed'); } catch (_) {}
+            sync();
+        }
+        toggle.addEventListener('click', function () { expanded = !expanded; save(); });
+        sidebar.querySelectorAll('.nav-link').forEach(function (link) {
+            var label = link.querySelector('.nav-text')?.textContent.trim();
+            if (label) { link.setAttribute('aria-label', label); link.title = label; }
+        });
+        sidebar.querySelectorAll('.nav-group-toggle').forEach(function (summary) {
+            summary.addEventListener('click', function () {
+                if (desktop.matches && !expanded) { expanded = true; save(); }
+            });
+        });
+        sync();
+    }
+
     function init() {
+        setupStaffSidebar();
         setupMenu('.landing-header', '.mobile-nav-toggle', 'is-mobile-nav-open', '(max-width: 900px)');
         setupLandingScrollSpy();
         setupStaffHeaderActions();

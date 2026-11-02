@@ -20,7 +20,7 @@
         document.body.append(root);
 
         const launcher = root.querySelector('.tnr-chat-launcher');
-        const staffMobileHelp = staff ? document.querySelector('[data-staff-chat-open]') : null;
+        const staffHelpButtons = staff ? Array.from(document.querySelectorAll('[data-staff-chat-open]')) : [];
         const launcherLabel = launcher.querySelector('span');
         const headerSubtitle = root.querySelector('.tnr-chat-header span');
         const panel = root.querySelector('.tnr-chat-panel');
@@ -30,7 +30,7 @@
         const form = root.querySelector('.tnr-chat-form');
         const input = root.querySelector('#tnr-chat-input');
         const send = form.querySelector('button');
-        staffMobileHelp?.addEventListener('click', () => openPanel());
+        staffHelpButtons.forEach(button => button.addEventListener('click', () => openPanel()));
         let busy = false;
 
         function renderPrompts(questions) {
@@ -173,7 +173,7 @@
             panel.hidden = !open;
             root.classList.toggle('is-open', open);
             launcher.setAttribute('aria-expanded', String(open));
-            staffMobileHelp?.setAttribute('aria-expanded', String(open));
+            staffHelpButtons.forEach(button => button.setAttribute('aria-expanded', String(open)));
         }
 
         function openPanel() {
@@ -211,14 +211,17 @@
         launcher.addEventListener('click', () => setPanelOpen(panel.hidden));
         close.addEventListener('click', () => {
             setPanelOpen(false);
-            if (staffMobileHelp && window.matchMedia('(max-width: 700px)').matches) {
-                staffMobileHelp.focus();
+            if (staff) {
+                const helpControl = staffHelpButtons.find(button => button.getClientRects().length > 0)
+                    || document.querySelector('[data-staff-mobile-menu]');
+                helpControl?.focus();
             } else {
                 launcher.focus();
             }
         });
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && !panel.hidden) close.click();
+            if (event.target instanceof Element && event.target.closest('[role="dialog"][aria-modal="true"]')) return;
+            if (event.key === 'Escape' && !panel.hidden && root.getClientRects().length > 0) close.click();
         });
         form.addEventListener('submit', (event) => {
             event.preventDefault();

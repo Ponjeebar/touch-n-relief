@@ -117,6 +117,7 @@
                     </div>
                 </section>
 
+                <p class="rep-mobile-period" id="repMobilePeriod" role="status">{{ $trendSubtitle ?? $primaryBadge ?? 'Selected reporting period' }}</p>
                 <section class="rep-grid">
                     <section class="rep-metrics">
                         <article class="rep-metric rep-metric-primary rep-metric-daily">
@@ -147,6 +148,7 @@
                             <div class="rep-label" id="repHoursLabel">{{ $hoursLabel ?? 'Total Service Hours' }}</div>
                             <div class="rep-value rep-value-int" id="repHoursValue">{{ number_format((float) ($hoursValue ?? 0), 1) }} hrs</div>
                             <div class="rep-sub" id="repHoursSub">{{ $hoursSub ?? 'Service time logged month-to-date' }}</div>
+                            <details class="rep-supporting-details" data-mobile-report-details open><summary>Therapist hours breakdown</summary>
                             <div class="rep-hours-list" id="repHoursList" aria-label="Therapist service hours">
                                 @forelse (($therapistHoursBreakdown ?? []) as $item)
                                     <div class="rep-hours-row">
@@ -156,7 +158,7 @@
                                 @empty
                                     <div class="rep-hours-empty">No therapist hours yet</div>
                                 @endforelse
-                            </div>
+                            </div></details>
                         </article>
 
                         <article class="rep-card rep-trend">
@@ -210,7 +212,7 @@
                                     <span>Add transactions to see breakdown</span>
                                 </div>
                             </div>
-                            <div class="rep-legend" id="serviceLegend"></div>
+                            <details class="rep-supporting-details" data-mobile-report-details open><summary>Service breakdown</summary><div class="rep-legend" id="serviceLegend"></div></details>
                         </article>
 
                         <article class="rep-card rep-mini">
@@ -258,17 +260,17 @@
                     </p>
 
                     <div class="rep-detail-grid">
-                        <article class="rep-data-panel">
-                            <h3>Payment method reconciliation</h3>
+                        <details data-mobile-report-details open class="rep-data-panel">
+                            <summary class="rep-table-summary">Payment method reconciliation</summary>
                             <div class="rep-table-wrap">
                                 <table>
                                     <thead><tr><th>Method</th><th>Payments</th><th>Gross</th><th>Refunds</th><th>Net</th></tr></thead>
                                     <tbody id="repPaymentMethods"></tbody>
                                 </table>
                             </div>
-                        </article>
-                        <article class="rep-data-panel">
-                            <h3>Outstanding balances</h3>
+                        </details>
+                        <details data-mobile-report-details open class="rep-data-panel">
+                            <summary class="rep-table-summary">Outstanding balances</summary>
                             <p><strong id="repOutstandingTotal">₱{{ number_format((float) ($outstandingBalanceTotal ?? 0), 2) }}</strong> across <span id="repOutstandingCount">{{ (int) ($outstandingBalanceCount ?? 0) }}</span> bookings in this appointment range.</p>
                             <div class="rep-table-wrap">
                                 <table>
@@ -276,12 +278,13 @@
                                     <tbody id="repOutstandingRows"></tbody>
                                 </table>
                             </div>
-                        </article>
+                        </details>
                     </div>
 
-                    <article class="rep-data-panel rep-ledger-panel">
+                    <details data-mobile-report-details open class="rep-data-panel rep-ledger-panel">
+                        <summary class="rep-table-summary">Payment ledger</summary>
                         <div class="rep-ledger-heading">
-                            <div><h3>Payment ledger</h3><p>Every summary amount can be traced to these collected payments and refunds.</p></div>
+                            <div><p>Every summary amount can be traced to these collected payments and refunds.</p></div>
                             <div class="rep-ledger-filters">
                                 <input type="search" id="repLedgerSearch" placeholder="Search client, reference, or service" aria-label="Search payment ledger">
                                 <select id="repLedgerType" aria-label="Filter ledger entry type">
@@ -301,7 +304,7 @@
                             </table>
                         </div>
                         <p class="rep-table-empty" id="repLedgerEmpty" hidden>No ledger entries match the selected filters.</p>
-                    </article>
+                    </details>
 
                     <article class="rep-data-panel" id="operational-checks">
                         <p class="rep-health-status" id="repOperationalStatus" role="status">{{ match ($operationalMonitoring['status'] ?? 'unverified') { 'healthy' => 'No issues detected.', 'attention' => 'Administrator review is required.', default => 'Processor history is not yet available.' } }}</p>
@@ -934,6 +937,7 @@
             populatePeriodSelect(currentPeriod, currentPeriodValue);
             setText('repPageSubtitle', d.pageSubtitle || '');
             setText('repTrendSubtitle', d.trendSubtitle || '');
+            setText('repMobilePeriod', d.trendSubtitle || d.primaryBadge || 'Selected reporting period');
             setText('repMixMuted', `Offerings and no-show fees (${d.serviceLabel || ''})`);
             setText('repMixPill', d.serviceLabel || '');
 
@@ -1119,6 +1123,13 @@
                 .then((data) => applyReportingPayload(data))
                 .catch(() => {});
         });
+
+        const compactReports = window.matchMedia('(max-width: 820px)');
+        function syncReportDetails() {
+            document.querySelectorAll('[data-mobile-report-details]').forEach(details => { details.open = !compactReports.matches; });
+        }
+        compactReports.addEventListener('change', syncReportDetails);
+        syncReportDetails();
 
         try {
             const bootstrap = @json($reportingBootstrap ?? []);

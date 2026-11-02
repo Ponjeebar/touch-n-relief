@@ -1,0 +1,83 @@
+:root {
+    --ui-primary: #04724d;
+    --ui-primary-hover: #035a3d;
+    --ui-neutral-bg: #f1f5f8;
+    --ui-neutral-text: #344853;
+    --ui-neutral-line: #cad8df;
+    --ui-danger: #a23d3d;
+    --ui-danger-hover: #8d3030;
+    --ui-pending-bg: #fff7e3;
+    --ui-pending-text: #795515;
+    --ui-confirmed-bg: #e8f4fc;
+    --ui-confirmed-text: #1a5f82;
+    --ui-complete-bg: #edf7f0;
+    --ui-complete-text: #1d6b42;
+    --ui-cancelled-bg: #fdeeed;
+    --ui-cancelled-text: #8b2e2e;
+}
+
+html[data-theme="dark"] {
+    --ui-primary: #087653;
+    --ui-primary-hover: #096346;
+    --ui-neutral-bg: #263642;
+    --ui-neutral-text: #edf4f7;
+    --ui-neutral-line: #526775;
+    --ui-pending-bg: #42351b;
+    --ui-pending-text: #f3d793;
+    --ui-confirmed-bg: #1e394b;
+    --ui-confirmed-text: #bbdef4;
+    --ui-complete-bg: #1b3c30;
+    --ui-complete-text: #b7ead0;
+    --ui-cancelled-bg: #452c30;
+    --ui-cancelled-text: #fac2c2;
+}
+
+/* Existing controls keep their labels and behavior while sharing action hierarchy. */
+html:root body :is(.user-action, .add-user-btn, .mp-save, .mp-photo-save, .booking-submit, .ls-btn, .tt-btn, .lo-btn) {
+    min-height: 44px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+html:root body :is(.user-action.add, .user-action.edit[type="submit"], .add-user-btn, .mp-save, .mp-photo-save, .booking-submit, .ls-btn-primary, .tt-btn.primary) {
+    background: var(--ui-primary);
+    border-color: var(--ui-primary);
+    color: #fff;
+    box-shadow: none;
+}
+html:root body :is(.user-action.add, .user-action.edit[type="submit"], .add-user-btn, .mp-save, .mp-photo-save, .booking-submit, .ls-btn-primary, .tt-btn.primary):hover {
+    background: var(--ui-primary-hover);
+    border-color: var(--ui-primary-hover);
+}
+html:root body :is(.user-action-danger, .tt-btn.danger, .lo-btn-confirm) {
+    background: var(--ui-danger);
+    border-color: var(--ui-danger);
+    color: #fff;
+}
+html:root body :is(.user-action-danger, .tt-btn.danger, .lo-btn-confirm):hover { background: var(--ui-danger-hover); }
+html:root body :is(.profile-modal-actions, .service-modal-actions, .txn-modal-footer) .user-action:not(.add):not(.edit):not(.archive):not(.delete):not(.user-action-danger) {
+    background: var(--ui-neutral-bg);
+    color: var(--ui-neutral-text);
+    border-color: var(--ui-neutral-line);
+}
+html:root body :is(.profile-modal-actions, .service-modal-actions-right, .lo-actions) {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+html:root body :is(.profile-modal-actions, .service-modal-actions-right, .lo-actions) > button { margin: 0; }
+html:root body :is(.user-action, .add-user-btn, .mp-save, .booking-submit, .ls-btn, .tt-btn):focus-visible {
+    outline: 3px solid #4f6d8c;
+    outline-offset: 3px;
+}
+html[data-theme="dark"] body :is(.user-action, .add-user-btn, .mp-save, .booking-submit, .ls-btn, .tt-btn):focus-visible { outline-color: #b7d5e9; }
+
+/* Appointment state and payment state remain separately labelled. */
+html:root body :is(.appt-status.confirmed, .pill.confirmed, .txn-badge-booked) { background: var(--ui-confirmed-bg); color: var(--ui-confirmed-text); border-color: var(--ui-confirmed-text); }
+html:root body :is(.appt-status.completed, .pill.completed, .txn-badge-done, .txn-payment-status--paid) { background: var(--ui-complete-bg); color: var(--ui-complete-text); border-color: var(--ui-complete-text); }
+html:root body :is(.appt-status.pending, .appt-status.payment-pending, .appt-status.balance-due, .appt-status.confirmed-balance-due, .pill.pending, .pill.balance-due, .txn-badge-pending, .txn-payment-status--pending) { background: var(--ui-pending-bg); color: var(--ui-pending-text); border-color: var(--ui-pending-text); }
+html:root body :is(.appt-status.cancelled, .pill.cancelled, .txn-badge-cancelled, .txn-payment-status--failed) { background: var(--ui-cancelled-bg); color: var(--ui-cancelled-text); border-color: var(--ui-cancelled-text); }
+
+html:root body :is(.profile-field label, .service-modal-form .profile-field label) { font-size: 13px; font-weight: 600; line-height: 1.45; }
+html:root body :is(.profile-field input, .profile-field textarea, .profile-field select) { font-family: inherit; }

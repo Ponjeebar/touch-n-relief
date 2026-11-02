@@ -9,6 +9,9 @@
 
 .tnr-chat * { box-sizing: border-box; }
 
+.tnr-chat-staff .tnr-chat-launcher { display: none; }
+body.has-open-dialog .tnr-chat { display: none; }
+
 .tnr-chat-launcher {
     display: inline-flex;
     align-items: center;

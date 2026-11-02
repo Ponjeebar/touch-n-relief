@@ -14,10 +14,8 @@
     ].join(',');
 
     function isVisible(dialog) {
-        return !dialog.hidden
-            && !dialog.classList.contains('hidden-section')
-            && !dialog.classList.contains('mp-hidden')
-            && !dialog.classList.contains('lo-hidden');
+        return dialog.getClientRects().length > 0
+            && window.getComputedStyle(dialog).visibility !== 'hidden';
     }
 
     function controls(dialog) {
@@ -30,6 +28,7 @@
         var open = isVisible(dialog);
         var wasOpen = dialog.dataset.tnrDialogOpen === 'true';
         dialog.dataset.tnrDialogOpen = open ? 'true' : 'false';
+        document.body.classList.toggle('has-open-dialog', Array.from(dialogs).some(isVisible));
 
         if (open && !wasOpen) {
             var active = document.activeElement;
@@ -57,10 +56,14 @@
         if (!(dialog instanceof HTMLElement) || dialogs.has(dialog)) return;
         dialogs.add(dialog);
         dialog.dataset.tnrDialogOpen = isVisible(dialog) ? 'true' : 'false';
-        new MutationObserver(function () { sync(dialog); }).observe(dialog, {
-            attributes: true,
-            attributeFilter: ['class', 'hidden']
-        });
+        document.body.classList.toggle('has-open-dialog', Array.from(dialogs).some(isVisible));
+        var observer = new MutationObserver(function () { sync(dialog); });
+        for (var element = dialog; element && element !== document.body; element = element.parentElement) {
+            observer.observe(element, {
+                attributes: true,
+                attributeFilter: ['class', 'hidden', 'style']
+            });
+        }
     }
 
     function rememberControl(event) {

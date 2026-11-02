@@ -178,7 +178,7 @@ body:has(.booking-page) {
 
 .booking-head h1 {
     margin: 0;
-    font-family: "Manrope", "Inter", sans-serif;
+    font-family: "Poppins", sans-serif;
     font-size: clamp(2rem, 3.8vw, 2.85rem);
     line-height: 1.1;
     letter-spacing: -0.02em;
@@ -427,7 +427,7 @@ body:has(.booking-page) {
     margin: 0 0 1rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid rgba(28, 48, 58, 0.14);
-    font-family: "Manrope", "Inter", sans-serif;
+    font-family: "Poppins", sans-serif;
     font-size: 1.3rem;
     font-weight: 800;
     color: #102a38;
@@ -1469,7 +1469,7 @@ body.bk-modal-open {
 
 .bk-title {
     margin: 0;
-    font-family: "Manrope", "Inter", sans-serif;
+    font-family: "Poppins", sans-serif;
     font-size: 1.15rem;
     letter-spacing: -0.01em;
     color: #14313d;
@@ -1861,7 +1861,7 @@ body.bk-modal-open {
 }
 
 .bk-payment-hero-amount {
-    font-family: "Manrope", "Inter", sans-serif;
+    font-family: "Poppins", sans-serif;
     font-size: clamp(1.35rem, 2.5vw, 1.75rem);
     font-weight: 800;
     letter-spacing: -0.03em;
