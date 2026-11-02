@@ -16,6 +16,36 @@ async function dismissTour(page) {
     if (await skip.isVisible()) await skip.click();
 }
 
+test('Aromatherapy retains an available therapist without a matching specialty after date changes', async ({ page }) => {
+    await login(page);
+    await page.route('**/booking', async route => {
+        const response = await route.fetch();
+        const body = (await response.text()).replace(/data-therapist-specialties='[^']*'/g, "data-therapist-specialties='[]'");
+        await route.fulfill({ response, body });
+    });
+    await page.goto('/booking');
+    await dismissTour(page);
+    await page.locator('.service-item').filter({ has: page.locator('input[value="Aromatherapy"]') }).click();
+    const therapist = page.locator('.therapist-item:not(.therapist-item-any)').first();
+    await therapist.click();
+    const name = await therapist.locator('input').inputValue();
+    const date = page.locator('#booking_date');
+    const monday = await date.evaluate(input => {
+        const next = new Date(input.min + 'T12:00:00');
+        next.setDate(next.getDate() + ((8 - next.getDay()) % 7 || 7));
+        return next.toISOString().slice(0, 10);
+    });
+    for (const selectedDate of [monday, new Date(new Date(monday + 'T12:00:00').getTime() + 86400000).toISOString().slice(0, 10)]) {
+        const scheduleResponse = page.waitForResponse(response => response.url().includes('/booking/therapist-availability?') && response.url().includes(selectedDate));
+        await date.fill(selectedDate);
+        const schedule = await (await scheduleResponse).json();
+        expect(schedule.therapists[name].bookable).toBe(true);
+        await expect(page.locator('#time-slots .time-slot:not([disabled])').first()).toBeVisible();
+        await expect(therapist.locator('input')).toBeChecked();
+        await expect(page.locator('#booking-selected-therapist')).toHaveText(name);
+    }
+});
+
 test('landing header changes from light at the top to dark after scrolling', async ({ page }, testInfo) => {
     await login(page);
     for (const width of [390, 1366]) {

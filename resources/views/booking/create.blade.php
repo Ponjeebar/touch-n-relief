@@ -607,7 +607,7 @@
                     document.querySelectorAll('.therapist-item').forEach(function (item) {
                         applyTherapistScheduleEntry(item, { bookable: true });
                     });
-                    syncTherapistRecommendations();
+                    applyTherapistCardStates();
                     renderSlots();
                 }
                 var previousStep = currentMobileStep;
@@ -1033,32 +1033,6 @@
                 }
             }
 
-            function syncTherapistRecommendations() {
-                var service = selectedService();
-                var anyMatch = false;
-
-                therapistInputs.forEach(function (input) {
-                    var item = input.closest('.therapist-item');
-                    if (!item) return;
-                    var unavailable = item.classList.contains('is-unavailable') || item.dataset.therapistBookable === '0';
-                    if (!!service && !unavailable && therapistMatchesService(item, service)) {
-                        anyMatch = true;
-                    }
-                });
-
-                if (service && !anyMatch) {
-                    therapistInputs.forEach(function (input) {
-                        var item = input.closest('.therapist-item');
-                        var unavailable = item && (item.classList.contains('is-unavailable') || item.dataset.therapistBookable === '0');
-                        if (!unavailable && input.value !== anyTherapist) {
-                            input.checked = false;
-                        }
-                    });
-                }
-
-                applyTherapistCardStates();
-            }
-
             function fullyBookedSlotsForDate(dateKey, offeredSlots, fullyBookedFromApi) {
                 return Array.isArray(fullyBookedFromApi) ? fullyBookedFromApi : [];
             }
@@ -1331,7 +1305,7 @@
                 resetAvailabilityCache();
                 paintServiceCards();
                 syncBookingSteps();
-                syncTherapistRecommendations();
+                applyTherapistCardStates();
                 renderSlots();
                 if (selectedService()) {
                     showMobileStep('therapist', 'forward');
@@ -1409,7 +1383,7 @@
                 }
                 fetchTherapistSchedule(requestedDate, true).finally(function () {
                     if (dateInput.value !== requestedDate) return;
-                    syncTherapistRecommendations();
+                    applyTherapistCardStates();
                     renderSlots();
                     if (requestedDate && !selectedTherapist()) {
                         showBookingToast('Choose a therapist available on this date, or select another date.');
@@ -1539,11 +1513,11 @@
 
             if (dateInput && dateInput.value) {
                 fetchTherapistSchedule(dateInput.value).finally(function () {
-                    syncTherapistRecommendations();
+                    applyTherapistCardStates();
                     renderSlots();
                 });
             } else {
-                syncTherapistRecommendations();
+                applyTherapistCardStates();
                 renderSlots();
             }
 
