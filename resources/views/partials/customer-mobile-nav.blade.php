@@ -14,7 +14,7 @@
                 <span class="customer-mobile-shortcut-label">Book</span>
             </a>
             <button type="button" data-customer-mobile-item="appointments" data-tnr-open-transactions data-customer-tour="appointments" aria-label="View my appointments" aria-controls="tnr-transactions-modal" aria-expanded="false">
-                <span class="customer-mobile-shortcut-icon"><i class="bi bi-calendar2-check" aria-hidden="true"></i></span>
+                <span class="customer-mobile-shortcut-icon"><i class="bi bi-calendar2-check" aria-hidden="true"></i><span class="appointment-count-badge" data-appointment-count hidden aria-hidden="true"></span></span>
                 <span class="customer-mobile-shortcut-label">Appointments</span>
             </button>
             <a href="{{ route('profile.edit') }}" data-customer-mobile-item="profile" data-customer-tour="profile" @if(request()->routeIs('profile.edit')) aria-current="page" @endif>

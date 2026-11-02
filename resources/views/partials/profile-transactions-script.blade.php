@@ -148,12 +148,23 @@
     })?.getAttribute('data-txn-group') || 'upcoming';
 
     function updateGroupCounts() {
-        if (!cardsList) return;
         ['upcoming', 'history'].forEach(function (group) {
-            var count = cardsList.querySelectorAll('.txn-card[data-appointment-group="' + group + '"]').length;
+            var count = cardsList ? cardsList.querySelectorAll('.txn-card[data-appointment-group="' + group + '"]').length : 0;
             document.querySelectorAll('[data-txn-group-count="' + group + '"]').forEach(function (el) {
                 el.textContent = String(count);
             });
+            if (group === 'upcoming') {
+                var description = count + ' upcoming appointment' + (count === 1 ? '' : 's');
+                document.querySelectorAll('[data-appointment-count]').forEach(function (badge) {
+                    badge.textContent = count > 99 ? '99+' : String(count);
+                    badge.hidden = count === 0;
+                    var trigger = badge.closest('[data-tnr-open-transactions]');
+                    if (trigger) {
+                        trigger.setAttribute('aria-description', description);
+                        trigger.title = description;
+                    }
+                });
+            }
         });
     }
 

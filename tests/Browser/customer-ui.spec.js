@@ -16,6 +16,73 @@ async function dismissTour(page) {
     if (await skip.isVisible()) await skip.click();
 }
 
+test('appointment badges count upcoming records and decrease after cancellation', async ({ page }, testInfo) => {
+    await login(page);
+    let upcoming = 2;
+    let expiringHold = false;
+    await page.route(/\/(?:booking|profile)?$/, async route => {
+        const response = await route.fetch();
+        let body = await response.text();
+        const cards = Array.from({ length: upcoming }, (_, index) => `<li class="txn-card" data-appointment-group="upcoming" data-service="Aromatherapy" ${expiringHold ? 'data-payment-hold-remaining="60"' : ''}>
+            <span class="txn-badge">Confirmed</span><span>Aromatherapy</span>
+            <div class="txn-card-actions"><button data-tnr-cancel-booking data-cancel-url="/bookings/${900000 + index}/cancel" data-booking-label="Aromatherapy">Cancel fixture appointment</button></div>
+        </li>`).join('') + '<li class="txn-card" data-appointment-group="history">Completed appointment</li>';
+        body = body.replace(/<ul class="txn-cards" id="txn-cards-list"[\s\S]*?<\/ul>/, '');
+        body = body.replace('<div class="txn-modal-body">', `<div class="txn-modal-body"><ul class="txn-cards" id="txn-cards-list">${cards}</ul>`);
+        await route.fulfill({ response, body });
+    });
+    await page.route('**/bookings/90000*/cancel', route => route.fulfill({ json: { message: 'Booking cancelled.', cancellation_reason: 'Schedule changed' } }));
+    for (const width of [320, 390, 768, 1024, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.evaluate(theme => localStorage.setItem('tnr-theme', theme), width <= 390 ? 'dark' : 'light');
+        for (const path of ['/', '/booking', '/profile']) {
+            await page.goto(path);
+            await dismissTour(page);
+            const trigger = page.locator(width <= 1100
+                ? '.customer-mobile-shortcuts [data-tnr-open-transactions]'
+                : path === '/' ? '.nav-appointments-direct' : '.profile-txn-open');
+            if (width > 1100 && path === '/booking') continue;
+            await expect(trigger.locator('[data-appointment-count]')).toHaveText('2');
+            await expect(trigger.locator('[data-appointment-count]')).toBeVisible();
+            await expect(trigger).toHaveAttribute('aria-description', '2 upcoming appointments');
+            await trigger.click();
+            await expect(page.locator('#tnr-transactions-modal')).toBeVisible();
+            await page.locator('#tnr-transactions-modal [data-tnr-txn-close]').last().click();
+            expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+            if (path === '/') await page.screenshot({ path: testInfo.outputPath(`appointment-badge-${width}.png`), animations: 'disabled' });
+        }
+    }
+    await page.goto('/');
+    await dismissTour(page);
+    const trigger = page.locator('.nav-appointments-direct');
+    await trigger.click();
+    const upcomingTab = page.locator('[data-txn-group="upcoming"]');
+    if (await upcomingTab.count()) await upcomingTab.click();
+    for (const remaining of [1, 0]) {
+        await page.locator('#txn-cards-list [data-tnr-cancel-booking]').first().click();
+        await page.locator('#tnr-cancel-booking-form [value="schedule_conflict"]').check();
+        await page.getByRole('button', { name: 'Confirm cancellation', exact: true }).click();
+        await expect(trigger).toHaveAttribute('aria-description', `${remaining} upcoming appointment${remaining === 1 ? '' : 's'}`);
+    }
+    await expect(trigger.locator('[data-appointment-count]')).toBeHidden();
+    upcoming = 105;
+    await page.goto('/');
+    await expect(trigger.locator('[data-appointment-count]')).toHaveText('99+');
+    await expect(trigger).toHaveAttribute('aria-description', '105 upcoming appointments');
+    upcoming = 0;
+    await page.goto('/');
+    await expect(trigger.locator('[data-appointment-count]')).toBeHidden();
+    await expect(trigger).toHaveAttribute('aria-description', '0 upcoming appointments');
+    upcoming = 1;
+    expiringHold = true;
+    await page.clock.install();
+    await page.goto('/');
+    await expect(trigger.locator('[data-appointment-count]')).toHaveText('1');
+    await page.clock.fastForward(61_000);
+    await expect(trigger.locator('[data-appointment-count]')).toBeHidden();
+    await expect(trigger).toHaveAttribute('aria-description', '0 upcoming appointments');
+});
+
 test('Aromatherapy retains an available therapist without a matching specialty after date changes', async ({ page }) => {
     await login(page);
     await page.route('**/booking', async route => {

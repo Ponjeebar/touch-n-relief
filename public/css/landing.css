@@ -2786,6 +2786,29 @@ html[data-theme="dark"] .landing-theme-icon-light {
 .landing-header.scrolled:not(.nav-solid) .nav-appointments-direct { color: #145c42; }
 html[data-theme="dark"] .landing-header.scrolled:not(.nav-solid) .nav-appointments-direct { color: #d8f4e8; }
 .nav-appointments-direct:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.appointment-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #b52b45;
+    color: #fff;
+    font: 700 11px/1 "Poppins", sans-serif;
+    vertical-align: middle;
+}
+.appointment-count-badge[hidden] { display: none; }
+.customer-mobile-shortcut-icon:has(.appointment-count-badge) { position: relative; }
+.customer-mobile-shortcut-icon .appointment-count-badge {
+    position: absolute;
+    top: -3px;
+    right: -5px;
+    margin: 0;
+}
 .service-details-action { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin: 0 16px 12px; padding-top: 8px; border-top: 1px solid #d8e3dc; color: #176347; font-size: 14px; font-weight: 600; }
 html[data-theme="dark"] .service-details-action { color: #b4e4c8; border-color: #52715e; }
 @media (max-width: 1100px) { .nav-appointments-direct { display: none; } }

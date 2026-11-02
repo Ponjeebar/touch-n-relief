@@ -1067,7 +1067,7 @@
                                 <span>{{ count($transactions) }} record{{ count($transactions) === 1 ? '' : 's' }}</span>
                             </div>
                             <p class="profile-txn-teaser">View your appointments, payment status, and completed sessions.</p>
-                            <button type="button" class="btn btn-light profile-txn-open" data-tnr-open-transactions>View my appointments</button>
+                            <button type="button" class="btn btn-light profile-txn-open" data-tnr-open-transactions>View my appointments <span class="appointment-count-badge" data-appointment-count hidden aria-hidden="true"></span></button>
                         </section>
                     </div>
                 </div>

@@ -50,7 +50,7 @@
                 @if (in_array($navMode, ['full', 'booking', 'profile'], true))
                     @auth
                         @if ($user->isUser() && ! $user->isWalkIn())
-                            <button type="button" class="nav-appointments-direct" data-tnr-open-transactions>My Appointments</button>
+                            <button type="button" class="nav-appointments-direct" data-tnr-open-transactions>My Appointments <span class="appointment-count-badge" data-appointment-count hidden aria-hidden="true"></span></button>
                             @include('partials.customer-notifications')
                         @endif
                         @include('partials.landing-user-menu', ['navUserWrapperClass' => 'nav-user-wrap--desktop'])
