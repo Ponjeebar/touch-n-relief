@@ -52,9 +52,44 @@ class BookingCancellationService
             return false;
         }
 
-        return now()->lt($appointment->copy()->subHours(
-            app(SiteSettingsService::class)->cancellationCutoffHours()
-        ));
+        return now()->lt($this->cancellationDeadline($booking));
+    }
+
+    public function cancellationDeadline(SpaBooking $booking): Carbon
+    {
+        $hours = app(SiteSettingsService::class)->cancellationCutoffHours();
+        $deadline = $this->appointmentAt($booking)->subHours($hours);
+        if ($booking->cancellation_deadline_at !== null) {
+            $deadline = $deadline->min($booking->cancellation_deadline_at);
+        }
+        if ($booking->rescheduled_from_date !== null && filled($booking->rescheduled_from_time_slot)) {
+            $previous = Carbon::parse($booking->rescheduled_from_date->format('Y-m-d').' '.$booking->rescheduled_from_time_slot)->subHours($hours);
+            $deadline = $deadline->min($previous);
+        }
+
+        return $deadline;
+    }
+
+    public function preview(SpaBooking $booking): array
+    {
+        $allowed = $this->canCancel($booking);
+        $refundAmount = $allowed ? $this->refunds->refundableAmount($booking) : 0.0;
+
+        return [
+            'can_cancel' => $allowed,
+            'current_appointment' => $booking->service_name.' · '.$booking->therapist_name.' · '.$booking->booking_date->format('M d, Y').' at '.$booking->time_slot,
+            'was_rescheduled' => $booking->rescheduled_at !== null,
+            'previous_appointment' => $booking->rescheduled_from_date !== null
+                ? trim(($booking->rescheduled_from_therapist_name ?? '').' · '.$booking->rescheduled_from_date->format('M d, Y').' at '.$booking->rescheduled_from_time_slot, ' ·')
+                : null,
+            'paid_amount' => '₱'.number_format($booking->totalPaidAmount(), 2),
+            'refund_amount' => '₱'.number_format($refundAmount, 2),
+            'message' => ! $allowed
+                ? 'This appointment is no longer eligible for customer cancellation. Contact the spa for assistance.'
+                : ($refundAmount > 0
+                    ? 'Eligible refund: ₱'.number_format($refundAmount, 2).'. Online payments follow the existing gateway refund process; counter payments require staff refund handling.'
+                    : 'No refundable payment remains for this appointment.'),
+        ];
     }
 
     /**

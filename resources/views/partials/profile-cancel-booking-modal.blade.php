@@ -13,6 +13,7 @@
             @csrf
             <p class="txn-cancel-lead">Please tell us why you are cancelling. This helps us improve your experience.</p>
             <p class="txn-cancel-booking-ref" id="tnr-cancel-booking-ref"></p>
+            <p class="txn-cancel-refund-notice txn-hidden" id="tnr-cancel-rescheduled-note"></p>
             <p class="txn-cancel-refund-notice txn-hidden" id="tnr-cancel-refund-notice" role="status"></p>
 
             <fieldset class="txn-cancel-group">

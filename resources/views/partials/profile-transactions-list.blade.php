@@ -260,6 +260,9 @@
                                 class="txn-reschedule-btn"
                                 data-tnr-reschedule-booking
                                 data-reschedule-url="{{ route('booking.reschedule', ['spaBooking' => $txn['booking_id']]) }}"
+                                data-reschedule-availability-url="{{ route('booking.reschedule.availability', ['spaBooking' => $txn['booking_id']]) }}"
+                                data-paid-amount="{{ $txn['paid_amount'] ?? '₱0.00' }}"
+                                data-remaining-balance="{{ $txn['remaining_balance'] ?? '₱0.00' }}"
                                 data-booking-id="{{ $txn['booking_id'] }}"
                                 data-service="{{ $txn['service'] }}"
                                 data-therapist="{{ $txn['therapist'] }}"
@@ -289,6 +292,7 @@
                                 class="txn-cancel-btn"
                                 data-tnr-cancel-booking
                                 data-cancel-url="{{ route('booking.cancel', ['spaBooking' => $txn['booking_id']]) }}"
+                                data-cancellation-preview-url="{{ route('booking.cancellation-preview', ['spaBooking' => $txn['booking_id']]) }}"
                                 data-booking-label="{{ $txn['transaction_id'] }} · {{ $txn['service'] }} · {{ \Illuminate\Support\Carbon::parse($txn['date'])->format('M d, Y') }} at {{ $txn['time'] }}"
                                 data-is-refundable="{{ ! empty($txn['is_refundable']) ? '1' : '0' }}"
                                 data-payment-amount="{{ $txn['payment_amount'] ?? '' }}"

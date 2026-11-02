@@ -17,6 +17,7 @@ Keep these tests when changing appointment or sales behavior. For a new confirme
 | Refund correctness and evidence | `Feature/BookingRefundAccountingTest.php`, `Feature/PaymongoRefundWebhookTest.php`, `Feature/ManualRefundEvidenceTest.php`; PostgreSQL refund races | Gateway outcomes, immutable processed amounts, source limits, duplicate references, evidence, and disputes |
 | No Show connected results | `Feature/AutomaticNoShowTest.php`, `Feature/AuditWorkflowRegressionTest.php`, `Browser/client-history.spec.js` | Committed state, labels, counts, filters, customer history, notifications, and replay behavior |
 | Operational monitoring | `Feature/OperationalMonitoringTest.php`; reporting browser tests | Read-only detection, current System Settings, exact deadline allowance, stale/failed/unknown processors, alerts without duplicates, permission checks, unchanged sales, and cache failure isolation |
+| Customer therapist change and cancellation after rescheduling | `Feature/CustomerRescheduleTest.php`; `Browser/customer-reschedule.spec.js`; concurrent therapist-change PostgreSQL test | Verified payments and saved prices retained, unavailable targets rejected, original reservation preserved after failure, cancellation cutoff not extended, current/previous appointment and refund preview shown, duplicate refunds rejected |
 
 PostgreSQL tests use only the dedicated `touchnrelief_test` database. SQLite results are not row-locking evidence. Browser fixtures use `database/browser-tests.sqlite`; do not point them at production or the normal local database.
 

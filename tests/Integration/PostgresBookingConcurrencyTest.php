@@ -93,6 +93,62 @@ class PostgresBookingConcurrencyTest extends TestCase
         }
     }
 
+    public function test_concurrent_customer_therapist_changes_reserve_the_target_slot_once(): void
+    {
+        $names = ['Switch source A', 'Switch source B', 'Switch target'];
+        foreach ($names as $name) {
+            Therapist::create(['therapist_code' => str_replace(' ', '-', $name), 'name' => $name, 'is_active' => true, 'status' => 'available', 'work_on_off_day' => true]);
+        }
+        $bookings = [];
+        foreach (array_slice($names, 0, 2) as $name) {
+            $user = User::factory()->create(['role' => 'user']);
+            $booking = SpaBooking::create(['user_id' => $user->id, 'service_name' => 'Aromatherapy', 'therapist_name' => $name, 'booking_date' => '2026-11-05', 'time_slot' => '10:00 AM', 'duration_minutes' => 60, 'amount' => 100, 'payment_amount' => 50, 'payment_type' => 'downpayment', 'payment_method' => 'cash_counter', 'payment_status' => 'paid', 'session_status' => 'confirmed']);
+            app(PaymentLedgerService::class)->recordInitialPayment($booking);
+            $bookings[] = $booking;
+        }
+        $ledger = DB::table('payment_ledger_entries')->orderBy('id')->get()->toJson();
+        $barrier = storage_path('framework/testing/therapist-switch-'.bin2hex(random_bytes(6)));
+        $environment = array_filter(array_merge($_SERVER, $_ENV, [
+            'DB_CONNECTION' => 'pgsql', 'DB_URL' => '',
+            'DB_HOST' => config('database.connections.pgsql.host'), 'DB_PORT' => (string) config('database.connections.pgsql.port'),
+            'DB_DATABASE' => config('database.connections.pgsql.database'), 'DB_USERNAME' => config('database.connections.pgsql.username'), 'DB_PASSWORD' => config('database.connections.pgsql.password'),
+        ]), static fn ($value): bool => is_scalar($value));
+        $workers = array_map(fn ($booking) => new Process([PHP_BINARY, base_path('tests/Support/postgres-reschedule-worker.php'), (string) $booking->id, $names[2], $barrier], base_path(), $environment, null, 30), $bookings);
+        try {
+            foreach ($workers as $worker) {
+                $worker->start();
+            }
+            $deadline = microtime(true) + 20;
+            while (count(glob($barrier.'.*.ready')) < 2 && microtime(true) < $deadline) {
+                usleep(10000);
+            }
+            $this->assertCount(2, glob($barrier.'.*.ready'));
+            touch($barrier.'.go');
+            $results = [];
+            foreach ($workers as $worker) {
+                $worker->wait();
+                $this->assertTrue($worker->isSuccessful(), $worker->getErrorOutput());
+                $results[] = trim($worker->getOutput());
+            }
+            sort($results);
+            $this->assertSame(['accepted', 'rejected'], $results);
+            $this->assertSame(1, SpaBooking::where('therapist_name', $names[2])->count());
+            $this->assertSame(1, SpaBooking::whereIn('therapist_name', array_slice($names, 0, 2))->count());
+            $this->assertSame($ledger, DB::table('payment_ledger_entries')->orderBy('id')->get()->toJson());
+            $this->assertDatabaseCount('booking_refunds', 0);
+            $this->assertDatabaseCount('transactions', 0);
+        } finally {
+            foreach ($workers as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop();
+                }
+            }
+            foreach (glob($barrier.'*') as $file) {
+                unlink($file);
+            }
+        }
+    }
+
     public function test_two_simultaneous_requests_cannot_claim_the_same_therapist_slot(): void
     {
         $firstUser = User::factory()->create();

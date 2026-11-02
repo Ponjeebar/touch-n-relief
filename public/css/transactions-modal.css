@@ -945,6 +945,7 @@
 }
 
 .txn-reschedule-slot {
+    min-height: 44px;
     border: 1px solid #c2d3de;
     border-radius: 999px;
     padding: 0.38rem 0.72rem;
@@ -1035,6 +1036,24 @@ html[data-theme="dark"] .txn-reschedule-footer {
 html[data-theme="dark"] .txn-reschedule-summary {
     background: #24313b;
     border-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .txn-reschedule-title,
+html[data-theme="dark"] .txn-reschedule-summary dd {
+    color: #e8eef2;
+}
+
+html[data-theme="dark"] .txn-reschedule-lead,
+html[data-theme="dark"] .txn-reschedule-slots-hint {
+    color: #b7cbd8;
+}
+
+html[data-theme="dark"] .txn-reschedule-booking-ref {
+    color: #9fd7ee;
+}
+
+html[data-theme="dark"] .txn-reschedule-error {
+    color: #ffc4c4;
 }
 
 .txn-cancel-btn {

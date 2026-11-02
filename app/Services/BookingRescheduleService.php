@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\SpaBooking;
+use App\Models\Therapist;
 use App\Models\User;
+use App\Support\PaymentMethodCatalog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +20,7 @@ class BookingRescheduleService
 
     public function canReschedule(SpaBooking $booking): bool
     {
-        if ($booking->isAwaitingOnlinePayment()) {
+        if ($booking->payment_status !== PaymentMethodCatalog::STATUS_PAID || $booking->initialPaidAmount() <= 0) {
             return false;
         }
 
@@ -47,7 +49,7 @@ class BookingRescheduleService
     }
 
     /**
-     * @return array{booking_date: string, time_slot: string, date_display: string, sort_ts: int, activity_ts: int}
+     * @return array<string, mixed>
      */
     public function staffReschedule(SpaBooking $booking, string $bookingDate, string $timeSlot): array
     {
@@ -61,9 +63,9 @@ class BookingRescheduleService
     }
 
     /**
-     * @return array{booking_date: string, time_slot: string, date_display: string, sort_ts: int, activity_ts: int}
+     * @return array<string, mixed>
      */
-    public function reschedule(SpaBooking $booking, string $bookingDate, string $timeSlot): array
+    public function reschedule(SpaBooking $booking, string $bookingDate, string $timeSlot, ?string $therapistName = null): array
     {
         if (! $this->canReschedule($booking)) {
             throw ValidationException::withMessages([
@@ -71,14 +73,16 @@ class BookingRescheduleService
             ]);
         }
 
-        return $this->performReschedule($booking, $bookingDate, $timeSlot, forStaff: false);
+        return $this->performReschedule($booking, $bookingDate, $timeSlot, forStaff: false, therapistName: $therapistName);
     }
 
     /**
-     * @return array{booking_date: string, time_slot: string, date_display: string, sort_ts: int, activity_ts: int}
+     * @return array<string, mixed>
      */
-    private function performReschedule(SpaBooking $booking, string $bookingDate, string $timeSlot, bool $forStaff): array
+    private function performReschedule(SpaBooking $booking, string $bookingDate, string $timeSlot, bool $forStaff, ?string $therapistName = null): array
     {
+        $retainTherapist = $therapistName === null;
+        $therapistName = trim($therapistName ?? (string) $booking->therapist_name);
         $normalizedSlot = $this->slots->normalizeSlotLabel($timeSlot);
         if ($normalizedSlot === null) {
             throw ValidationException::withMessages([
@@ -90,18 +94,24 @@ class BookingRescheduleService
         $currentSlot = $this->slots->normalizeSlotLabel((string) $booking->time_slot)
             ?? trim((string) $booking->time_slot);
 
-        if ($bookingDate === $currentDate && $normalizedSlot === $currentSlot) {
+        if ($bookingDate === $currentDate && $normalizedSlot === $currentSlot && $therapistName === $booking->therapist_name) {
             throw ValidationException::withMessages([
-                'time_slot' => 'Choose a different date or time than your current appointment.',
+                'time_slot' => 'Choose a different therapist, date, or time than your current appointment.',
             ]);
         }
 
-        $this->assertSlotAvailable($booking, $bookingDate, $normalizedSlot, forStaff: $forStaff);
+        $this->assertSlotAvailable($booking, $bookingDate, $normalizedSlot, therapistName: $therapistName, forStaff: $forStaff);
 
-        DB::transaction(function () use ($booking, $bookingDate, $normalizedSlot, $forStaff): void {
+        DB::transaction(function () use ($booking, $bookingDate, $normalizedSlot, $forStaff, $therapistName, $retainTherapist): void {
             User::query()->whereKey($booking->user_id)->lockForUpdate()->firstOrFail();
             $current = SpaBooking::query()->findOrFail($booking->id);
-            $this->slots->lockTherapistBookingsForUpdate((string) $current->therapist_name, $bookingDate);
+            if ($retainTherapist) {
+                $therapistName = trim((string) $current->therapist_name);
+            }
+            // A stable order also serializes customers swapping therapists.
+            Therapist::query()->whereIn('name', [(string) $current->therapist_name, $therapistName])
+                ->orderBy('id')->lockForUpdate()->get();
+            $this->slots->lockTherapistBookingsForUpdate($therapistName, $bookingDate);
             $locked = SpaBooking::query()->lockForUpdate()->findOrFail($booking->id);
 
             $canProceed = $forStaff ? $this->canStaffReschedule($locked) : $this->canReschedule($locked);
@@ -111,11 +121,16 @@ class BookingRescheduleService
                 ]);
             }
 
-            $this->assertSlotAvailable($locked, $bookingDate, $normalizedSlot, withTherapistLock: true, forStaff: $forStaff);
+            $lockedDate = $locked->booking_date->format('Y-m-d');
+            $lockedSlot = $this->slots->normalizeSlotLabel((string) $locked->time_slot) ?? trim((string) $locked->time_slot);
+            if ($bookingDate === $lockedDate && $normalizedSlot === $lockedSlot && $therapistName === $locked->therapist_name) {
+                throw ValidationException::withMessages(['time_slot' => 'Choose a different therapist, date, or time than your current appointment.']);
+            }
+            $this->assertSlotAvailable($locked, $bookingDate, $normalizedSlot, withTherapistLock: true, therapistName: $therapistName, forStaff: $forStaff);
 
             $locked->forceFill(array_merge(
                 $this->rescheduleAttributes($locked, $bookingDate, $normalizedSlot),
-                ['session_status' => SpaBooking::STATUS_CONFIRMED],
+                ['session_status' => SpaBooking::STATUS_CONFIRMED, 'therapist_name' => $therapistName],
             ))->save();
         });
 
@@ -129,11 +144,13 @@ class BookingRescheduleService
     }
 
     /**
-     * @return array{booking_date: string, time_slot: string, rescheduled_at: \Illuminate\Support\Carbon, rescheduled_from_date: string, rescheduled_from_time_slot: string}
+     * @return array<string, mixed>
      */
     private function rescheduleAttributes(SpaBooking $booking, string $bookingDate, string $timeSlot): array
     {
         return [
+            'cancellation_deadline_at' => $this->cancellations->cancellationDeadline($booking),
+            'rescheduled_from_therapist_name' => $booking->therapist_name,
             'rescheduled_from_date' => $booking->booking_date->format('Y-m-d'),
             'rescheduled_from_time_slot' => (string) $booking->time_slot,
             'rescheduled_at' => now(),
@@ -144,7 +161,7 @@ class BookingRescheduleService
     }
 
     /**
-     * @return array{booking_date: string, time_slot: string, date_display: string, sort_ts: int, activity_ts: int}
+     * @return array<string, mixed>
      */
     private function resultPayload(SpaBooking $booking): array
     {
@@ -152,6 +169,12 @@ class BookingRescheduleService
         $sessions = app(SpaSessionService::class);
 
         return [
+            'therapist_name' => (string) $booking->therapist_name,
+            'previous_therapist' => $booking->rescheduled_from_therapist_name,
+            'previous_date' => $booking->rescheduled_from_date?->format('M d, Y'),
+            'previous_time' => $booking->rescheduled_from_time_slot,
+            'can_cancel' => $this->cancellations->canCancel($booking),
+            'can_reschedule' => $this->canReschedule($booking),
             'booking_date' => $date,
             'time_slot' => (string) $booking->time_slot,
             'date_display' => $booking->booking_date->format('M d, Y'),
@@ -218,7 +241,7 @@ class BookingRescheduleService
                 $normalizedSlot,
                 $durationMinutes,
                 $excludeId,
-                $this->slots->bookableTherapistNames(),
+                app(TherapistAvailabilityService::class)->bookableTherapistNamesForDate(Carbon::parse($bookingDate)),
                 minimumLeadMinutes: $forStaff ? 0 : app(CustomerBookingPolicy::class)->minimumLeadMinutes(),
             );
         } catch (ValidationException $e) {
@@ -248,7 +271,7 @@ class BookingRescheduleService
      *
      * @return array<string, mixed>
      */
-    public function staffRescheduleAvailability(SpaBooking $booking, string $bookingDate): array
+    public function staffRescheduleAvailability(SpaBooking $booking, string $bookingDate, ?string $selectedTherapist = null, bool $forStaff = true): array
     {
         $booking->loadMissing('user');
 
@@ -259,7 +282,7 @@ class BookingRescheduleService
         }
 
         $serviceName = (string) $booking->service_name;
-        $therapistName = trim((string) $booking->therapist_name);
+        $therapistName = trim($selectedTherapist ?? (string) $booking->therapist_name);
         $durationMinutes = $this->slots->durationMinutesForService(
             $serviceName,
             $booking->duration_minutes !== null ? (int) $booking->duration_minutes : null,
@@ -267,6 +290,9 @@ class BookingRescheduleService
         $bookableTherapists = $this->slots->bookableTherapistNames();
 
         if ($therapistName === '' || ! in_array($therapistName, $bookableTherapists, true)) {
+            if (! $forStaff) {
+                throw ValidationException::withMessages(['therapist' => 'Choose an active therapist for this appointment.']);
+            }
             $payload = $this->slots->landingAvailability(
                 $serviceName,
                 $bookingDate,
@@ -297,6 +323,7 @@ class BookingRescheduleService
             app(TherapistAvailabilityService::class)->bookableTherapistNamesForDate(Carbon::parse($bookingDate)),
             $durationMinutes,
             (int) $booking->id,
+            minimumLeadMinutes: $forStaff ? 0 : app(CustomerBookingPolicy::class)->minimumLeadMinutes(),
         );
 
         $selectedMeta = app(TherapistAvailabilityService::class)

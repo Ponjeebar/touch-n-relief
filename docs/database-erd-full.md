@@ -186,6 +186,8 @@
 | rescheduled_at | timestamp nullable | |
 | rescheduled_from_date | date nullable | |
 | rescheduled_from_time_slot | string(30) nullable | |
+| rescheduled_from_therapist_name | string nullable | Previous therapist snapshot |
+| cancellation_deadline_at | timestamp nullable | Preserved earlier cancellation deadline |
 | completed_at | timestamp nullable | |
 | session_started_at | timestamp nullable | |
 | session_status | string(20) default confirmed | |

@@ -78,6 +78,8 @@ Route::middleware(['auth', 'current.staff.session', 'staff.activity'])->group(fu
         Route::get('/membership-purchases/{membershipPurchase}/success', [MembershipPurchaseController::class, 'success'])->name('membership.success');
         Route::get('/membership-purchases/{membershipPurchase}/cancel', [MembershipPurchaseController::class, 'cancel'])->name('membership.cancel');
         Route::patch('/bookings/{spaBooking}/reschedule', [BookingController::class, 'reschedule'])->name('booking.reschedule');
+        Route::get('/bookings/{spaBooking}/reschedule/availability', [BookingController::class, 'rescheduleAvailability'])->name('booking.reschedule.availability');
+        Route::get('/bookings/{spaBooking}/cancellation-preview', [BookingController::class, 'cancellationPreview'])->name('booking.cancellation-preview');
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::post('/onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
 

@@ -62,6 +62,17 @@ class BookingRefundService
             || $this->availableForComponent($booking, BookingRefund::COMPONENT_BALANCE) >= 0.01;
     }
 
+    public function refundableAmount(SpaBooking $booking): float
+    {
+        $initial = $this->availableForComponent($booking, BookingRefund::COMPONENT_INITIAL);
+        if (! $booking->refunds()->exists()
+            && in_array($booking->refund_status, [self::STATUS_PENDING, self::STATUS_PROCESSED], true)) {
+            $initial = max($initial - (float) $booking->refund_amount, 0);
+        }
+
+        return round($initial + $this->availableForComponent($booking, BookingRefund::COMPONENT_BALANCE), 2);
+    }
+
     public function canCompleteManualRefund(SpaBooking $booking): bool
     {
         if ($booking->cancelled_at === null) {

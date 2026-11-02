@@ -477,6 +477,11 @@
         if (!cancelModal || !url) return;
         activeCancelUrl = url;
         activeCancelCard = card || null;
+        var rescheduledNote = document.getElementById('tnr-cancel-rescheduled-note');
+        if (rescheduledNote) {
+            rescheduledNote.textContent = '';
+            rescheduledNote.classList.add('txn-hidden');
+        }
         if (cancelRef) cancelRef.textContent = label || '';
         if (cancelRefundNotice) {
             var isRefundable = btn && btn.getAttribute('data-is-refundable') === '1';
@@ -496,6 +501,36 @@
         cancelModal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('txn-cancel-open');
         cancelModal.querySelector('.txn-cancel-back')?.focus();
+        var previewUrl = btn?.getAttribute('data-cancellation-preview-url');
+        if (previewUrl) {
+            cancelSubmit.disabled = true;
+            cancelRefundNotice.textContent = 'Checking cancellation and refund eligibility…';
+            cancelRefundNotice.classList.remove('txn-hidden');
+            fetch(previewUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin', cache: 'no-store' })
+                .then(function (response) {
+                    if (!response.ok) throw new Error('preview');
+                    return response.json();
+                })
+                .then(function (preview) {
+                    if (activeCancelUrl !== url) return;
+                    cancelRef.textContent = preview.current_appointment;
+                    cancelRefundNotice.textContent = 'Amount paid: ' + preview.paid_amount + '. ' + preview.message;
+                    if (rescheduledNote && preview.was_rescheduled) {
+                        rescheduledNote.textContent = 'This appointment was previously rescheduled.'
+                            + (preview.previous_appointment ? ' Previous appointment: ' + preview.previous_appointment + '.' : '')
+                            + ' Cancelling will cancel the current appointment. Rescheduling does not extend an earlier cancellation deadline.';
+                        rescheduledNote.classList.remove('txn-hidden');
+                    }
+                    cancelSubmit.disabled = !preview.can_cancel;
+                })
+                .catch(function () {
+                    if (activeCancelUrl !== url) return;
+                    cancelSubmit.disabled = true;
+                    cancelRefundNotice.textContent = 'Could not check cancellation eligibility. Close this dialog and try again.';
+                });
+        } else if (cancelSubmit) {
+            cancelSubmit.disabled = false;
+        }
     }
 
     document.querySelectorAll('[data-tnr-cancel-booking]').forEach(function (btn) {
@@ -610,6 +645,7 @@
     cancelForm?.addEventListener('submit', function (e) {
         e.preventDefault();
         if (!activeCancelUrl) return;
+        if (cancelSubmit?.disabled) return;
 
         var reasonInput = cancelForm.querySelector('input[name="cancellation_reason"]:checked');
         if (!reasonInput) {
@@ -623,6 +659,8 @@
         }
 
         var tokenInput = cancelForm.querySelector('input[name="_token"]');
+        var submittedCancelUrl = activeCancelUrl;
+        var submittedCancelCard = activeCancelCard;
         var formData = new FormData();
         formData.append('cancellation_reason', reasonInput.value);
         if (reasonInput.value === 'other' && cancelOther) {
@@ -632,7 +670,7 @@
 
         if (cancelSubmit) cancelSubmit.disabled = true;
 
-        fetch(activeCancelUrl, {
+        fetch(submittedCancelUrl, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -662,8 +700,8 @@
                     showCancelError(msg);
                     return;
                 }
-                markCardCancelled(activeCancelCard, result.data.cancellation_reason || '', result.data);
-                closeCancelModal();
+                markCardCancelled(submittedCancelCard, result.data.cancellation_reason || '', result.data);
+                if (activeCancelUrl === submittedCancelUrl) closeCancelModal();
                 showTxnStatusToast(
                     (result.data && result.data.message)
                         ? result.data.message
@@ -691,6 +729,12 @@
     var rescheduleRef = document.getElementById('tnr-reschedule-booking-ref');
     var rescheduleService = document.getElementById('tnr-reschedule-service');
     var rescheduleTherapist = document.getElementById('tnr-reschedule-therapist');
+    var rescheduleTherapistChoice = document.getElementById('tnr-reschedule-therapist-choice');
+    var rescheduleProposed = document.getElementById('tnr-reschedule-proposed');
+    var activeRescheduleOriginalTherapist = '';
+    var activeRescheduleAvailabilityUrl = '';
+    var rescheduleAvailabilityController = null;
+    var rescheduleAvailabilityRequest = 0;
     var activeRescheduleUrl = '';
     var activeRescheduleCard = null;
     var activeRescheduleBookingId = '';
@@ -711,6 +755,7 @@
         if (rescheduleDate.value !== activeRescheduleOriginalDate) {
             return false;
         }
+        if (activeRescheduleTherapist !== activeRescheduleOriginalTherapist) return false;
 
         return normalizeRescheduleSlot(slot) === normalizeRescheduleSlot(activeRescheduleOriginalTime);
     }
@@ -722,6 +767,7 @@
         if (rescheduleDate.value !== activeRescheduleOriginalDate) {
             return true;
         }
+        if (activeRescheduleTherapist !== activeRescheduleOriginalTherapist) return true;
 
         return normalizeRescheduleSlot(rescheduleTimeInput.value) !== normalizeRescheduleSlot(activeRescheduleOriginalTime);
     }
@@ -743,6 +789,9 @@
         rescheduleModal.classList.add('txn-modal-hidden');
         rescheduleModal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('txn-reschedule-open');
+        rescheduleAvailabilityRequest += 1;
+        rescheduleAvailabilityController?.abort();
+        rescheduleSlotsLoading = false;
         activeRescheduleUrl = '';
         activeRescheduleCard = null;
         activeRescheduleBookingId = '';
@@ -759,7 +808,13 @@
             rescheduleDate && rescheduleDate.value
             && rescheduleTimeInput && rescheduleTimeInput.value
             && activeRescheduleUrl
+            && !rescheduleSlotsLoading && hasScheduleChanged()
         );
+        if (rescheduleProposed) {
+            rescheduleProposed.textContent = rescheduleTimeInput?.value
+                ? 'New appointment: ' + activeRescheduleTherapist + ' · ' + rescheduleDate.value + ' at ' + rescheduleTimeInput.value + '.'
+                : '';
+        }
     }
 
     function paintRescheduleSlots(offered, booked, userConflicts, unavailableByTime) {
@@ -813,7 +868,7 @@
     }
 
     function loadRescheduleSlots() {
-        if (!availabilityUrl || !rescheduleDate || !activeRescheduleService || !activeRescheduleTherapist) return;
+        if (!activeRescheduleAvailabilityUrl || !rescheduleDate || !activeRescheduleService || !activeRescheduleTherapist) return;
         if (!rescheduleDate.value) {
             if (rescheduleSlots) rescheduleSlots.innerHTML = '';
             if (rescheduleSlotsHint) {
@@ -823,7 +878,9 @@
             updateRescheduleSubmitState();
             return;
         }
-        if (rescheduleSlotsLoading) return;
+        rescheduleAvailabilityController?.abort();
+        rescheduleAvailabilityController = new AbortController();
+        var requestId = ++rescheduleAvailabilityRequest;
 
         rescheduleSlotsLoading = true;
         if (rescheduleSlotsHint) {
@@ -832,6 +889,7 @@
         }
         if (rescheduleSlots) rescheduleSlots.innerHTML = '';
         if (rescheduleTimeInput) rescheduleTimeInput.value = '';
+        updateRescheduleSubmitState();
 
         var params = new URLSearchParams({
             booking_date: rescheduleDate.value,
@@ -842,7 +900,8 @@
             params.set('exclude_booking_id', activeRescheduleBookingId);
         }
 
-        fetch(availabilityUrl + '?' + params.toString(), {
+        fetch(activeRescheduleAvailabilityUrl + '?' + params.toString(), {
+            signal: rescheduleAvailabilityController.signal,
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -854,6 +913,19 @@
                 return res.json();
             })
             .then(function (data) {
+                if (requestId !== rescheduleAvailabilityRequest) return;
+                if (data.therapists && rescheduleTherapistChoice) {
+                    Array.from(rescheduleTherapistChoice.options).forEach(function (option) {
+                        var meta = data.therapists[option.value];
+                        option.disabled = !meta || !meta.bookable;
+                        option.textContent = option.value + (meta && meta.bookable ? '' : ' — unavailable on this date');
+                    });
+                }
+                if (data.therapist_schedule?.bookable === false) {
+                    rescheduleSlotsHint.hidden = false;
+                    rescheduleSlotsHint.textContent = 'This therapist is unavailable on the selected date. Choose another therapist or date.';
+                    return;
+                }
                 if (data.store_closed) {
                     if (rescheduleSlotsHint) {
                         rescheduleSlotsHint.hidden = false;
@@ -868,21 +940,35 @@
                 var userConflicts = data.user_conflicts && typeof data.user_conflicts === 'object' ? data.user_conflicts : {};
                 paintRescheduleSlots(offered, booked, userConflicts, unavailableByTime);
             })
-            .catch(function () {
+            .catch(function (error) {
+                if (error.name === 'AbortError' || requestId !== rescheduleAvailabilityRequest) return;
                 showRescheduleError('Could not load time slots. Please try again.');
             })
             .finally(function () {
+                if (requestId !== rescheduleAvailabilityRequest) return;
                 rescheduleSlotsLoading = false;
+                updateRescheduleSubmitState();
             });
     }
 
     function openRescheduleModal(btn) {
         if (!rescheduleModal || !btn) return;
         activeRescheduleUrl = btn.getAttribute('data-reschedule-url') || '';
+        activeRescheduleAvailabilityUrl = btn.getAttribute('data-reschedule-availability-url') || '';
         activeRescheduleCard = btn.closest('.txn-card');
         activeRescheduleBookingId = btn.getAttribute('data-booking-id') || '';
         activeRescheduleService = btn.getAttribute('data-service') || '';
         activeRescheduleTherapist = btn.getAttribute('data-therapist') || '';
+        activeRescheduleOriginalTherapist = activeRescheduleTherapist;
+        if (rescheduleTherapistChoice) {
+            Array.from(rescheduleTherapistChoice.options).forEach(function (option) { option.disabled = false; option.textContent = option.value; });
+            if (!Array.from(rescheduleTherapistChoice.options).some(function (option) { return option.value === activeRescheduleTherapist; })) {
+                rescheduleTherapistChoice.add(new Option(activeRescheduleTherapist, activeRescheduleTherapist));
+            }
+            rescheduleTherapistChoice.value = activeRescheduleTherapist;
+        }
+        document.getElementById('tnr-reschedule-paid').textContent = btn.getAttribute('data-paid-amount') || '—';
+        document.getElementById('tnr-reschedule-balance').textContent = btn.getAttribute('data-remaining-balance') || '—';
         activeRescheduleOriginalDate = btn.getAttribute('data-booking-date') || '';
         activeRescheduleOriginalTime = btn.getAttribute('data-time-slot') || '';
         var currentDate = activeRescheduleOriginalDate;
@@ -907,6 +993,7 @@
         card.setAttribute('data-sort-ts', String(booking.sort_ts || 0));
         card.setAttribute('data-activity-ts', String(booking.activity_ts || booking.sort_ts || 0));
         card.setAttribute('data-time', String(booking.time_slot || '').toLowerCase());
+        card.setAttribute('data-therapist', String(booking.therapist_name || '').toLowerCase());
 
         var metaItems = card.querySelectorAll('.txn-meta > div');
         metaItems.forEach(function (item) {
@@ -919,17 +1006,25 @@
             if (label.textContent.trim() === 'Time') {
                 value.textContent = booking.time_slot || '—';
             }
+            if (label.textContent.trim() === 'Therapist') value.textContent = booking.therapist_name || '—';
         });
 
         var rescheduleBtn = card.querySelector('[data-tnr-reschedule-booking]');
+        var cancelBtn = card.querySelector('[data-tnr-cancel-booking]');
+        var reference = card.querySelector('.txn-ref')?.textContent.trim() || '';
+        var serviceName = card.querySelector('.txn-service')?.textContent.trim() || rescheduleBtn?.getAttribute('data-service') || '';
+        var currentLabel = reference + ' · ' + serviceName + ' · ' + booking.therapist_name + ' · ' + (booking.date_display || booking.booking_date) + ' at ' + booking.time_slot;
+        if (cancelBtn) cancelBtn.setAttribute('data-booking-label', currentLabel);
         if (rescheduleBtn) {
+            rescheduleBtn.setAttribute('data-booking-label', currentLabel);
             rescheduleBtn.setAttribute('data-booking-date', booking.booking_date || '');
             rescheduleBtn.setAttribute('data-time-slot', booking.time_slot || '');
+            rescheduleBtn.setAttribute('data-therapist', booking.therapist_name || '');
+            if (booking.can_reschedule === false) rescheduleBtn.remove();
         }
+        if (booking.can_cancel === false) card.querySelector('[data-tnr-cancel-booking]')?.remove();
 
-        if (sortSelect) {
-            sortTransactions(sortSelect.value);
-        }
+        applySearchAndFilter();
     }
 
     document.querySelectorAll('[data-tnr-reschedule-booking]').forEach(function (btn) {
@@ -953,6 +1048,12 @@
         loadRescheduleSlots();
     });
 
+    rescheduleTherapistChoice?.addEventListener('change', function () {
+        activeRescheduleTherapist = rescheduleTherapistChoice.value;
+        clearRescheduleError();
+        loadRescheduleSlots();
+    });
+
     rescheduleSubmit?.addEventListener('click', function () {
         if (!activeRescheduleUrl || !rescheduleDate || !rescheduleTimeInput) return;
         if (!rescheduleDate.value || !rescheduleTimeInput.value) {
@@ -960,18 +1061,20 @@
             return;
         }
         if (!hasScheduleChanged()) {
-            showRescheduleError('Choose a different date or time than your current appointment.');
+            showRescheduleError('Choose a different therapist, date, or time than your current appointment.');
             return;
         }
 
         clearRescheduleError();
         rescheduleSubmit.disabled = true;
+        var submittedRescheduleUrl = activeRescheduleUrl;
+        var submittedRescheduleCard = activeRescheduleCard;
 
         var token = document.querySelector('#tnr-cancel-booking-form input[name="_token"]')
             || document.querySelector('meta[name="csrf-token"]');
         var csrf = token ? (token.value || token.getAttribute('content')) : '';
 
-        fetch(activeRescheduleUrl, {
+        fetch(submittedRescheduleUrl, {
             method: 'PATCH',
             headers: {
                 'Accept': 'application/json',
@@ -983,6 +1086,7 @@
             body: JSON.stringify({
                 booking_date: rescheduleDate.value,
                 time_slot: rescheduleTimeInput.value,
+                therapist: activeRescheduleTherapist,
             }),
         })
             .then(function (res) {
@@ -1007,8 +1111,8 @@
                     showRescheduleError(msg);
                     return;
                 }
-                updateCardAfterReschedule(activeRescheduleCard, result.data.booking || null);
-                closeRescheduleModal();
+                updateCardAfterReschedule(submittedRescheduleCard, result.data.booking || null);
+                if (activeRescheduleUrl === submittedRescheduleUrl) closeRescheduleModal();
                 showTxnStatusToast(result.data.message || 'Your appointment has been rescheduled.');
             })
             .catch(function () {

@@ -6,7 +6,7 @@
             <button type="button" class="txn-modal-close" data-tnr-reschedule-close="true" aria-label="Close">&times;</button>
         </header>
         <div class="txn-reschedule-body">
-            <p class="txn-reschedule-lead">Pick a new date and time. We check therapist availability and your other appointments so nothing overlaps.</p>
+            <p class="txn-reschedule-lead">Choose a therapist, date, and time. Your service, price, payment, and balance stay the same. No new payment is required.</p>
             <p class="txn-reschedule-booking-ref" id="tnr-reschedule-booking-ref"></p>
 
             <dl class="txn-reschedule-summary">
@@ -15,10 +15,21 @@
                     <dd id="tnr-reschedule-service">—</dd>
                 </div>
                 <div>
-                    <dt>Therapist</dt>
+                    <dt>Current therapist</dt>
                     <dd id="tnr-reschedule-therapist">—</dd>
                 </div>
+                <div><dt>Already paid</dt><dd id="tnr-reschedule-paid">—</dd></div>
+                <div><dt>Remaining balance</dt><dd id="tnr-reschedule-balance">—</dd></div>
             </dl>
+
+            <div class="txn-reschedule-field">
+                <label class="txn-sort-label" for="tnr-reschedule-therapist-choice">Therapist</label>
+                <select id="tnr-reschedule-therapist-choice" class="txn-search-input">
+                    @foreach (app(\App\Services\TherapistCatalog::class)->forBooking() as $therapistOption)
+                        <option value="{{ $therapistOption['name'] }}">{{ $therapistOption['name'] }}</option>
+                    @endforeach
+                </select>
+            </div>
 
             <div class="txn-reschedule-field">
                 <label class="txn-sort-label" for="tnr-reschedule-date">New date</label>
@@ -33,6 +44,8 @@
             </div>
 
             <p class="txn-reschedule-error txn-hidden" id="tnr-reschedule-error" role="alert"></p>
+            <p class="txn-reschedule-lead" id="tnr-reschedule-proposed" aria-live="polite"></p>
+            <p class="txn-reschedule-lead">Rescheduling does not extend an earlier cancellation deadline.</p>
         </div>
         <footer class="txn-reschedule-footer">
             <button type="button" class="txn-modal-btn txn-reschedule-back" data-tnr-reschedule-close="true">Back to transactions</button>

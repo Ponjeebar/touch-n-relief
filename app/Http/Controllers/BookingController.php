@@ -478,6 +478,27 @@ class BookingController extends Controller
         return response()->json($payload);
     }
 
+    public function rescheduleAvailability(Request $request, SpaBooking $spaBooking): JsonResponse
+    {
+        abort_unless($request->user()?->id === $spaBooking->user_id, 403);
+        abort_unless($this->reschedules->canReschedule($spaBooking), 422, 'This appointment is not eligible for rescheduling.');
+        $validated = $request->validate([
+            'booking_date' => ['required', 'date', 'after_or_equal:today'],
+            'therapist' => ['nullable', 'string', Rule::in(collect($this->therapistCatalog())->pluck('name')->all())],
+        ]);
+
+        return response()->json($this->reschedules->staffRescheduleAvailability(
+            $spaBooking, $validated['booking_date'], $validated['therapist'] ?? null, forStaff: false,
+        ));
+    }
+
+    public function cancellationPreview(Request $request, SpaBooking $spaBooking): JsonResponse
+    {
+        abort_unless($request->user()?->id === $spaBooking->user_id, 403);
+
+        return response()->json($this->cancellations->preview($spaBooking));
+    }
+
     public function reschedule(Request $request, SpaBooking $spaBooking): JsonResponse|RedirectResponse
     {
         $user = $request->user();
@@ -491,6 +512,7 @@ class BookingController extends Controller
         $validated = $request->validate([
             'booking_date' => ['required', 'date', 'after_or_equal:today'],
             'time_slot' => ['required', 'string', 'max:30', 'in:'.implode(',', $allSlots)],
+            'therapist' => ['nullable', 'string', Rule::in(collect($this->therapistCatalog())->pluck('name')->all())],
         ]);
 
         try {
@@ -498,6 +520,7 @@ class BookingController extends Controller
                 $spaBooking,
                 $validated['booking_date'],
                 $validated['time_slot'],
+                $validated['therapist'] ?? null,
             );
         } catch (ValidationException $e) {
             if ($request->expectsJson()) {
@@ -525,6 +548,9 @@ class BookingController extends Controller
                 'booking_id' => $spaBooking->id,
                 'service_name' => $spaBooking->service_name,
                 'therapist_name' => $spaBooking->therapist_name,
+                'previous_therapist_name' => $spaBooking->rescheduled_from_therapist_name,
+                'previous_date' => $spaBooking->rescheduled_from_date?->toDateString(),
+                'previous_time_slot' => $spaBooking->rescheduled_from_time_slot,
                 'booking_date' => optional($spaBooking->booking_date)->toDateString(),
                 'time_slot' => $spaBooking->time_slot,
             ],
