@@ -38,6 +38,11 @@ for (const role of ['admin', 'receptionist']) {
                 await profileLogout.click();
             }
             await expect(confirmation).toBeVisible();
+            for (const theme of ['light', 'dark']) {
+                await page.evaluate(theme => window.tnrSetTheme(theme), theme);
+                await confirmation.locator('.lo-dialog').screenshot({ path: testInfo.outputPath(`logout-dialog-${width}-${theme}.png`) });
+            }
+            await page.evaluate(() => window.tnrSetTheme('light'));
             await confirmation.getByRole('button', { name: 'Stay signed in' }).click();
             await expect(confirmation).toBeHidden();
             // Close the account menu after cancelling a mobile sign-out.

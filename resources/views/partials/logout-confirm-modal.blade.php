@@ -1,5 +1,5 @@
 @once
-    <link rel="stylesheet" href="{{ asset('css/logout-confirm.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/logout-confirm.css') }}?v={{ filemtime(public_path('css/logout-confirm.css')) }}">
 @endonce
 
 <div class="lo-modal lo-hidden" id="tnr-logout-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="tnr-logout-confirm-title" aria-hidden="true">
