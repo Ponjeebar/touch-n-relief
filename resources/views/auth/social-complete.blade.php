@@ -10,8 +10,8 @@
     <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ filemtime(public_path('css/theme.css')) }}">
 </head>
-<body class="auth-page social-complete-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
-    @include('partials.landing-nav', ['navMode' => 'auth'])
+<body class="auth-page auth-entry-page social-complete-page">
+    @include('partials.landing-nav', ['navMode' => 'auth', 'authEntryHeader' => true])
 
     <main class="social-complete-card">
         <header class="social-complete-header">

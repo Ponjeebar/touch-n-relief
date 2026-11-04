@@ -32,7 +32,7 @@ for (const theme of ['light', 'dark']) {
             expect(Math.abs(signInBox.x - identityBox.x)).toBeLessThanOrEqual(1);
             expect(Math.abs(signInBox.width - identityBox.width)).toBeLessThanOrEqual(1);
             await page.screenshot({ path: testInfo.outputPath(`login-${width}.png`), animations: 'disabled' });
-            await page.locator(width > 700 ? '#register' : '[data-auth-panel="register"]').click();
+            await page.locator('[data-auth-panel="register"]').click();
             const registration = page.locator('#register-form');
             await expect(registration.getByLabel('Full name', { exact: true })).toBeVisible();
             await registration.getByLabel('Full name', { exact: true }).fill('Maria Clara');
@@ -50,7 +50,7 @@ for (const theme of ['light', 'dark']) {
             await expect(registration.getByLabel('Full name', { exact: true })).toHaveValue('Maria Clara');
             await page.screenshot({ path: testInfo.outputPath(`signup-${width}.png`), animations: 'disabled' });
             expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-            await page.locator(width > 700 ? '#login' : '.sign-up [data-auth-panel="login"]').click();
+            await page.locator('.sign-up [data-auth-panel="login"]').click();
             await expect(login.getByLabel('Password', { exact: true })).toBeVisible();
             await login.getByRole('link', { name: 'Forgot Password?', exact: true }).click();
             await expect(page.locator('.auth-forgot-panel')).toHaveAttribute('aria-hidden', 'false');

@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ filemtime(public_path('css/theme.css')) }}">
 </head>
-<body class="auth-page auth-entry-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
+<body class="auth-page auth-entry-page">
     @include('partials.landing-nav', ['navMode' => 'auth', 'authEntryHeader' => true])
     @if (session('status'))
         <div class="auth-flash" role="status">{{ session('status') }}</div>
@@ -290,43 +290,6 @@
                 <button type="submit">Send verification code</button>
                 <button type="button" class="link auth-forgot-back" data-auth-forgot-close="true" data-login-url="{{ route('login') }}">Back to Sign In</button>
             </form>
-        </div>
-
-        <div class="toggle-container">
-            <div class="toggle">
-                <div class="toggle-panel toggle-left" aria-hidden="{{ $showRegister ? 'false' : 'true' }}" @if (! $showRegister) inert @endif>
-                    <div class="toggle-panel-logo-wrap">
-                        <img
-                            src="{{ asset('images/dashboard/logo.png') }}"
-                            alt="{{ $brandName }} logo"
-                            class="auth-toggle-logo"
-                            width="240"
-                            height="240"
-                            decoding="async"
-                        >
-                    </div>
-                    <p class="auth-spa-name">Buenos Touché Spa</p>
-                    <h1>Already have an account?</h1>
-                    <p class="auth-panel-copy">Sign in to view your appointments and payment details.</p>
-                    <button type="button" class="hidden" id="login">Sign In</button>
-                </div>
-                <div class="toggle-panel toggle-right" aria-hidden="{{ $showRegister ? 'true' : 'false' }}" @if ($showRegister) inert @endif>
-                    <div class="toggle-panel-logo-wrap">
-                        <img
-                            src="{{ asset('images/dashboard/logo.png') }}"
-                            alt="{{ $brandName }} logo"
-                            class="auth-toggle-logo"
-                            width="240"
-                            height="240"
-                            decoding="async"
-                        >
-                    </div>
-                    <p class="auth-spa-name">Buenos Touché Spa</p>
-                    <h1>Your next visit starts here.</h1>
-                    <p class="auth-panel-copy">Choose a service, find an available therapist, and book your time.</p>
-                    <button type="button" class="hidden" id="register">Sign Up</button>
-                </div>
-            </div>
         </div>
     </div>
 

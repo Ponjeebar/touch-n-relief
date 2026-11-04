@@ -283,7 +283,6 @@ test('report downloads keep the reporting overview visible', async ({ page }) =>
 
 test('authentication panels expose only the visible form to keyboard focus', async ({ page }) => {
     for (const viewport of [{ width: 390, height: 844 }, { width: 1366, height: 768 }]) {
-        const mobile = viewport.width <= 700;
         await page.setViewportSize(viewport);
         await page.goto('/login');
 
@@ -301,14 +300,14 @@ test('authentication panels expose only the visible form to keyboard focus', asy
         await registrationName.focus();
         await expect(registrationName).not.toBeFocused();
 
-        await page.locator(mobile ? '.auth-login-panel [data-auth-panel="register"]' : '#register').click();
+        await page.locator('.auth-login-panel [data-auth-panel="register"]').click();
         await expect(signUp).not.toHaveAttribute('inert', '');
         await expect(signIn).toHaveAttribute('inert', '');
         await expect(registrationName).toBeFocused();
         await loginInput.focus();
         await expect(loginInput).not.toBeFocused();
 
-        await page.locator(mobile ? '#register-form [data-auth-panel="login"]' : '#login').click();
+        await page.locator('#register-form [data-auth-panel="login"]').click();
         await expect(loginInput).toBeFocused();
         await page.locator('[data-auth-forgot-open="true"]').click();
         await expect(page.locator('.auth-login-panel')).toHaveAttribute('inert', '');

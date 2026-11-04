@@ -121,17 +121,17 @@ class AuthVerificationTest extends TestCase
         );
     }
 
-    public function test_authentication_header_does_not_show_redundant_home_navigation(): void
+    public function test_authentication_header_provides_home_access_without_a_navigation_menu(): void
     {
         $this->get(route('login'))
             ->assertOk()
-            ->assertDontSee('>Home<', false)
+            ->assertSee('aria-label="Back to home"', false)
             ->assertDontSee('aria-label="Open navigation menu"', false)
             ->assertDontSee('tnr-landing-theme-toggle');
 
         $this->get(route('password.request'))
             ->assertOk()
-            ->assertDontSee('>Home<', false)
+            ->assertSee('aria-label="Back to home"', false)
             ->assertDontSee('aria-label="Open navigation menu"', false);
 
         $this->get(route('landing'))

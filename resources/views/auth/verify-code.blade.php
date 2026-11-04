@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ filemtime(public_path('css/theme.css')) }}">
 </head>
-<body class="auth-page auth-reset-page auth-code-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
-    @include('partials.landing-nav', ['navMode' => 'auth'])
+<body class="auth-page auth-entry-page auth-reset-page auth-code-page">
+    @include('partials.landing-nav', ['navMode' => 'auth', 'authEntryHeader' => true])
     <main class="container auth-reset-card auth-code-card" id="container">
         <div class="form-container sign-in">
             <form method="POST" action="{{ $verificationSubmitUrl ?? route('verification.verify', $verification) }}">
@@ -29,17 +29,13 @@
                 <input id="verification-code" class="auth-code-input @error('code') invalid @enderror" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autofocus required>
                 @error('code')<p class="field-msg">{{ $message }}</p>@enderror
                 <button type="submit">Verify code</button>
+                <p class="auth-reset-hint">Do not share your verification code with anyone.</p>
                 <div class="auth-code-actions">
                     <button type="submit" class="link auth-forgot-back" formaction="{{ $verificationResendUrl ?? route('verification.resend', $verification) }}">Send a new code</button>
                     <a class="link" href="{{ $verificationBackUrl ?? route('login') }}">{{ $verificationBackLabel ?? 'Back to Sign In' }}</a>
                 </div>
             </form>
         </div>
-        <div class="toggle-container" aria-hidden="true"><div class="toggle"><div class="toggle-panel toggle-right">
-            <img src="{{ asset('images/dashboard/logo.png') }}" alt="" class="auth-toggle-logo" width="220" height="220">
-            <h1>Protecting your<br>TouchNRelief account</h1>
-            <p>Do not share your verification code with anyone.</p>
-        </div></div></div>
     </main>
 </body>
 </html>
