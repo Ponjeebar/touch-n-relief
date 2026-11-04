@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ filemtime(public_path('css/theme.css')) }}">
 </head>
-<body class="auth-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
+<body class="auth-page auth-entry-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
     @include('partials.landing-nav', ['navMode' => 'auth'])
     @if (session('status'))
         <div class="auth-flash" role="status">{{ session('status') }}</div>
@@ -27,6 +27,7 @@
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <h1 tabindex="-1">Create Account</h1>
+                <p class="auth-entry-copy">Create your account to book and manage spa appointments.</p>
                 @include('auth.partials.social-buttons', ['socialIntent' => 'signup'])
                 <ol class="auth-registration-progress" aria-label="Registration progress" hidden>
                     <li data-register-progress="0"><span class="auth-step-number" aria-hidden="true">1</span><span>Personal</span></li>
@@ -207,6 +208,7 @@
             <form method="POST" action="{{ route('login.attempt') }}" novalidate class="auth-login-panel" aria-hidden="{{ $showRegister || $showForgot ? 'true' : 'false' }}" @if ($showRegister || $showForgot) inert @endif>
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <h1 tabindex="-1">Sign In</h1>
+                <p class="auth-entry-copy">Access your appointments and account details.</p>
                 @error('social')
                     <div class="auth-social-error" role="alert">
                         <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
@@ -214,8 +216,10 @@
                     </div>
                 @enderror
                 @include('auth.partials.social-buttons', ['socialIntent' => 'login'])
+                <label class="auth-field-label" for="login-identity">Username, name, or email</label>
                 <input
                     type="text"
+                    id="login-identity"
                     name="login"
                     placeholder="Username, name, or email"
                     value="{{ old('login') }}"
@@ -226,9 +230,11 @@
                 @error('login')
                     <p class="field-msg">{{ $message }}</p>
                 @enderror
+                <label class="auth-field-label" for="login-password">Password</label>
                 <div class="auth-password-wrap">
                     <input
                         type="password"
+                        id="login-password"
                         name="password"
                         placeholder="Enter Password"
                         autocomplete="current-password"
@@ -299,7 +305,9 @@
                             decoding="async"
                         >
                     </div>
-                    <h1>Welcome to<br>{{ $brandName }}</h1>
+                    <p class="auth-spa-name">Buenos Touché Spa</p>
+                    <h1>Already have an account?</h1>
+                    <p class="auth-panel-copy">Sign in to view your appointments and payment details.</p>
                     <button type="button" class="hidden" id="login">Sign In</button>
                 </div>
                 <div class="toggle-panel toggle-right" aria-hidden="{{ $showRegister ? 'true' : 'false' }}" @if ($showRegister) inert @endif>
@@ -313,7 +321,9 @@
                             decoding="async"
                         >
                     </div>
-                    <h1>Join {{ $brandName }}</h1>
+                    <p class="auth-spa-name">Buenos Touché Spa</p>
+                    <h1>Your next visit starts here.</h1>
+                    <p class="auth-panel-copy">Choose a service, find an available therapist, and book your time.</p>
                     <button type="button" class="hidden" id="register">Sign Up</button>
                 </div>
             </div>
