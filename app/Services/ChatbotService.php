@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\MembershipPlan;
 use App\Models\SpaBooking;
 use App\Models\User;
+use App\Support\PaymentMethodCatalog;
 use Illuminate\Support\Facades\Schema;
 
 class ChatbotService
@@ -27,6 +28,7 @@ class ChatbotService
     {
         $this->conversationContext = $this->sanitizeContext($context);
         $question = preg_replace('/\s+/u', ' ', mb_strtolower(trim($message))) ?? mb_strtolower(trim($message));
+        $question = str_replace('aromatheraphy', 'aromatherapy', $question);
         $staff = $user !== null && ($user->isAdmin() || $user->isReceptionist());
 
         if ($publicAnswer = $this->businessInformation($question)) {
@@ -70,7 +72,7 @@ class ChatbotService
             return $staffReply;
         }
 
-        if ($this->has($question, ['resched', 'change my date', 'change my time', 'move my appointment', 'lipat appointment'])) {
+        if ($this->has($question, ['resched', 'change my date', 'change my time', 'change therapist', 'change my therapist', 'switch therapist', 'move my appointment', 'lipat appointment'])) {
             return $this->changeRules($question, $user, false);
         }
 
@@ -83,9 +85,17 @@ class ChatbotService
             return $this->appointments($question, $user);
         }
 
+        if ($this->has($question, ['no-show', 'no show', 'late arrival', 'grace period'])) {
+            return $this->respond('Arrive on time. The current grace period is '.$this->settings->lateGraceMinutes().' minutes. '
+                .'Staff then have '.$this->settings->noShowReviewMinutes().' minutes to confirm attendance. '
+                .'If attendance is not updated, the appointment is marked as a no-show automatically after that review window. '
+                .'Payments already collected are non-refundable for a no-show; an unpaid balance is not collected. Contact the spa if management needs to review an exception.',
+                [$this->contactAction()], ['Can I reschedule?', 'Can I cancel?', 'Business hours']);
+        }
+
         if ($this->has($question, ['policy', 'policies', 'rules'])) {
             return $this->respond(
-                'Customers can cancel or reschedule a booking before its appointment time, provided the session has not started or finished. '
+                $this->changePolicy().' '
                 .'Paid cancellations may need a refund; the method and processing status depend on the payment channel. '
                 .'For a specific booking, sign in and ask about your appointment.',
                 $user ? [$this->appointmentsAction('View my bookings')] : $this->guestActions(),
@@ -121,7 +131,7 @@ class ChatbotService
                 ['Business hours', 'Services and prices', 'How do I book?']);
         }
 
-        if ($this->has($question, ['package', 'thera'])) {
+        if (preg_match('/\b(?:packages?|thera)\b/u', $question) === 1) {
             return $this->packages($question);
         }
 
@@ -129,7 +139,15 @@ class ChatbotService
             return $this->membership();
         }
 
-        if ($this->has($question, ['service', 'massage', 'treatment', 'price', 'cost', 'how much', 'rate', 'magkano', 'presyo'])) {
+        if ($this->has($question, ['downpayment', 'down payment', 'full payment', 'remaining balance'])) {
+            return $this->respond('At checkout, choose a '.PaymentMethodCatalog::downpaymentPercentage().'% downpayment or full payment. '
+                .'A downpayment leaves a balance that must be settled before the session starts. Your booking is confirmed only after payment verification. '
+                .'Review Pay now and Remaining balance in the payment summary before continuing to PayMongo.',
+                $user ? [$this->appointmentsAction('My Appointments'), $this->action('Book an appointment', 'booking.index')] : $this->guestActions(),
+                ['How do I book?', 'Can I reschedule?', 'Can I cancel?']);
+        }
+
+        if ($this->matchingService($question) || $this->has($question, ['service', 'massage', 'treatment', 'price', 'cost', 'how much', 'rate', 'magkano', 'presyo'])) {
             return $this->services($question);
         }
 
@@ -281,7 +299,7 @@ class ChatbotService
     private function services(string $question): array
     {
         $services = $this->catalog->all();
-        $specific = collect($services)->first(fn (array $service): bool => str_contains($question, mb_strtolower((string) $service['name'])));
+        $specific = $this->matchingService($question);
 
         if ($specific) {
             $this->remember('services', (string) $specific['name']);
@@ -297,6 +315,27 @@ class ChatbotService
 
         return $this->respond("Current services and prices:\n".$list."\nSelect a service on the website for details.",
             [$this->servicesAction()], ['Show me the packages', 'How do I book?', 'Business hours']);
+    }
+
+    private function matchingService(string $question): ?array
+    {
+        return collect($this->catalog->all())->first(function (array $service) use ($question): bool {
+            $name = mb_strtolower((string) $service['name']);
+            $base = trim(preg_replace('/\s*\([^)]*\)/u', '', $name) ?? $name);
+
+            return str_contains($question, $name)
+                || (mb_strlen($base) >= 4 && preg_match('/(?<!\p{L})'.preg_quote($base, '/').'(?!\p{L})/u', $question) === 1);
+        });
+    }
+
+    private function changePolicy(): string
+    {
+        $hours = $this->settings->cancellationCutoffHours();
+
+        return 'Cancellation and rescheduling depend on the booking deadline and session status. '
+            .($hours > 0 ? 'The current cutoff is '.$hours.' hours before the appointment. ' : 'Changes must be made before the appointment starts. ')
+            .'Rescheduling requires a verified downpayment or full payment. You may change the therapist, date, and time while keeping the same service and confirmed payment; no second payment is required. '
+            .'Rescheduling does not extend an earlier cancellation deadline. Check My Appointments for the actions available on your booking.';
     }
 
     private function packages(string $question): array
@@ -383,7 +422,7 @@ class ChatbotService
     {
         $this->remember('appointments');
         $operation = $cancel ? 'cancel' : 'reschedule';
-        $general = 'You can '.$operation.' a booking before its appointment time if the session has not started or finished. ';
+        $general = $this->changePolicy().' ';
 
         if (! $user) {
             return $this->respond($general.'Sign in to check your booking and use the action in your profile.', $this->guestActions());
@@ -413,7 +452,11 @@ class ChatbotService
         $allowed = $cancel ? $this->cancellations->canCancel($booking) : $this->reschedules->canReschedule($booking);
         $reply = $allowed
             ? 'Booking #'.$booking->id.' is currently eligible to '.$operation.'. Use the action in your profile to confirm it.'
-            : 'Booking #'.$booking->id.' cannot currently be '.$operation.'d. It may have started, finished, been cancelled, or reached its appointment time.';
+            : 'Booking #'.$booking->id.' is not currently eligible for '.$operation.'. Check its payment, session status, and change deadline in My Appointments.';
+
+        if (! $cancel) {
+            $reply .= ' Rescheduling keeps the same service and verified payment. You can choose another therapist, date, and available time without cancelling or paying again.';
+        }
 
         if ($cancel && $allowed) {
             $reply .= ' If you paid, any refund depends on the payment method and will be shown during cancellation.';
@@ -434,7 +477,7 @@ class ChatbotService
         }
 
         if ($user->isReceptionist()) {
-            return $this->respond('As a receptionist, you can manage appointments, services, sessions, and client records from your panel.',
+            return $this->respond('As a receptionist, you can manage appointments, sessions, and client records, and review the service catalog from your panel.',
                 [$this->action('Receptionist panel', 'receptionist.dashboard'), $this->action('Appointments', 'appointments.index')]);
         }
 
@@ -464,7 +507,9 @@ class ChatbotService
         }
 
         if ($this->has($question, ['manage service', 'edit service', 'update service'])) {
-            return $this->respond('Open services to review and update the treatments offered by the spa.',
+            return $this->respond($user->isAdmin()
+                ? 'Open Services & Membership to review or edit the catalog and membership plan.'
+                : 'Open Services & Membership to review the catalog. Only the administrator can edit services and membership plans.',
                 [$this->action('Manage services', 'services.index')]);
         }
 

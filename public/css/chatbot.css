@@ -27,7 +27,7 @@ body.has-open-dialog .tnr-chat { display: none; }
     cursor: pointer;
     font: inherit;
     font-weight: 700;
-    transition: background-color .18s ease, opacity .18s ease, visibility .18s ease;
+    transition: background-color .18s ease;
 }
 
 .tnr-chat-launcher svg { display: block; flex: none; }
@@ -50,14 +50,14 @@ body.has-open-dialog .tnr-chat { display: none; }
 .tnr-chat-panel {
     position: absolute;
     right: 0;
-    bottom: 60px;
+    bottom: 0;
     display: flex;
-    width: min(390px, calc(100vw - 32px));
-    height: min(560px, calc(100dvh - 110px));
+    width: min(420px, calc(100vw - 32px));
+    height: min(620px, calc(100dvh - 48px));
     flex-direction: column;
     overflow: hidden;
     border: 1px solid #d7e2da;
-    border-radius: 18px;
+    border-radius: 12px;
     background: #fff;
     box-shadow: 0 14px 42px #0003;
 }
@@ -66,13 +66,13 @@ body.has-open-dialog .tnr-chat { display: none; }
 
 .tnr-chat-header {
     display: flex;
-    min-height: 68px;
+    min-height: 76px;
     flex: 0 0 auto;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 12px 14px 12px 16px;
-    background: #04724d;
+    background: #153e31;
     color: #fff;
 }
 
@@ -82,13 +82,13 @@ body.has-open-dialog .tnr-chat { display: none; }
 .tnr-chat-header span { margin-top: 2px; font-size: 12px; line-height: 1.35; opacity: .9; }
 
 .tnr-chat-close {
-    width: 40px;
-    height: 40px;
-    flex: 0 0 40px;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
     padding: 0;
     border: 0;
-    border-radius: 50%;
-    background: transparent;
+    border-radius: 7px;
+    background: #ffffff14;
     color: inherit;
     cursor: pointer;
     font-size: 28px;
@@ -111,9 +111,9 @@ body.has-open-dialog .tnr-chat { display: none; }
 }
 
 .tnr-chat-message {
-    max-width: 84%;
-    padding: 10px 12px;
-    border-radius: 14px;
+    max-width: 94%;
+    padding: 12px 14px;
+    border-radius: 8px;
     font-size: 14px;
     line-height: 1.5;
     overflow-wrap: anywhere;
@@ -129,6 +129,7 @@ body.has-open-dialog .tnr-chat { display: none; }
 }
 
 .tnr-chat-user {
+    max-width: 86%;
     align-self: flex-end;
     border-bottom-right-radius: 5px;
     background: #dcefe5;
@@ -151,8 +152,11 @@ body.has-open-dialog .tnr-chat { display: none; }
     50% { opacity: .35; }
 }
 
-.tnr-chat-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
-.tnr-chat-actions a { color: #045b3f; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.tnr-chat-actions { display: flex; flex-direction: column; gap: 7px; margin-top: 12px; }
+.tnr-chat-actions a { display:flex; align-items:center; min-height:44px; padding:8px 10px; border:1px solid #91b4a1; border-radius:6px; background:#f1f7f3; color:#045b3f; font-weight:600; text-decoration:none; }
+.tnr-chat-actions a:hover { background:#e2efe7; }
+.tnr-chat-retry { min-height:44px; margin-top:8px; padding:7px 12px; border:1px solid #a23d3d; border-radius:6px; background:transparent; color:#8d3030; font:inherit; font-weight:600; cursor:pointer; }
+.tnr-chat-message.is-error { border-left:3px solid #a23d3d; }
 
 .tnr-chat-prompts {
     display: grid;
@@ -173,9 +177,10 @@ body.has-open-dialog .tnr-chat { display: none; }
 .tnr-chat-prompts button {
     width: 100%;
     min-width: 0;
-    padding: 7px 11px;
+    min-height:44px;
+    padding: 8px 10px;
     border: 1px solid #91b4a1;
-    border-radius: 18px;
+    border-radius: 6px;
     background: #fff;
     color: #045b3f;
     cursor: pointer;
@@ -188,6 +193,7 @@ body.has-open-dialog .tnr-chat { display: none; }
 }
 
 .tnr-chat-prompts button:hover { background: #e8f5ed; }
+.tnr-chat-prompts button:disabled { opacity:.55; cursor:wait; }
 
 .tnr-chat-form {
     flex: 0 0 auto;
@@ -202,7 +208,7 @@ body.has-open-dialog .tnr-chat { display: none; }
 .tnr-chat-compose input {
     width: 100%;
     min-width: 0;
-    min-height: 42px;
+    min-height: 46px;
     padding: 9px 11px;
     border: 1px solid #aebfb4;
     border-radius: 9px;
@@ -214,7 +220,7 @@ body.has-open-dialog .tnr-chat { display: none; }
 
 .tnr-chat-compose button {
     min-width: 66px;
-    min-height: 42px;
+    min-height: 46px;
     padding: 9px 13px;
     border: 0;
     border-radius: 9px;
@@ -240,7 +246,10 @@ html[data-theme="dark"] .tnr-chat-messages { background: #17211c; }
 html[data-theme="dark"] .tnr-chat-user { background: #315b43; color: #fff; }
 html[data-theme="dark"] .tnr-chat-prompts button,
 html[data-theme="dark"] .tnr-chat-compose input { border-color: #64816b; background: #17211c; color: #fff; }
-html[data-theme="dark"] .tnr-chat-actions a { color: #a8e4ba; }
+html[data-theme="dark"] .tnr-chat-actions a { color: #bcebd0; background:#18372a; border-color:#64816b; }
+html[data-theme="dark"] .tnr-chat-actions a:hover { background:#294b3a; }
+html[data-theme="dark"] .tnr-chat-retry { color:#ffc3c3; border-color:#ca8585; }
+html[data-theme="dark"] .tnr-chat-message.is-pending { color:#b8cec4; }
 
 @media (max-width: 900px) {
     .booking-page-body .tnr-chat { display: none !important; }
@@ -256,18 +265,18 @@ html[data-theme="dark"] .tnr-chat-actions a { color: #a8e4ba; }
     .tnr-chat-panel {
         position: fixed;
         right: 10px;
-        bottom: calc(72px + env(safe-area-inset-bottom));
+        bottom: calc(10px + env(safe-area-inset-bottom));
         left: 10px;
         width: auto;
-        height: min(560px, calc(100dvh - 94px - env(safe-area-inset-bottom)));
-        border-radius: 16px;
+        height: min(620px, calc(100dvh - 24px - env(safe-area-inset-bottom)));
+        border-radius: 10px;
     }
 
     .tnr-chat-header { min-height: 62px; padding: 10px 12px 10px 14px; }
     .tnr-chat-messages { gap: 9px; padding: 13px; }
-    .tnr-chat-message { max-width: 86%; padding: 9px 11px; font-size: 13px; }
+    .tnr-chat-message { max-width: 96%; padding: 11px 12px; font-size: 14px; }
     .tnr-chat-prompts {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         padding: 9px 11px;
     }
     .tnr-chat-form { padding: 9px 11px 11px; }

@@ -14,6 +14,45 @@ class ChatbotTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_bare_service_names_and_common_aromatherapy_spelling_use_the_catalog(): void
+    {
+        $service = \App\Models\SpaService::query()->where('name', 'like', '%Aromatherapy%')->firstOrFail();
+        $service->update(['name' => 'Aromatherapy (Special)']);
+        foreach (['Aromatherapy', 'aromatheraphy'] as $question) {
+            $this->postJson(route('chatbot.reply'), ['message' => $question])
+                ->assertOk()->assertSee($service->name)
+                ->assertJsonPath('actions.0.label', 'Book this service')
+                ->assertJsonPath('actions.0.url', route('booking.index', ['service' => $service->name]));
+        }
+    }
+
+    public function test_change_and_payment_guidance_uses_current_rules(): void
+    {
+        SiteSetting::put(SiteSettingsService::KEY_CANCELLATION_CUTOFF_HOURS, '6');
+        $this->postJson(route('chatbot.reply'), ['message' => 'Change my therapist'])
+            ->assertOk()->assertSee('6 hours')->assertSee('verified downpayment')
+            ->assertSee('same service and confirmed payment')->assertSee('earlier cancellation deadline');
+        $this->postJson(route('chatbot.reply'), ['message' => 'Can I pay a downpayment?'])
+            ->assertOk()->assertSee('50% downpayment')->assertSee('before the session starts')
+            ->assertSee('payment verification');
+    }
+
+    public function test_receptionist_help_does_not_claim_catalog_edit_access(): void
+    {
+        $receptionist = User::factory()->create(['role' => User::ROLE_RECEPTIONIST]);
+        $this->actingAs($receptionist)->postJson(route('chatbot.reply'), ['message' => 'Manage services'])
+            ->assertOk()->assertSee('Only the administrator can edit')
+            ->assertJsonPath('actions.0.url', route('services.index'));
+    }
+
+    public function test_no_show_questions_use_attendance_rules_instead_of_cancellation_rules(): void
+    {
+        SiteSetting::put(SiteSettingsService::KEY_LATE_GRACE_MINUTES, '7');
+        $this->postJson(route('chatbot.reply'), ['message' => 'What is the no-show policy?'])
+            ->assertOk()->assertSee('7 minutes')->assertSee('marked as a no-show automatically')
+            ->assertSee('unpaid balance is not collected')->assertDontSee('cutoff');
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
