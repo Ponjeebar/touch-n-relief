@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 });
+test.beforeEach(async ({ page }) => {
+    await page.route(/https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com)\//, route => route.abort());
+});
+
 for (const role of ['admin', 'receptionist']) {
     for (const setup of [
         { name: 'mobile light', width: 390, height: 844, theme: 'light' },

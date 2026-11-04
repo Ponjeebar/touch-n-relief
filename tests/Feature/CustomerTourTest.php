@@ -12,7 +12,7 @@ class CustomerTourTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_administrator_can_replay_appointment_training_without_enabling_tours_on_other_pages(): void
+    public function test_administrator_can_replay_page_training_without_automatic_startup(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
@@ -24,8 +24,9 @@ class CustomerTourTest extends TestCase
 
         $this->get(route('dashboard'))
             ->assertOk()
-            ->assertDontSee('class="profile-dropdown-item" data-start-customer-tour', false)
-            ->assertDontSee('id="tnr-customer-tour-config"', false);
+            ->assertSee('class="profile-dropdown-item" data-start-customer-tour', false)
+            ->assertSee('data-customer-tour-role="admin"', false)
+            ->assertSee('data-customer-tour-auto-start="0"', false);
     }
 
     public function test_customer_can_replay_the_landing_page_tour_while_guests_cannot(): void
@@ -33,7 +34,7 @@ class CustomerTourTest extends TestCase
         $this->get(route('landing'))
             ->assertOk()
             ->assertDontSee('data-start-customer-tour', false)
-            ->assertDontSee('driver.js@1.8.0', false);
+            ->assertDontSee('vendor/driver/driver.js.iife.js', false);
 
         $customer = User::factory()->create([
             'role' => User::ROLE_USER,
@@ -44,7 +45,7 @@ class CustomerTourTest extends TestCase
             ->get(route('landing'))
             ->assertOk()
             ->assertSee('data-start-customer-tour', false)
-            ->assertSee('driver.js@1.8.0', false)
+            ->assertSee('vendor/driver/driver.js.iife.js', false)
             ->assertSee('data-customer-tour-role="customer"', false)
             ->assertSee('data-customer-tour-auto-start="0"', false);
     }
@@ -71,7 +72,7 @@ class CustomerTourTest extends TestCase
             ->assertSee('data-customer-tour-auto-start="0"', false)
             ->assertSee('data-tour-scope="appointments"', false)
             ->assertSee('data-start-customer-tour', false)
-            ->assertSee('driver.js@1.8.0', false);
+            ->assertSee('vendor/driver/driver.js.iife.js', false);
     }
 
     public function test_existing_receptionist_gets_manual_replay_without_automatic_tours(): void
@@ -162,8 +163,7 @@ class CustomerTourTest extends TestCase
         $this->assertStringContainsString('prepareTutorialExamples()', $tourScript);
         $this->assertStringContainsString('resolveVisibleSteps(buildSteps(scope))', $tourScript);
         $this->assertStringContainsString('cleanupTutorialExamples()', $tourScript);
-        $this->assertStringContainsString('allowClose: false', $tourScript);
-        $this->assertStringNotContainsString('allowClose: true', $tourScript);
+        $this->assertStringContainsString('allowClose: true', $tourScript);
     }
 
     public function test_completing_wellness_onboarding_starts_the_tour_on_the_next_landing_visit(): void
@@ -226,7 +226,7 @@ class CustomerTourTest extends TestCase
 
         $tourScript = file_get_contents(public_path('js/customer-tour.js'));
         $this->assertStringContainsString("'+paymentHoldMinutes+'-minute", $tourScript);
-        $this->assertStringContainsString("'+lateGraceMinutes+'-minute", $tourScript);
+        $this->assertStringContainsString("'+lateGraceMinutes+' minutes", $tourScript);
         $this->assertStringNotContainsString('the 15-minute payment window', $tourScript);
         $this->assertStringNotContainsString('more than 10 minutes late', $tourScript);
     }

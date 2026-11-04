@@ -41,6 +41,10 @@
             width:min(1100px,94%);
         }
         .profile-page-actions{
+            display:flex;
+            flex-wrap:wrap;
+            align-items:center;
+            gap:.5rem;
             width:min(1100px,94%);
             margin:0 auto .9rem;
         }
@@ -880,6 +884,7 @@
                 <i class="bi bi-arrow-left" aria-hidden="true"></i>
                 <span>Back to home</span>
             </a>
+            <button type="button" class="profile-back-link" data-start-customer-tour>Profile guide</button>
         </div>
         <div class="container profile-layout">
             <aside class="profile-category-sidebar">

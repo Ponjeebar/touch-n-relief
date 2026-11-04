@@ -1,8 +1,7 @@
 @php
     $tourUser = auth()->user();
-    $adminAppointmentTour = $tourUser?->isAdmin() && request()->routeIs('appointments.index');
-    $tourRole = $adminAppointmentTour ? 'admin' : ($tourUser?->isReceptionist() ? 'receptionist' : 'customer');
-    $tourAllowed = $adminAppointmentTour || $tourUser?->isReceptionist() || ($tourUser?->isUser() && ! $tourUser->isWalkIn());
+    $tourRole = $tourUser?->isAdmin() ? 'admin' : ($tourUser?->isReceptionist() ? 'receptionist' : 'customer');
+    $tourAllowed = $tourUser?->isAdmin() || $tourUser?->isReceptionist() || ($tourUser?->isUser() && ! $tourUser->isWalkIn());
 
     if (! $tourAllowed) {
         return;
@@ -16,11 +15,11 @@
     $tourSettings = app(\App\Services\SiteSettingsService::class);
 @endphp
 @once
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.8.0/dist/driver.css">
+<link rel="stylesheet" href="{{ asset('vendor/driver/driver.css') }}?v=1.8.0">
 <link rel="stylesheet" href="{{ asset('css/customer-tour.css') }}?v={{ filemtime(public_path('css/customer-tour.css')) }}">
 <script
     id="tnr-customer-tour-config"
-    src="https://cdn.jsdelivr.net/npm/driver.js@1.8.0/dist/driver.js.iife.js"
+    src="{{ asset('vendor/driver/driver.js.iife.js') }}?v=1.8.0"
     data-customer-tour-user="{{ $tourUser->getKey() }}"
     data-customer-tour-role="{{ $tourRole }}"
     data-customer-tour-page="{{ $tourPage }}"
