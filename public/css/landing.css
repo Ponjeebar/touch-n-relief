@@ -2774,28 +2774,21 @@ html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-user-menu 
         color: #102b22;
     }
 
-    .landing-header .nav-user-menu,
-    .landing-header.scrolled .nav-user-menu {
+    /* Keep the mobile account surfaces dark when desktop header colors change. */
+    .landing-header:is(.nav-wide, .nav-solid).is-mobile-nav-open .nav-links .nav-user-wrap--mobile .nav-user-menu {
         background: #0f2421;
         border-color: rgba(255, 255, 255, 0.14);
     }
 
-    .landing-header .nav-user-menu a,
-    .landing-header.scrolled .nav-user-menu a,
-    .landing-header .nav-user-menu button,
-    .landing-header.scrolled .nav-user-menu button {
+    .landing-header:is(.nav-wide, .nav-solid).is-mobile-nav-open .nav-links .nav-user-wrap--mobile .nav-user-menu :is(a, button) {
         color: #f5fbf8;
     }
 
-    .landing-header .nav-user-menu a:hover,
-    .landing-header.scrolled .nav-user-menu a:hover,
-    .landing-header .nav-user-menu button:hover,
-    .landing-header.scrolled .nav-user-menu button:hover {
+    .landing-header:is(.nav-wide, .nav-solid).is-mobile-nav-open .nav-links .nav-user-wrap--mobile .nav-user-menu :is(a, button):hover {
         background: rgba(255, 255, 255, 0.09);
     }
 
-    .landing-header .nav-user-menu .nav-user-logout,
-    .landing-header.scrolled .nav-user-menu .nav-user-logout {
+    .landing-header:is(.nav-wide, .nav-solid).is-mobile-nav-open .nav-links .nav-user-wrap--mobile .nav-user-menu .nav-user-logout {
         color: #ffd1cc;
     }
 
@@ -2806,11 +2799,18 @@ html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-user-menu 
         box-shadow: none;
     }
 
-    .landing-header .nav-user,
-    .landing-header.scrolled .nav-user {
+    .landing-header:is(.nav-wide, .nav-solid).is-mobile-nav-open .nav-links .nav-user-wrap--mobile .nav-user {
         width: 100%;
         max-width: none;
-        color: #fff;
+        background: #203a35;
+        border-color: rgba(255, 255, 255, 0.28);
+        color: #f5fbf8;
+    }
+
+    .landing-header:is(.nav-wide, .nav-solid).is-mobile-nav-open .nav-links .nav-user-wrap--mobile .nav-avatar {
+        background: #31544a;
+        border-color: rgba(255, 255, 255, 0.28);
+        color: #f5fbf8;
     }
 }
 

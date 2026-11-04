@@ -184,6 +184,60 @@ test('landing header changes from light at the top to dark after scrolling', asy
     }
 });
 
+test('mobile account menu stays readable before and after scrolling in both themes', async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await login(page);
+    const contrast = async (text, surface) => page.evaluate(({ text, surface }) => {
+        const luminance = color => {
+            const rgb = color.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => {
+                value /= 255;
+                return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+            });
+            return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+        };
+        const foreground = luminance(getComputedStyle(document.querySelector(text)).color);
+        const background = luminance(getComputedStyle(document.querySelector(surface)).backgroundColor);
+        return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
+    }, { text, surface });
+    for (const theme of ['light', 'dark']) {
+        for (const width of [320, 390, 768, 1100]) {
+            await page.setViewportSize({ width, height: 900 });
+            await page.evaluate(mode => {
+                localStorage.setItem('tnr-theme', mode);
+                localStorage.setItem('tnr-theme-preference-version', 'light-default-v1');
+            }, theme);
+            await page.goto('/');
+            await dismissTour(page);
+            const header = page.locator('.landing-header');
+            const account = header.locator('.nav-user-wrap--mobile');
+            for (const scroll of [0, 220]) {
+                await page.evaluate(y => window.scrollTo(0, y), scroll);
+                if (scroll) await expect(header).toHaveClass(/scrolled/);
+                else await expect(header).not.toHaveClass(/scrolled/);
+                if (!(await header.evaluate(node => node.classList.contains('is-mobile-nav-open')))) {
+                    await header.locator('.mobile-nav-toggle').click();
+                }
+                if ((await account.locator('.nav-user').getAttribute('aria-expanded')) !== 'true') {
+                    await account.locator('.nav-user').click();
+                }
+                await expect(account.locator('.nav-user-menu')).toBeVisible();
+                await expect.poll(() => contrast('.nav-user-wrap--mobile .nav-username', '.nav-user-wrap--mobile .nav-user')).toBeGreaterThanOrEqual(4.5);
+                await expect.poll(() => contrast('.nav-user-wrap--mobile .nav-avatar', '.nav-user-wrap--mobile .nav-avatar')).toBeGreaterThanOrEqual(4.5);
+                await expect.poll(() => contrast('.nav-user-wrap--mobile [role="menuitem"]', '.nav-user-wrap--mobile .nav-user-menu')).toBeGreaterThanOrEqual(4.5);
+                const profile = account.getByRole('menuitem', { name: 'Edit Profile', exact: true });
+                await expect(profile).toBeInViewport();
+                await profile.focus();
+                await expect(profile).toBeFocused();
+                expect(await header.locator('.nav-links').evaluate(menu => menu.scrollWidth <= menu.clientWidth + 1)).toBe(true);
+                if (width === 390) await page.screenshot({ path: testInfo.outputPath(`account-menu-${theme}-${scroll}.png`), animations: 'disabled' });
+            }
+            await account.getByRole('menuitem', { name: 'Edit Profile', exact: true }).click();
+            await expect(page).toHaveURL(/\/profile$/);
+            await expect(page.locator('#personal-information')).toBeVisible();
+        }
+    }
+});
+
 test('checkout stays gray until the no-show policy is accepted', async ({ page }, testInfo) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await login(page);
