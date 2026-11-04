@@ -102,6 +102,7 @@ for (const theme of ['light', 'dark']) {
             await expect(page.locator('#profile-category-edit-note')).toBeVisible();
             await expect(page.locator('#email_current_password')).toBeDisabled();
             await expect(page.locator('#account-edit')).toBeDisabled();
+            await page.screenshot({ path: 'test-results/profile-editing-' + width + '-' + theme + '.png', fullPage: true });
             await page.locator('#basic-info-cancel').click();
             await expect(page.locator('#name')).toHaveValue(original);
             await selectSection(page, 'Account details');
