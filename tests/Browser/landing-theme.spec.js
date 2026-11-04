@@ -35,6 +35,14 @@ for (const width of [320, 390, 768, 1024, 1440]) {
         await expect(page.locator('.landing-header')).toHaveClass(/scrolled/);
         await expect(page.locator('.landing-header .brand-logo')).toBeInViewport();
         await page.screenshot({ path: testInfo.outputPath(`guest-header-scrolled-${width}.png`), animations: 'disabled' });
+        await page.evaluate(() => {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        });
+        if (width <= 1100) await page.getByRole('button', { name: 'Open navigation menu', exact: true }).click();
+        await expect(login).toBeVisible();
+        await login.hover();
+        await page.screenshot({ path: testInfo.outputPath(`guest-login-dark-${width}.png`), animations: 'disabled' });
     });
 }
 

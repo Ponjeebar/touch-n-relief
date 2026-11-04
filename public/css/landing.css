@@ -472,13 +472,13 @@ body {
 }
 
 .nav-login {
-    border-color: transparent;
-    background: transparent;
+    border-color: #547461;
+    background: #eef3ed;
 }
 
 .nav-login:hover {
-    border-color: transparent;
-    background: rgba(8, 118, 79, 0.06);
+    border-color: #08764f;
+    background: #dfece2;
 }
 
 .nav-guest-action:focus-visible {
@@ -1051,13 +1051,14 @@ html[data-theme="dark"] .landing-theme-icon-light {
 }
 
 .landing-header.nav-wide.scrolled:not(.nav-solid) .nav-login {
-    border-color: transparent;
+    border-color: rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.08);
     color: #fff;
 }
 
 .landing-header.nav-wide.scrolled:not(.nav-solid) .nav-login:hover {
-    border-color: transparent;
-    background: rgba(255, 255, 255, 0.09);
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.16);
 }
 
 .landing-header.nav-wide.scrolled:not(.nav-solid) .brand-spa-name {
@@ -1121,11 +1122,14 @@ html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-book-now:h
 }
 
 html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-login {
+    border-color: #8aad9c;
+    background: #243a30;
     color: #f4f8f5;
 }
 
 html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-login:hover {
-    background: rgba(179, 220, 204, 0.08);
+    border-color: #b9e4ce;
+    background: #345342;
 }
 
 html[data-theme="dark"] .landing-header.nav-wide:not(.nav-solid) .nav-user-menu {
