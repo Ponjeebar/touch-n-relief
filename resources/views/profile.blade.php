@@ -719,7 +719,7 @@
         .profile-category-heading{margin-bottom:.85rem}
         .profile-category-heading h2{margin:0 0 .35rem;font-family:"Poppins",sans-serif;font-size:1.1rem;color:#15242d}
         .profile-category-heading p,.profile-category-description{margin:0 0 1rem;color:#526875;font-size:.9rem;line-height:1.6}
-        .profile-category-nav{display:flex;flex-wrap:wrap;gap:.35rem 1.25rem;padding:.9rem 2rem;border-top:1px solid #dce8df;border-bottom:1px solid #dce8df;background:#fff}
+        .profile-category-nav{display:block}
         .profile-category-nav a{color:#245b47;font-size:.85rem;font-weight:600;padding:.35rem 0;text-decoration:none;border-bottom:2px solid transparent}
         .profile-category-nav a:hover,.profile-category-nav a:focus-visible{border-bottom-color:currentColor}
         .profile-category,.profile-password-block,.profile-wellness,#profile-appointments{scroll-margin-top:24px}
@@ -744,26 +744,11 @@
         .profile-page{overflow:clip}
         .profile-page > .profile-layout{width:min(1080px,92%);display:block;position:relative}
         .profile-layout .profile-shell{width:100%;min-width:0}
-        .profile-layout .profile-category-nav{position:absolute;top:0;left:-234px;width:210px;margin:0;padding:1rem 0;background:transparent;border:0}
-        .profile-category-nav details{width:100%}
-        .profile-category-nav summary{display:none}
         .profile-category-nav a{display:block;padding:.85rem 1rem;margin:0;border:0;border-left:3px solid transparent;border-radius:0;font-size:.9rem;line-height:1.4}
         .profile-category-nav a:hover,.profile-category-nav a:focus-visible{background:#e3eee7;border-left-color:#08764f}
-        html[data-theme="dark"] .profile-layout .profile-category-nav{background:transparent}
         html[data-theme="dark"] .profile-category-nav a:hover,html[data-theme="dark"] .profile-category-nav a:focus-visible{background:#294437;border-left-color:#83c9a0}
         .profile-category .profile-local-actions{padding-top:.75rem}
         .profile-local-actions .section-edit-btn:disabled{opacity:.5;cursor:not-allowed}
-        @media(max-width:1599px){
-            .profile-layout .profile-shell{margin-top:1rem}
-            .profile-layout .profile-category-nav{position:static;width:100%;padding:.65rem 1rem;border:1px solid #c5d8cd;border-radius:8px;background:#fff}
-            .profile-category-nav summary{display:block;cursor:pointer;font-weight:700;color:#245b47;padding:.35rem 0}
-            .profile-category-nav summary::after{content:' +';float:right}
-            .profile-category-nav details[open] summary::after{content:' -'}
-            html[data-theme="dark"] .profile-layout .profile-category-nav{background:#203a2e;border-color:#426251}
-            html[data-theme="dark"] .profile-category-nav summary{color:#e3f0e8}
-        }
-
-        .profile-layout .profile-category-nav{padding:.65rem;background:#fff;border:1px solid #d8e3dd;border-radius:8px}
         .profile-category-nav a{border-radius:5px;border-left:0;padding:.8rem .9rem}
         .profile-category-nav a[aria-current="location"]{background:#e6f0e9;color:#14583e;font-weight:700}
         .profile-shell{background:#fff}
@@ -784,7 +769,6 @@
         .profile-section-head .profile-local-actions{margin:0;padding:0}
         .profile-section-head .btn{border-radius:6px;background:#fff;color:#176247;border-color:#9eb9aa}
         html[data-theme="dark"] .profile-section-head .btn{background:#203a2e;color:#e9f6ee;border-color:#6c927b}
-        html[data-theme="dark"] .profile-layout .profile-category-nav{background:#203a2e;border-color:#426251}
         html[data-theme="dark"] .profile-category-nav a[aria-current="location"]{background:#31543f;color:#e9f6ee}
         html[data-theme="dark"] .profile-grid,html[data-theme="dark"] .profile-password-block,html[data-theme="dark"] .profile-section{background:transparent;border-color:#426251}
         html[data-theme="dark"] .profile-category + .profile-category,html[data-theme="dark"] .profile-head{border-color:#426251}
@@ -795,6 +779,18 @@
         .profile-category-nav a[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
         .profile-category-edit-note{margin:.75rem .5rem 0;font-size:.8rem;line-height:1.5;color:#526875}
         html[data-theme="dark"] .profile-category-edit-note{color:#c0d5c9}
+        .profile-page{padding-left:44px}
+        .profile-categories-toggle{position:fixed;left:0;top:140px;z-index:1050;min-width:44px;padding:16px 12px;writing-mode:vertical-rl;border:1px solid #9eb9aa;border-left:0;border-radius:0 7px 7px 0;background:#fff;color:#176247;font:600 .85rem "Poppins",sans-serif;cursor:pointer}
+        .profile-category-drawer{position:fixed;inset:0 auto 0 0;margin:0;width:min(300px,calc(100vw - 24px));height:100dvh;max-height:100dvh;max-width:none;padding:24px 18px;border:0;border-right:1px solid #c5d8cd;background:#fff;color:#15242d;box-sizing:border-box;overflow-y:auto}
+        .profile-category-drawer::backdrop{background:rgba(12,28,22,.42)}
+        .profile-category-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #d8e3dd}
+        .profile-category-drawer-head h2{margin:0;font-size:1rem}
+        .profile-category-close{min-width:44px;min-height:44px;border:1px solid #9eb9aa;border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:1.35rem;cursor:pointer}
+        .profile-categories-toggle:hover,.profile-category-close:hover{background:#e6f0e9}
+        .profile-categories-toggle:focus-visible,.profile-category-close:focus-visible{outline:2px solid #08764f;outline-offset:3px}
+        html[data-theme="dark"] .profile-category-drawer,html[data-theme="dark"] .profile-categories-toggle{background:#203a2e;color:#e9f6ee;border-color:#6c927b}
+        html[data-theme="dark"] .profile-category-drawer-head{border-color:#426251}
+        html[data-theme="dark"] .profile-categories-toggle:hover,html[data-theme="dark"] .profile-category-close:hover{background:#31543f}
     </style>
     @include('partials.chatbot-assets')
 </head>
@@ -802,6 +798,11 @@
     @include('partials.landing-nav', ['navMode' => 'profile', 'hideHeader' => true])
 
     <main class="profile-page">
+        <button type="button" class="profile-categories-toggle" id="profile-categories-toggle" aria-controls="profile-category-drawer" aria-expanded="false">Categories</button>
+        <dialog class="profile-category-drawer" id="profile-category-drawer" aria-labelledby="profile-category-drawer-title">
+            <div class="profile-category-drawer-head"><h2 id="profile-category-drawer-title">Profile categories</h2><button type="button" class="profile-category-close" aria-label="Close profile categories">&times;</button></div>
+            <nav class="profile-category-nav" aria-label="Profile sections"><a href="#personal-information" aria-controls="personal-information">Personal information</a><a href="#account-details" aria-controls="account-details">Account details</a><a href="#password-section" aria-controls="password-section">Password</a><a href="#wellness-section" aria-controls="wellness-section">Wellness preferences</a><a href="#profile-appointments" aria-controls="profile-appointments">My Appointments</a><p class="profile-category-edit-note" id="profile-category-edit-note" hidden>Save or cancel your changes before switching sections.</p></nav>
+        </dialog>
         <div class="profile-page-actions">
             <a class="profile-back-link" href="{{ route('landing') }}">
                 <i class="bi bi-arrow-left" aria-hidden="true"></i>
@@ -809,7 +810,6 @@
             </a>
         </div>
         <div class="container profile-layout">
-            <nav class="profile-category-nav" aria-label="Profile sections"><details open><summary>Personal information</summary><a href="#personal-information" aria-controls="personal-information">Personal information</a><a href="#account-details" aria-controls="account-details">Account details</a><a href="#password-section" aria-controls="password-section">Password</a><a href="#wellness-section" aria-controls="wellness-section">Wellness preferences</a><a href="#profile-appointments" aria-controls="profile-appointments">My Appointments</a></details><p class="profile-category-edit-note" id="profile-category-edit-note" hidden>Save or cancel your changes before switching sections.</p></nav>
             <div class="profile-shell">
                 <div class="profile-topbar">
                     <strong>Profile Overview</strong>
@@ -1086,9 +1086,19 @@
 
 <script>
     (function () {
-        var categories = document.querySelector('.profile-category-nav details');
-        var compactProfile = window.matchMedia('(max-width:1599px)');
-        function setCategoryMenu() { categories.open = !compactProfile.matches; }
+        var categories = document.getElementById('profile-category-drawer');
+        var categoryToggle = document.getElementById('profile-categories-toggle');
+        categoryToggle.addEventListener('click', function () {
+            categories.showModal();
+            categoryToggle.setAttribute('aria-expanded', 'true');
+            categories.querySelector('[aria-current="location"]')?.focus();
+        });
+        categories.querySelector('.profile-category-close').addEventListener('click', function () { categories.close(); });
+        categories.addEventListener('close', function () { categoryToggle.setAttribute('aria-expanded', 'false'); });
+        categories.addEventListener('click', function (event) {
+            var bounds = categories.getBoundingClientRect();
+            if (event.target === categories && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) categories.close();
+        });
         var categoryLinks = categories.querySelectorAll('a');
         var panels = document.querySelectorAll('[data-profile-panel]');
         var activeCategory = '#personal-information';
@@ -1100,7 +1110,7 @@
                 if (link === selectedLink) link.setAttribute('aria-current', 'location');
                 else link.removeAttribute('aria-current');
             });
-            categories.querySelector('summary').textContent = selectedLink.textContent;
+            categoryToggle.setAttribute('aria-label', 'Profile categories: ' + selectedLink.textContent);
             var formElement = document.getElementById('edit-profile-form');
             formElement.action = formElement.action.split('#')[0] + activeCategory;
             if (focusHeading) {
@@ -1122,14 +1132,12 @@
                 event.preventDefault();
                 if (link.getAttribute('aria-disabled') === 'true') return;
                 if (window.location.hash !== link.hash) window.history.pushState(null, '', link.hash);
+                categories.close();
                 selectCategory(link.hash, true);
-                if (compactProfile.matches) categories.open = false;
             });
         });
         window.addEventListener('hashchange', followCategoryLocation);
         window.addEventListener('popstate', followCategoryLocation);
-        setCategoryMenu();
-        compactProfile.addEventListener('change', setCategoryMenu);
         var form = document.getElementById('edit-profile-form');
         if (!form) return;
 

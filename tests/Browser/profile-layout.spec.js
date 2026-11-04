@@ -2,9 +2,7 @@ import { expect, test } from '@playwright/test';
 let sessionCookies;
 async function selectSection(page, name) {
     const navigation = page.getByRole('navigation', { name: 'Profile sections' });
-    if (!(await navigation.locator('details').evaluate(details => details.open))) {
-        await navigation.locator('summary').click();
-    }
+    if (!(await navigation.isVisible())) await page.locator('#profile-categories-toggle').click();
     await navigation.getByRole('link', { name, exact: true }).click();
     await expect(page.locator('[data-profile-panel]:visible')).toHaveCount(1);
 }
@@ -82,23 +80,28 @@ for (const theme of ['light', 'dark']) {
             const tour = page.locator('.driver-popover-close-btn');
             if (await tour.isVisible()) await tour.click();
             const categories = page.getByRole('navigation', { name: 'Profile sections' });
-            await expect(categories).toBeVisible();
+            await expect(categories).toBeHidden();
+            await expect(page.locator('#profile-categories-toggle')).toHaveAttribute('aria-expanded', 'false');
             await expect(page.locator('.landing-header')).toHaveCount(0);
             expect(await page.getByRole('link', { name: 'Back to home', exact: true }).evaluate(link => new URL(link.href).pathname)).toBe('/');
             const panel = await page.locator('.profile-shell').boundingBox();
             expect(panel.x).toBeGreaterThanOrEqual(0);
             expect(panel.x + panel.width).toBeLessThanOrEqual(width + 2);
-            if (width >= 1600) {
-                const navigationBox = await categories.boundingBox();
-                const panelBox = await page.locator('.profile-shell').boundingBox();
-                expect(navigationBox.x + navigationBox.width).toBeLessThan(panelBox.x);
-                const first = await categories.getByRole('link').first().boundingBox();
-                const second = await categories.getByRole('link').nth(1).boundingBox();
-                expect(second.y).toBeGreaterThan(first.y);
-            } else {
-                await expect(categories.locator('details')).not.toHaveAttribute('open', '');
-                await categories.locator('summary').click();
-            }
+            const toggleBox = await page.locator('#profile-categories-toggle').boundingBox();
+            expect(toggleBox.x).toBe(0);
+            expect(toggleBox.x + toggleBox.width).toBeLessThanOrEqual(panel.x);
+            await page.locator('#profile-categories-toggle').click();
+            const drawer = page.locator('#profile-category-drawer');
+            const drawerBox = await drawer.boundingBox();
+            expect(drawerBox.x).toBe(0);
+            expect(drawerBox.width).toBeLessThan(width);
+            await page.keyboard.press('Escape');
+            await expect(drawer).toBeHidden();
+            await expect(page.locator('#profile-categories-toggle')).toBeFocused();
+            await page.locator('#profile-categories-toggle').click();
+            await page.screenshot({ path: 'test-results/profile-categories-' + width + '-' + theme + '.png' });
+            await page.mouse.click(width - 4, 50);
+            await expect(drawer).toBeHidden();
             await selectSection(page, 'Account details');
             await expect(page).toHaveURL(/#account-details$/);
             await expect(page.locator('#personal-information')).toBeHidden();
@@ -108,8 +111,10 @@ for (const theme of ['light', 'dark']) {
             const original = await page.locator('#name').inputValue();
             await page.locator('#basic-info-edit').click();
             await page.locator('#name').fill('Unsaved profile edit');
+            await page.locator('#profile-categories-toggle').click();
             await expect(categories.locator('a[href="#password-section"]')).toHaveAttribute('aria-disabled', 'true');
             await expect(page.locator('#profile-category-edit-note')).toBeVisible();
+            await page.keyboard.press('Escape');
             await expect(page.locator('#email_current_password')).toBeDisabled();
             await expect(page.locator('#account-edit')).toBeDisabled();
             await page.locator('#basic-info-cancel').click();
