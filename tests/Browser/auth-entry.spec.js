@@ -51,3 +51,55 @@ async function loginSuccessfully(page) {
     await form.getByRole('button', { name: 'Sign In', exact: true }).click({ noWaitAfter: true });
     await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
 }
+
+test('auth header stays readable above long forms on short laptop screens', async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (const theme of ['light', 'dark']) {
+        await page.addInitScript(mode => {
+            localStorage.setItem('tnr-theme-preference-version', 'light-default-v1');
+            localStorage.setItem('tnr-theme', mode);
+        }, theme);
+        // 800x450 also exercises the effective viewport of a laptop at higher zoom.
+        for (const [width, height] of [[1366, 768], [1280, 600], [800, 450], [390, 667]]) {
+            await page.setViewportSize({ width, height });
+            for (const register of [false, true]) {
+                await page.goto(register ? '/login?register=1' : '/login');
+                await page.evaluate(() => window.scrollTo(0, 0));
+                const header = page.locator('.auth-page-header');
+                const container = page.locator('#container');
+                const headerBox = await header.boundingBox();
+                const containerBox = await container.boundingBox();
+                expect(containerBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
+                for (const scroll of [0, 260, 10000]) {
+                    await page.evaluate(y => window.scrollTo(0, y), scroll);
+                    await expect(header.locator('.brand')).toBeInViewport();
+                    expect(await header.locator('.brand').evaluate(brand => {
+                        const rect = brand.getBoundingClientRect();
+                        const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+                        return brand.contains(hit);
+                    })).toBe(true);
+                }
+                await page.screenshot({ path: testInfo.outputPath(`header-${register ? 'signup' : 'login'}-${width}-${theme}.png`), animations: 'disabled' });
+                expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+                if (register) {
+                    const form = page.locator('#register-form');
+                    await form.getByLabel('Full name', { exact: true }).fill('Maria Clara');
+                    await form.getByLabel('Birthday', { exact: true }).fill('2000-01-01');
+                    await form.getByText('Female', { exact: true }).click();
+                    await form.getByRole('button', { name: 'Next' }).click();
+                    await form.getByLabel('Email address', { exact: true }).fill('preview@example.test');
+                    await form.getByLabel('Contact number', { exact: true }).fill('09999998765');
+                    await form.getByRole('button', { name: 'Next' }).click();
+                    const submit = form.getByRole('button', { name: 'Sign Up', exact: true });
+                    await submit.scrollIntoViewIfNeeded();
+                    await expect(submit).toBeInViewport();
+                    await expect(header.locator('.brand')).toBeInViewport();
+                    const actionBox = await submit.boundingBox();
+                    const stickyBox = await header.boundingBox();
+                    expect(actionBox.y).toBeGreaterThanOrEqual(stickyBox.y + stickyBox.height);
+                    await page.screenshot({ path: testInfo.outputPath(`signup-final-${width}-${theme}.png`), animations: 'disabled' });
+                }
+            }
+        }
+    }
+});
