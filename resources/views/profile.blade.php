@@ -779,18 +779,42 @@
         .profile-category-nav a[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
         .profile-category-edit-note{margin:.75rem .5rem 0;font-size:.8rem;line-height:1.5;color:#526875}
         html[data-theme="dark"] .profile-category-edit-note{color:#c0d5c9}
-        .profile-page{padding-left:44px}
-        .profile-categories-toggle{position:fixed;left:0;top:140px;z-index:1050;min-width:44px;padding:16px 12px;writing-mode:vertical-rl;border:1px solid #9eb9aa;border-left:0;border-radius:0 7px 7px 0;background:#fff;color:#176247;font:600 .85rem "Poppins",sans-serif;cursor:pointer}
-        .profile-category-drawer{position:fixed;inset:0 auto 0 0;margin:0;width:min(300px,calc(100vw - 24px));height:100dvh;max-height:100dvh;max-width:none;padding:24px 18px;border:0;border-right:1px solid #c5d8cd;background:#fff;color:#15242d;box-sizing:border-box;overflow-y:auto}
-        .profile-category-drawer::backdrop{background:rgba(12,28,22,.42)}
-        .profile-category-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #d8e3dd}
-        .profile-category-drawer-head h2{margin:0;font-size:1rem}
-        .profile-category-close{min-width:44px;min-height:44px;border:1px solid #9eb9aa;border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:1.35rem;cursor:pointer}
-        .profile-categories-toggle:hover,.profile-category-close:hover{background:#e6f0e9}
-        .profile-categories-toggle:focus-visible,.profile-category-close:focus-visible{outline:2px solid #08764f;outline-offset:3px}
-        html[data-theme="dark"] .profile-category-drawer,html[data-theme="dark"] .profile-categories-toggle{background:#203a2e;color:#e9f6ee;border-color:#6c927b}
-        html[data-theme="dark"] .profile-category-drawer-head{border-color:#426251}
-        html[data-theme="dark"] .profile-categories-toggle:hover,html[data-theme="dark"] .profile-category-close:hover{background:#31543f}
+        .profile-page > .profile-layout{width:min(1320px,94%);display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;align-items:start}
+        .profile-page-actions{width:min(1320px,94%)}
+        .profile-category-sidebar{position:sticky;top:20px;min-width:0;padding:18px 10px;background:#fff;border:1px solid #d8e3dd;border-radius:8px}
+        .profile-category-sidebar h2{margin:0 12px 14px;padding-bottom:14px;border-bottom:1px solid #d8e3dd;font-size:.85rem;font-weight:600;color:#52675c}
+        .profile-category-sidebar .profile-category-nav{padding:0;border:0;background:transparent}
+        .profile-category-sidebar a{min-height:44px;display:flex;align-items:center;margin:4px 0;padding:12px;border-left:3px solid transparent;border-radius:0 5px 5px 0;overflow-wrap:anywhere}
+        .profile-category-sidebar a[aria-current="location"]{border-left-color:#08764f}
+        .profile-category-sidebar a:focus-visible{outline:2px solid #08764f;outline-offset:2px}
+        .profile-head{padding:1.25rem 2rem}
+        .profile-title{overflow-wrap:anywhere}
+        html[data-theme="dark"] .profile-category-sidebar{background:#203a2e;border-color:#426251}
+        html[data-theme="dark"] .profile-category-sidebar h2{color:#c0d5c9;border-color:#426251}
+        html[data-theme="dark"] .profile-category-sidebar a[aria-current="location"]{border-left-color:#83c9a0}
+        @media(max-width:900px){.profile-page > .profile-layout{grid-template-columns:160px minmax(0,1fr);gap:16px}.profile-category-sidebar{padding:14px 6px}}
+        @media(max-width:600px){
+            .profile-page > .profile-layout{width:calc(100% - 20px);grid-template-columns:104px minmax(0,1fr);gap:10px}
+            .profile-page-actions{width:calc(100% - 20px)}
+            .profile-category-sidebar{padding:12px 4px;top:12px}
+            .profile-category-sidebar h2{font-size:.72rem;margin:0 6px 10px;padding-bottom:10px}
+            .profile-category-sidebar a{font-size:.72rem;line-height:1.5;padding:10px 4px;overflow-wrap:normal}
+            .profile-category-edit-note{font-size:.7rem;margin:.75rem 6px 0}
+            .profile-topbar{padding:12px 10px;font-size:.85rem}
+            .profile-topbar span{font-size:.65rem}
+            .profile-head{padding:16px 10px}
+            .profile-avatar{width:72px;height:72px}
+            .profile-title{font-size:1.1rem}
+            .profile-body{padding:16px 12px}
+            .profile-category-heading{grid-template-columns:minmax(0,1fr)}
+            .profile-category-heading .profile-local-actions{justify-content:flex-start}
+            .profile-category-heading h2,.profile-section-head h2{font-size:.95rem}
+            .profile-category-heading p,.profile-category-description{font-size:.8rem}
+            .profile-field label{font-size:.8rem}
+            .profile-field input{min-width:0;font-size:.85rem}
+            .profile-grid{grid-template-columns:minmax(0,1fr)}
+            .profile-grid .profile-field-span2{grid-column:auto}
+        }
     </style>
     @include('partials.chatbot-assets')
 </head>
@@ -798,11 +822,6 @@
     @include('partials.landing-nav', ['navMode' => 'profile', 'hideHeader' => true])
 
     <main class="profile-page">
-        <button type="button" class="profile-categories-toggle" id="profile-categories-toggle" aria-controls="profile-category-drawer" aria-expanded="false">Categories</button>
-        <dialog class="profile-category-drawer" id="profile-category-drawer" aria-labelledby="profile-category-drawer-title">
-            <div class="profile-category-drawer-head"><h2 id="profile-category-drawer-title">Profile categories</h2><button type="button" class="profile-category-close" aria-label="Close profile categories">&times;</button></div>
-            <nav class="profile-category-nav" aria-label="Profile sections"><a href="#personal-information" aria-controls="personal-information">Personal information</a><a href="#account-details" aria-controls="account-details">Account details</a><a href="#password-section" aria-controls="password-section">Password</a><a href="#wellness-section" aria-controls="wellness-section">Wellness preferences</a><a href="#profile-appointments" aria-controls="profile-appointments">My Appointments</a><p class="profile-category-edit-note" id="profile-category-edit-note" hidden>Save or cancel your changes before switching sections.</p></nav>
-        </dialog>
         <div class="profile-page-actions">
             <a class="profile-back-link" href="{{ route('landing') }}">
                 <i class="bi bi-arrow-left" aria-hidden="true"></i>
@@ -810,6 +829,10 @@
             </a>
         </div>
         <div class="container profile-layout">
+            <aside class="profile-category-sidebar">
+                <h2>Profile sections</h2>
+                <nav class="profile-category-nav" aria-label="Profile sections"><a href="#personal-information" aria-controls="personal-information">Personal information</a><a href="#account-details" aria-controls="account-details">Account details</a><a href="#password-section" aria-controls="password-section">Password</a><a href="#wellness-section" aria-controls="wellness-section">Wellness preferences</a><a href="#profile-appointments" aria-controls="profile-appointments">My Appointments</a><p class="profile-category-edit-note" id="profile-category-edit-note" hidden>Save or cancel your changes before switching sections.</p></nav>
+            </aside>
             <div class="profile-shell">
                 <div class="profile-topbar">
                     <strong>Profile Overview</strong>
@@ -1086,19 +1109,7 @@
 
 <script>
     (function () {
-        var categories = document.getElementById('profile-category-drawer');
-        var categoryToggle = document.getElementById('profile-categories-toggle');
-        categoryToggle.addEventListener('click', function () {
-            categories.showModal();
-            categoryToggle.setAttribute('aria-expanded', 'true');
-            categories.querySelector('[aria-current="location"]')?.focus();
-        });
-        categories.querySelector('.profile-category-close').addEventListener('click', function () { categories.close(); });
-        categories.addEventListener('close', function () { categoryToggle.setAttribute('aria-expanded', 'false'); });
-        categories.addEventListener('click', function (event) {
-            var bounds = categories.getBoundingClientRect();
-            if (event.target === categories && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) categories.close();
-        });
+        var categories = document.querySelector('.profile-category-nav');
         var categoryLinks = categories.querySelectorAll('a');
         var panels = document.querySelectorAll('[data-profile-panel]');
         var activeCategory = '#personal-information';
@@ -1110,7 +1121,6 @@
                 if (link === selectedLink) link.setAttribute('aria-current', 'location');
                 else link.removeAttribute('aria-current');
             });
-            categoryToggle.setAttribute('aria-label', 'Profile categories: ' + selectedLink.textContent);
             var formElement = document.getElementById('edit-profile-form');
             formElement.action = formElement.action.split('#')[0] + activeCategory;
             if (focusHeading) {
@@ -1132,7 +1142,6 @@
                 event.preventDefault();
                 if (link.getAttribute('aria-disabled') === 'true') return;
                 if (window.location.hash !== link.hash) window.history.pushState(null, '', link.hash);
-                categories.close();
                 selectCategory(link.hash, true);
             });
         });

@@ -203,9 +203,9 @@
         return [
             introduction('Account and appointment guide', 'Manage your personal information, preferences, password, and booking history here.'),
             step(['.profile-id', '.profile-head'], 'Profile identity', 'Your name and photo help staff identify your account.'),
-            step(['#profile-categories-toggle'], 'Profile sections', 'Open Categories on the left to choose Personal information, Account details, Password, Wellness preferences, or My Appointments. Only the selected section is shown.'),
+            step(['.profile-category-nav'], 'Profile sections', 'Choose Personal information, Account details, Password, Wellness preferences, or My Appointments from the list on the left. Only the selected section is shown.'),
             step(['[data-profile-panel]:not([hidden])'], 'Edit the selected section', 'Choose Edit to update these details. Save or cancel your changes before switching to another section.'),
-            step(['#profile-categories-toggle'], 'Appointment history', withExample('Open Categories, choose My Appointments, then View my appointments to open your records.', 'Confirmed and payment-pending bookings stay under Upcoming; completed, cancelled, and expired records stay under History.')),
+            step(['.profile-category-nav'], 'Appointment history', withExample('Choose My Appointments on the left, then View my appointments to open your records.', 'Confirmed and payment-pending bookings stay under Upcoming; completed, cancelled, and expired records stay under History.')),
         ];
     }
 
