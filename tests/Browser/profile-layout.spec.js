@@ -125,6 +125,8 @@ for (const theme of ['light', 'dark']) {
             await selectSection(page, 'Wellness preferences');
             await page.locator('#wellness-edit').click();
             await expect(page.locator('[data-wellness-chip="pressure_preference"]').first()).toBeEnabled();
+            await page.locator('#wellness-actions').scrollIntoViewIfNeeded();
+            await page.screenshot({ path: 'test-results/profile-wellness-editing-' + width + '-' + theme + '.png', fullPage: true });
             await page.locator('#wellness-cancel').click();
             expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2)).toBeTruthy();
             if (width === 390 && theme === 'light') {

@@ -760,7 +760,6 @@
         .profile-category-heading p{grid-column:1 / -1;margin:0;max-width:68ch}
         .profile-category-heading .profile-local-actions{padding:0;margin:0}
         .profile-category-heading .btn{border-radius:6px;min-height:44px;padding:.6rem 1.2rem;background:#e8f2ec;color:#14583e;border-color:#6b917c;font-size:.95rem;box-shadow:none}
-        .profile-category-heading .section-save-btn{background:#08764f;color:#fff;border-color:#08764f}
         .profile-grid{padding:0;border:0;background:transparent;gap:1rem 1.5rem}
         .profile-category + .profile-category{margin-top:1.75rem;padding-top:1.75rem;border-top:1px solid #d8e3dd}
         .profile-password-block,.profile-section{background:transparent;border:0;border-top:1px solid #d8e3dd;border-radius:0;padding:1.75rem 0 0;margin-top:1.75rem}
@@ -815,6 +814,17 @@
         html[data-theme="dark"] .profile-category-sidebar{background:transparent}
         html[data-theme="dark"] .profile-category-sidebar h2{color:#c0d5c9;border-color:#426251}
         html[data-theme="dark"] .profile-category-sidebar a[aria-current="location"]{border-left-color:#83c9a0}
+        .profile-body .profile-local-actions .section-save-btn{background:#08764f;color:#fff;border:1px solid #08764f;box-shadow:none}
+        .profile-body .profile-local-actions .section-save-btn:hover{background:#035a3d;border-color:#035a3d}
+        .profile-body .profile-local-actions .section-cancel-btn{background:#fff3f1;color:#a32929;border:1px solid #c88d86;box-shadow:none}
+        .profile-body .profile-local-actions .section-cancel-btn:hover{background:#ffe4df;border-color:#a32929}
+        .profile-body .profile-local-actions :is(.section-save-btn,.section-cancel-btn){min-height:44px;border-radius:6px;font-size:.95rem;padding:.6rem 1.2rem}
+        .profile-body .profile-local-actions :is(.section-save-btn,.section-cancel-btn):focus-visible{outline:2px solid #244d3c;outline-offset:3px}
+        html[data-theme="dark"] .profile-body .profile-local-actions .section-save-btn{background:#8bdfb4;color:#102b1e;border-color:#8bdfb4}
+        html[data-theme="dark"] .profile-body .profile-local-actions .section-save-btn:hover{background:#afecc9;border-color:#afecc9}
+        html[data-theme="dark"] .profile-body .profile-local-actions .section-cancel-btn{background:#402824;color:#ffd1ca;border-color:#c1857d}
+        html[data-theme="dark"] .profile-body .profile-local-actions .section-cancel-btn:hover{background:#59332d;border-color:#ffd1ca}
+        html[data-theme="dark"] .profile-body .profile-local-actions :is(.section-save-btn,.section-cancel-btn):focus-visible{outline-color:#d3eadc}
         @media(max-width:900px){.profile-page > .profile-layout{grid-template-columns:160px minmax(0,1fr);gap:16px}.profile-category-sidebar{padding:14px 6px}}
         @media(max-width:600px){
             .profile-page > .profile-layout{width:calc(100% - 20px);grid-template-columns:104px minmax(0,1fr);gap:10px}
