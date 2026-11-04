@@ -759,7 +759,7 @@
         .profile-category-heading h2{margin:0}
         .profile-category-heading p{grid-column:1 / -1;margin:0;max-width:68ch}
         .profile-category-heading .profile-local-actions{padding:0;margin:0}
-        .profile-category-heading .btn{border-radius:6px;min-height:44px;padding:.5rem 1rem;background:#fff;color:#176247;border-color:#719783;box-shadow:none}
+        .profile-category-heading .btn{border-radius:6px;min-height:44px;padding:.6rem 1.2rem;background:#e8f2ec;color:#14583e;border-color:#6b917c;font-size:.95rem;box-shadow:none}
         .profile-category-heading .section-save-btn{background:#08764f;color:#fff;border-color:#08764f}
         .profile-grid{padding:0;border:0;background:transparent;gap:1rem 1.5rem}
         .profile-category + .profile-category{margin-top:1.75rem;padding-top:1.75rem;border-top:1px solid #d8e3dd}
@@ -794,20 +794,23 @@
         .profile-avatar{background:#e1ece4;color:#244d3c;border-color:#fff;box-shadow:none}
         .profile-avatar-edit{box-shadow:none}
         .profile-meta{min-height:64px}
-        .profile-category-heading h2{font-size:1.15rem;font-weight:600;letter-spacing:-.02em}
-        .profile-field label{font-size:.8rem;font-weight:500;color:#52675c}
-        .profile-field input{border-color:#b9cdbf;border-radius:6px;background:#fff;font-weight:400}
+        .profile-category-heading h2{font-size:1.35rem;font-weight:600;letter-spacing:-.02em}
+        .profile-category-heading p,.profile-category-description{font-size:1rem;color:#3f554a;line-height:1.65}
+        .profile-field label{font-size:.95rem;font-weight:600;color:#344e40;margin-bottom:.6rem}
+        .profile-field input{border-color:#719783;border-radius:6px;background:#fff;font-size:1.05rem;font-weight:500;min-height:52px}
         .profile-field input:focus{border-color:#08764f;box-shadow:0 0 0 3px rgba(8,118,79,.12);transform:none}
-        .profile-field input:read-only,.profile-field input#age,.profile-field input#birthday:read-only{padding:.65rem 0;border:0;border-bottom:1px solid #d8e3dd;border-radius:0;background:transparent;color:#203b30;font-weight:500;box-shadow:none;cursor:default}
+        .profile-field input:read-only,.profile-field input#age,.profile-field input#birthday:read-only{padding:.85rem 1rem;border:1px solid #a5bcad;border-radius:6px;background:#f0f5f1;color:#182e22;font-weight:600;box-shadow:none;cursor:default}
         .profile-field input:read-only:focus,.profile-field input#birthday:read-only:focus{border-color:#719783;box-shadow:none}
-        .profile-field input:disabled{background:#f1f4ef;border-color:#d8e3dd;color:#52675c;opacity:1}
+        .profile-field input:disabled{background:#f0f5f1;border-color:#a5bcad;color:#3f554a;opacity:1}
+        .profile-field input::placeholder{color:#52675c;opacity:1}
         .profile-body:has(.profile-local-actions.is-editing) .profile-category-heading{padding-bottom:16px;border-bottom:1px solid #d8e3dd}
         html[data-theme="dark"] .profile-topbar{background:#203a2e;color:#eff7f1}
         html[data-theme="dark"] .profile-topbar span{color:#c0d5c9}
         html[data-theme="dark"] .profile-head{background:#193025}
         html[data-theme="dark"] .profile-avatar{background:#31543f;color:#eff7f1;border-color:#426251}
-        html[data-theme="dark"] .profile-field input:read-only,html[data-theme="dark"] .profile-field input#age,html[data-theme="dark"] .profile-field input#birthday:read-only{background:transparent;color:#eff7f1;border-color:#426251}
-        html[data-theme="dark"] .profile-field input:disabled{background:#193025;color:#b9d0c2;border-color:#426251}
+        html[data-theme="dark"] .profile-field input:read-only,html[data-theme="dark"] .profile-field input#age,html[data-theme="dark"] .profile-field input#birthday:read-only{background:#152c21;color:#f4faf6;border-color:#6b917c}
+        html[data-theme="dark"] .profile-field input:disabled{background:#152c21;color:#d3e3d8;border-color:#6b917c}
+        html[data-theme="dark"] .profile-field input::placeholder{color:#c0d5c9}
         html[data-theme="dark"] .profile-body:has(.profile-local-actions.is-editing) .profile-category-heading{border-color:#426251}
         html[data-theme="dark"] .profile-category-sidebar{background:transparent}
         html[data-theme="dark"] .profile-category-sidebar h2{color:#c0d5c9;border-color:#426251}
@@ -818,7 +821,7 @@
             .profile-page-actions{width:calc(100% - 20px)}
             .profile-category-sidebar{padding:12px 4px;top:12px}
             .profile-category-sidebar h2{font-size:.72rem;margin:0 6px 10px;padding-bottom:10px}
-            .profile-category-sidebar a{font-size:.72rem;line-height:1.5;padding:10px 4px;overflow-wrap:normal}
+            .profile-category-sidebar a{font-size:.78rem;line-height:1.5;padding:10px 4px;overflow-wrap:anywhere}
             .profile-category-edit-note{font-size:.7rem;margin:.75rem 6px 0}
             .profile-topbar{padding:12px 10px;font-size:.85rem}
             .profile-topbar span{font-size:.65rem}
@@ -828,10 +831,11 @@
             .profile-body{padding:16px 12px}
             .profile-category-heading{grid-template-columns:minmax(0,1fr)}
             .profile-category-heading .profile-local-actions{justify-content:flex-start}
-            .profile-category-heading h2,.profile-section-head h2{font-size:.95rem}
-            .profile-category-heading p,.profile-category-description{font-size:.8rem}
-            .profile-field label{font-size:.8rem}
-            .profile-field input{min-width:0;font-size:.85rem}
+            .profile-category-heading h2,.profile-section-head h2{font-size:1.05rem}
+            .profile-category-heading p,.profile-category-description{font-size:.9rem}
+            .profile-field label{font-size:.9rem}
+            .profile-field input{min-width:0;font-size:1rem}
+            .profile-field input:read-only,.profile-field input#age,.profile-field input#birthday:read-only{padding:.75rem .6rem}
             .profile-grid{grid-template-columns:minmax(0,1fr)}
             .profile-grid .profile-field-span2{grid-column:auto}
         }
