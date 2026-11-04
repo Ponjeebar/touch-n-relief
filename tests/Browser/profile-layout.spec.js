@@ -2,8 +2,14 @@ import { expect, test } from '@playwright/test';
 let sessionCookies;
 async function selectSection(page, name) {
     const navigation = page.getByRole('navigation', { name: 'Profile sections' });
+    const disclosure = page.locator('.profile-category-disclosure');
+    if (!(await navigation.isVisible())) await disclosure.locator('summary').click();
     await navigation.getByRole('link', { name, exact: true }).click();
     await expect(page.locator('[data-profile-panel]:visible')).toHaveCount(1);
+    if (page.viewportSize().width <= 600) {
+        await expect(disclosure).not.toHaveAttribute('open', '');
+        await expect(disclosure.locator('summary')).toContainText(name);
+    }
 }
 async function boundExternalAssets(context) {
     await context.route(url => ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'].includes(url.hostname), async route => {
@@ -79,6 +85,11 @@ for (const theme of ['light', 'dark']) {
             const tour = page.locator('.driver-popover-close-btn');
             if (await tour.isVisible()) await tour.click();
             const categories = page.getByRole('navigation', { name: 'Profile sections' });
+            const disclosure = page.locator('.profile-category-disclosure');
+            if (width <= 600) {
+                await expect(categories).toBeHidden();
+                await disclosure.locator('summary').press('Enter');
+            }
             await expect(categories).toBeVisible();
             await expect(page.locator('.landing-header')).toHaveCount(0);
             expect(await page.getByRole('link', { name: 'Back to home', exact: true }).evaluate(link => new URL(link.href).pathname)).toBe('/');
@@ -86,12 +97,16 @@ for (const theme of ['light', 'dark']) {
             expect(panel.x).toBeGreaterThanOrEqual(0);
             expect(panel.x + panel.width).toBeLessThanOrEqual(width + 2);
             const sidebarBox = await page.locator('.profile-category-sidebar').boundingBox();
-            expect(sidebarBox.x + sidebarBox.width).toBeLessThan(panel.x);
+            if (width > 600) expect(sidebarBox.x + sidebarBox.width).toBeLessThan(panel.x);
+            else {
+                expect(sidebarBox.y + sidebarBox.height).toBeLessThanOrEqual(panel.y);
+                expect(panel.width).toBeGreaterThan(width - 24);
+            }
             for (const link of await categories.getByRole('link').all()) await expect(link).toBeInViewport();
             if (width <= 600) {
                 const launcher = page.getByRole('button', { name: 'Open help chat', exact: true });
                 const launcherBox = await launcher.boundingBox();
-                expect(launcherBox.x + launcherBox.width).toBeLessThan(panel.x);
+                expect(launcherBox.width).toBeGreaterThanOrEqual(44);
                 await launcher.click();
                 await expect(page.locator('.tnr-chat-panel')).toBeVisible();
                 await page.getByRole('button', { name: 'Close help chat', exact: true }).click();
@@ -115,11 +130,17 @@ for (const theme of ['light', 'dark']) {
             await expect(page).toHaveURL(/#account-details$/);
             await expect(page.locator('#personal-information')).toBeHidden();
             await expect(page.locator('#account-details #email')).toBeVisible();
+            if (width <= 600) {
+                const emailField = page.locator('#email');
+                expect(await emailField.evaluate(input => input.scrollWidth <= input.clientWidth + 1)).toBe(true);
+                await page.screenshot({ path: 'test-results/profile-account-mobile-' + width + '-' + theme + '.png', fullPage: true });
+            }
             await selectSection(page, 'Personal information');
             await expect(page.locator('#name')).toHaveAttribute('readonly', '');
             const original = await page.locator('#name').inputValue();
             await page.locator('#basic-info-edit').click();
             await page.locator('#name').fill('Unsaved profile edit');
+            if (width <= 600) await disclosure.locator('summary').click();
             await expect(categories.locator('a[href="#password-section"]')).toHaveAttribute('aria-disabled', 'true');
             await expect(page.locator('#profile-category-edit-note')).toBeVisible();
             await expect(page.locator('#email_current_password')).toBeDisabled();

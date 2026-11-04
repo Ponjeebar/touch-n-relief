@@ -782,6 +782,7 @@
         .profile-page > .profile-layout{width:min(1320px,94%);display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;align-items:start}
         .profile-page-actions{width:min(1320px,94%)}
         .profile-category-sidebar{position:sticky;top:20px;min-width:0;padding:18px 0;background:transparent;border:0;border-radius:0}
+        .profile-category-disclosure > summary{display:none}
         .profile-category-sidebar h2{margin:0 12px 14px;padding-bottom:14px;border-bottom:1px solid #c5d5cb;font-size:.75rem;font-weight:500;color:#52675c}
         .profile-category-sidebar .profile-category-nav{padding:0;border:0;background:transparent}
         .profile-category-sidebar a{min-height:44px;display:flex;align-items:center;margin:4px 0;padding:12px;border-left:3px solid transparent;border-radius:0 5px 5px 0;overflow-wrap:anywhere}
@@ -827,11 +828,22 @@
         html[data-theme="dark"] .profile-body .profile-local-actions :is(.section-save-btn,.section-cancel-btn):focus-visible{outline-color:#d3eadc}
         @media(max-width:900px){.profile-page > .profile-layout{grid-template-columns:160px minmax(0,1fr);gap:16px}.profile-category-sidebar{padding:14px 6px}}
         @media(max-width:600px){
-            .profile-page > .profile-layout{width:calc(100% - 20px);grid-template-columns:118px minmax(0,1fr);gap:8px}
+            .profile-page > .profile-layout{width:calc(100% - 20px);grid-template-columns:minmax(0,1fr);gap:16px}
             .profile-page-actions{width:calc(100% - 20px)}
-            .profile-category-sidebar{padding:12px 4px;top:12px}
+            .profile-category-sidebar{position:static;padding:0}
+            .profile-category-disclosure{border:1px solid #a5bcad;border-radius:6px;background:#fff}
+            .profile-category-disclosure > summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:12px 16px;cursor:pointer;list-style:none;color:#176247;font-size:.85rem;font-weight:600}
+            .profile-category-disclosure > summary::-webkit-details-marker{display:none}
+            .profile-category-disclosure > summary::after{content:'+';font-size:1.25rem}
+            .profile-category-disclosure[open] > summary::after{content:'−'}
+            .profile-category-disclosure > summary:focus-visible{outline:2px solid #08764f;outline-offset:3px}
+            .profile-category-disclosure > summary small{display:block;margin-top:3px;font-size:.8rem;font-weight:400;color:#3f554a}
+            .profile-category-disclosure > h2{display:none}
+            .profile-category-sidebar .profile-category-nav{padding:0 10px 10px}
+            html[data-theme="dark"] .profile-category-disclosure{background:#193025;border-color:#6b917c}
+            html[data-theme="dark"] .profile-category-disclosure > summary,html[data-theme="dark"] .profile-category-disclosure > summary small{color:#eff7f1}
             .profile-category-sidebar h2{font-size:.72rem;margin:0 6px 10px;padding-bottom:10px}
-            .profile-category-sidebar a{font-size:.78rem;line-height:1.5;padding:10px 4px;overflow-wrap:normal;word-break:normal;hyphens:none}
+            .profile-category-sidebar a{font-size:.9rem;line-height:1.5;padding:12px;overflow-wrap:normal;word-break:normal;hyphens:none}
             .profile-category-edit-note{font-size:.7rem;margin:.75rem 6px 0}
             .profile-topbar{padding:10px;flex-direction:column;align-items:flex-start;gap:4px}
             .profile-topbar strong{font-size:.8rem}
@@ -842,7 +854,7 @@
             .profile-avatar{width:56px;height:56px}
             .profile-avatar-edit{left:auto;right:-18px;bottom:0;width:44px;height:44px}
             .profile-title{font-size:1.05rem;line-height:1.3}
-            .profile-body{padding:16px 10px}
+            .profile-body{padding:20px 16px}
             .profile-category-heading{grid-template-columns:minmax(0,1fr)}
             .profile-category-heading .profile-local-actions{justify-content:flex-start}
             .profile-category-heading h2,.profile-section-head h2{font-size:1.05rem}
@@ -871,8 +883,11 @@
         </div>
         <div class="container profile-layout">
             <aside class="profile-category-sidebar">
+                <details class="profile-category-disclosure" open>
+                <summary><span>Profile sections<small id="profile-category-current">Personal information</small></span></summary>
                 <h2>Profile sections</h2>
                 <nav class="profile-category-nav" aria-label="Profile sections"><a href="#personal-information" aria-controls="personal-information">Personal information</a><a href="#account-details" aria-controls="account-details">Account details</a><a href="#password-section" aria-controls="password-section">Password</a><a href="#wellness-section" aria-controls="wellness-section">Wellness preferences</a><a href="#profile-appointments" aria-controls="profile-appointments">My Appointments</a><p class="profile-category-edit-note" id="profile-category-edit-note" hidden>Save or cancel your changes before switching sections.</p></nav>
+                </details>
             </aside>
             <div class="profile-shell">
                 <div class="profile-topbar">
@@ -1151,12 +1166,19 @@
 <script>
     (function () {
         var categories = document.querySelector('.profile-category-nav');
+        var categoryDisclosure = document.querySelector('.profile-category-disclosure');
+        var mobileProfile = window.matchMedia('(max-width:600px)');
+        function syncCategoryDisclosure() { categoryDisclosure.open = !mobileProfile.matches; }
+        syncCategoryDisclosure();
+        mobileProfile.addEventListener('change', syncCategoryDisclosure);
         var categoryLinks = categories.querySelectorAll('a');
         var panels = document.querySelectorAll('[data-profile-panel]');
         var activeCategory = '#personal-information';
         function selectCategory(target, focusHeading) {
             var selectedLink = Array.from(categoryLinks).find(function (link) { return link.hash === target; }) || categoryLinks[0];
             activeCategory = selectedLink.hash;
+            document.getElementById('profile-category-current').textContent = selectedLink.textContent;
+            if (mobileProfile.matches) categoryDisclosure.open = false;
             panels.forEach(function (panel) { panel.hidden = '#' + panel.id !== activeCategory; });
             categoryLinks.forEach(function (link) {
                 if (link === selectedLink) link.setAttribute('aria-current', 'location');
