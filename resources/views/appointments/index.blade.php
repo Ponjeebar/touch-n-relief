@@ -561,7 +561,7 @@
     @endif
 
     @if ($isStaff ?? false)
-    <div class="profile-modal hidden-section" id="cancel-appointment-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-appointment-modal-title">
+    <div class="profile-modal hidden-section" id="cancel-appointment-modal" data-confirmation="danger" role="dialog" aria-modal="true" aria-labelledby="cancel-appointment-modal-title">
         <div class="profile-modal-backdrop" data-close-cancel="true"></div>
         <div class="profile-modal-content reschedule-modal-content">
             <button class="profile-modal-close" type="button" id="close-cancel-modal" aria-label="Close">&times;</button>
@@ -600,7 +600,7 @@
         </div>
     </div>
 
-    <div class="profile-modal hidden-section" id="no-show-appointment-modal" role="dialog" aria-modal="true" aria-labelledby="no-show-appointment-modal-title">
+    <div class="profile-modal hidden-section" id="no-show-appointment-modal" data-confirmation="danger" role="dialog" aria-modal="true" aria-labelledby="no-show-appointment-modal-title">
         <div class="profile-modal-backdrop" data-close-no-show="true"></div>
         <form class="profile-modal-content no-show-modal-content" id="no-show-appointment-form" method="POST">
             @csrf
@@ -634,7 +634,7 @@
     </div>
     @endif
 
-    <div class="profile-modal hidden-section" id="payment-start-modal" role="dialog" aria-modal="true" aria-labelledby="payment-start-modal-title">
+    <div class="profile-modal hidden-section" id="payment-start-modal" data-confirmation="positive" role="dialog" aria-modal="true" aria-labelledby="payment-start-modal-title">
         <div class="profile-modal-backdrop" data-close-payment-start="true"></div>
         <div class="profile-modal-content balance-modal-content">
             <button class="profile-modal-close" type="button" data-close-payment-start="true" aria-label="Close payment confirmation">&times;</button>
@@ -769,7 +769,7 @@
                 </div>
             </div>
 
-            <form id="manual-refund-form" class="reschedule-grid hidden-section" enctype="multipart/form-data">
+            <form id="manual-refund-form" data-confirmation="positive" class="reschedule-grid hidden-section" enctype="multipart/form-data">
                 <input type="hidden" name="expected_amount" id="refund-expected-amount">
                 <div class="profile-field reschedule-full"><label for="refund-confirm-amount">Amount to return</label><input id="refund-confirm-amount" readonly><p class="field-hint">Return the money first. This records staff confirmation, not an automatic transfer.</p></div>
                 <div class="profile-field"><label for="refund-method">Refund method</label><select id="refund-method" name="method" required><option value="cash">Cash</option><option value="gcash">GCash transfer</option><option value="bank_transfer">Bank transfer</option></select></div>
@@ -779,7 +779,7 @@
                 <div class="profile-field reschedule-full"><label for="refund-confirm-note">Refund note (optional)</label><textarea id="refund-confirm-note" name="refund_note" maxlength="500" rows="2"></textarea></div>
                 <div class="profile-field reschedule-full"><label><input type="checkbox" name="confirmed" value="1" required> I confirm the displayed amount was returned to this recipient and the attachment supports this refund.</label><p class="field-hint">For a disputed refund, reconcile the evidence with actual cash or transfer records before issuing any further refund.</p></div>
                 <p id="refund-confirm-error" class="field-hint reschedule-full" role="alert"></p>
-                <div class="profile-modal-actions reschedule-full"><button type="submit" class="user-action add">Confirm manual refund</button><button type="button" class="user-action" id="refund-confirm-cancel">Back</button></div>
+                <div class="profile-modal-actions reschedule-full"><button type="button" class="user-action" id="refund-confirm-cancel">Back</button><button type="submit" class="user-action add">Confirm manual refund</button></div>
             </form>
             <div class="profile-modal-actions view-modal-actions" id="view-details-actions">
                 <a class="user-action add hidden-section" id="view-retry-paymongo-link" href="#">Resume PayMongo checkout</a>

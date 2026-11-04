@@ -301,7 +301,7 @@
         </div>
     </main>
 
-    <div class="bk-modal bk-hidden" id="bkConfirmModal" role="dialog" aria-modal="true" aria-labelledby="bkConfirmTitle" aria-hidden="true">
+    <div class="bk-modal bk-hidden" id="bkConfirmModal" data-confirmation="positive" role="dialog" aria-modal="true" aria-labelledby="bkConfirmTitle" aria-hidden="true">
         <div class="bk-backdrop" data-bk-close="true"></div>
         <div class="bk-dialog bk-dialog-payment" role="document">
             <div class="bk-head bk-head-payment">
@@ -424,7 +424,7 @@
         </div>
     </div>
 
-    <div class="bk-modal bk-hidden" id="bkUserConflictModal" role="dialog" aria-modal="true" aria-labelledby="bkUserConflictTitle" aria-hidden="true">
+    <div class="bk-modal bk-hidden" id="bkUserConflictModal" data-confirmation="caution" role="dialog" aria-modal="true" aria-labelledby="bkUserConflictTitle" aria-hidden="true">
         <div class="bk-backdrop" data-bk-user-conflict-close="true"></div>
         <div class="bk-dialog bk-dialog-warning" role="document">
             <div class="bk-head bk-head-warning">

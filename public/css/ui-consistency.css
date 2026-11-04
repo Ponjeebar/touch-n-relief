@@ -48,12 +48,12 @@ html:root body :is(.user-action.add, .user-action.edit[type="submit"], .add-user
     background: var(--ui-primary-hover);
     border-color: var(--ui-primary-hover);
 }
-html:root body :is(.user-action-danger, .tt-btn.danger, .lo-btn-confirm) {
+html:root body :is(.user-action-danger, .tt-btn.danger) {
     background: var(--ui-danger);
     border-color: var(--ui-danger);
     color: #fff;
 }
-html:root body :is(.user-action-danger, .tt-btn.danger, .lo-btn-confirm):hover { background: var(--ui-danger-hover); }
+html:root body :is(.user-action-danger, .tt-btn.danger):hover { background: var(--ui-danger-hover); }
 html:root body :is(.profile-modal-actions, .service-modal-actions, .txn-modal-footer) .user-action:not(.add):not(.edit):not(.archive):not(.delete):not(.user-action-danger) {
     background: var(--ui-neutral-bg);
     color: var(--ui-neutral-text);
@@ -81,3 +81,98 @@ html:root body :is(.appt-status.cancelled, .pill.cancelled, .txn-badge-cancelled
 
 html:root body :is(.profile-field label, .service-modal-form .profile-field label) { font-size: 13px; font-weight: 600; line-height: 1.45; }
 html:root body :is(.profile-field input, .profile-field textarea, .profile-field select) { font-family: inherit; }
+
+/* Shared presentation for decisions; each existing dialog retains its own handlers. */
+[data-confirmation] {
+    --confirm-accent: #04724d;
+    --confirm-hover: #035a3d;
+    --confirm-tint: #edf6f1;
+    --confirm-surface: #fff;
+    --confirm-footer: #f7f9f7;
+    --confirm-line: #d6e2da;
+    --confirm-text: #20372c;
+    --confirm-muted: #52675c;
+}
+[data-confirmation="danger"] { --confirm-accent: #a23d3d; --confirm-hover: #8d3030; --confirm-tint: #fff1ef; }
+[data-confirmation="caution"] { --confirm-accent: #805414; --confirm-hover: #67410c; --confirm-tint: #fff6e5; }
+html[data-theme="dark"] [data-confirmation] {
+    --confirm-surface: #193025;
+    --confirm-footer: #14271f;
+    --confirm-line: #426251;
+    --confirm-text: #eef7f1;
+    --confirm-muted: #c0d5c9;
+    --confirm-tint: #244936;
+}
+html[data-theme="dark"] [data-confirmation="danger"] { --confirm-tint: #482c2b; }
+html[data-theme="dark"] [data-confirmation="caution"] { --confirm-tint: #42351b; }
+html:root body [data-confirmation] :is(.lo-dialog,.profile-modal-content,.tt-modal-content,.txn-cancel-panel,.bk-dialog) {
+    background: var(--confirm-surface);
+    color: var(--confirm-text);
+    border: 1px solid var(--confirm-line);
+    border-radius: 12px;
+    box-shadow: 0 16px 48px #10251e26;
+}
+html:root body [data-confirmation] :is(.lo-title,.profile-modal-title,.tt-modal-title,.txn-cancel-title,.bk-title) {
+    color: var(--confirm-text);
+    font-weight: 600;
+    letter-spacing: -.02em;
+    line-height: 1.35;
+}
+html:root body [data-confirmation] :is(.lo-text,.archive-confirm-sub,.delete-confirm-sub,.tt-modal-sub,.reschedule-subtitle,.txn-cancel-lead) { color: var(--confirm-muted); line-height: 1.65; }
+html:root body [data-confirmation] .no-show-modal-eyebrow { color: var(--confirm-muted); }
+html:root body [data-confirmation] :is(.txn-cancel-header,.bk-head) { background: var(--confirm-surface); border-color: var(--confirm-line); }
+html:root body [data-confirmation] :is(.txn-cancel-footer,.bk-foot) { background: var(--confirm-footer); }
+html:root body [data-confirmation] :is(.lo-icon,.archive-confirm-icon,.delete-confirm-icon,.tt-modal-icon-danger) {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 8px;
+    background: var(--confirm-tint);
+    color: var(--confirm-accent);
+    box-shadow: none;
+    font-size: 19px;
+}
+html[data-theme="dark"] body [data-confirmation] :is(.lo-icon,.archive-confirm-icon,.delete-confirm-icon,.tt-modal-icon-danger) { color: var(--confirm-text); }
+html:root body [data-confirmation] :is(.archive-confirm-head,.delete-confirm-head) { grid-template-columns: 40px minmax(0,1fr); gap: 12px; }
+html:root body [data-confirmation] :is(.archive-confirm-copy,.delete-confirm-copy,.tt-delete-copy) {
+    background: var(--confirm-footer);
+    color: var(--confirm-text);
+    border: 1px solid var(--confirm-line);
+    border-left: 3px solid var(--confirm-accent);
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-size: 14px;
+    line-height: 1.65;
+}
+html:root body [data-confirmation] :is(.archive-confirm-copy,.delete-confirm-copy,.tt-delete-copy) strong { color: var(--confirm-text); }
+html:root body [data-confirmation] :is(.lo-actions,.profile-modal-actions,.tt-form-actions,.txn-cancel-footer,.bk-foot) {
+    border-top: 1px solid var(--confirm-line);
+    padding-top: 16px;
+    gap: 10px;
+}
+html:root body [data-confirmation] :is(.lo-btn,#delete-receptionist-confirm,#archive-receptionist-confirm,#archive-customer-confirm,#ttDeleteConfirmBtn,#cancel-confirm-btn,#payment-start-submit,#tnr-cancel-submit,.user-action,.tt-btn,.txn-modal-btn,.bk-confirm,.bk-cancel) {
+    min-height: 44px;
+    border-radius: 7px;
+    padding: 11px 16px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    box-shadow: none;
+}
+html:root body [data-confirmation] :is(.lo-btn-confirm,#delete-receptionist-confirm,#archive-receptionist-confirm,#archive-customer-confirm,#ttDeleteConfirmBtn,#cancel-confirm-btn,#payment-start-submit,#tnr-cancel-submit,.user-action-danger,.bk-confirm):not(:disabled) {
+    background: var(--confirm-accent);
+    color: #fff;
+    border: 1px solid var(--confirm-accent);
+}
+html:root body [data-confirmation] :is(.lo-btn-confirm,#delete-receptionist-confirm,#archive-receptionist-confirm,#archive-customer-confirm,#ttDeleteConfirmBtn,#cancel-confirm-btn,#payment-start-submit,#tnr-cancel-submit,.user-action-danger,.bk-confirm):not(:disabled):hover { background: var(--confirm-hover); border-color: var(--confirm-hover); }
+html:root body [data-confirmation] :is(.lo-btn-cancel,.tt-btn.secondary,.txn-cancel-back,.bk-cancel,.user-action:not(.delete):not(.archive):not(.add):not(.user-action-danger)) {
+    background: var(--confirm-surface);
+    color: var(--confirm-text);
+    border: 1px solid var(--confirm-line);
+}
+html:root body [data-confirmation] :is(.lo-btn,.user-action,.tt-btn,.txn-modal-btn,.bk-confirm,.bk-cancel):focus-visible { outline: 2px solid var(--confirm-text); outline-offset: 3px; }
+@media(max-width:480px) {
+    html:root body [data-confirmation] :is(.lo-actions,.profile-modal-actions,.tt-form-actions,.txn-cancel-footer,.bk-foot,.bk-foot-actions) { flex-wrap: wrap; }
+    html:root body [data-confirmation] :is(.lo-actions,.profile-modal-actions,.tt-form-actions,.txn-cancel-footer,.bk-foot,.bk-foot-actions) > :is(button,a) { width: 100%; flex: 1 1 100%; white-space: normal; text-align: center; justify-content: center; }
+}

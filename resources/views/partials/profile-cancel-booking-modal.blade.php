@@ -2,7 +2,7 @@
     <link rel="stylesheet" href="{{ asset('css/transactions-modal.css') }}">
 @endonce
 
-<div class="txn-cancel-modal txn-modal-hidden" id="tnr-cancel-booking-modal" role="dialog" aria-modal="true" aria-labelledby="tnr-cancel-booking-title" aria-hidden="true">
+<div class="txn-cancel-modal txn-modal-hidden" id="tnr-cancel-booking-modal" data-confirmation="danger" role="dialog" aria-modal="true" aria-labelledby="tnr-cancel-booking-title" aria-hidden="true">
     <div class="txn-modal-backdrop" data-tnr-cancel-close="true" tabindex="-1"></div>
     <div class="txn-cancel-panel" role="document">
         <header class="txn-cancel-header">

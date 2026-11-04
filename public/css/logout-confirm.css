@@ -1,138 +1,17 @@
-/* Logout confirmation modal */
-
-.lo-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 1500;
-    display: grid;
-    place-items: center;
-    padding: 24px 16px;
-}
-
-.lo-modal.lo-hidden {
-    display: none !important;
-}
-
-.lo-modal-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(18, 24, 31, 0.48);
-}
-
-.lo-dialog {
-    position: relative;
-    width: min(420px, calc(100vw - 32px));
-    background: #ffffff;
-    border-radius: 18px;
-    border: 1px solid #e2e8ef;
-    box-shadow: 0 28px 70px rgba(31, 43, 51, 0.22);
-    padding: 24px 22px 20px;
-}
-
-.lo-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    background: #fff1f1;
-    color: #a23d3d;
-    display: grid;
-    place-items: center;
-    font-size: 1.35rem;
-    margin-bottom: 14px;
-}
-
-.lo-title {
-    margin: 0 0 8px;
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #1f2b33;
-    letter-spacing: -0.02em;
-}
-
-.lo-text {
-    margin: 0 0 20px;
-    color: #5f6b76;
-    font-size: 0.94rem;
-    line-height: 1.55;
-}
-
-.lo-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.lo-btn {
-    border: 1px solid transparent;
-    border-radius: 10px;
-    min-height: 44px;
-    padding: 0.62rem 1rem;
-    font-size: 0.92rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.lo-btn-cancel {
-    background: #f1f5f8;
-    border-color: #d6e4e3;
-    color: #44515d;
-}
-
-.lo-btn-cancel:hover {
-    background: #e4ebf0;
-}
-
-.lo-btn-confirm {
-    background: #a23d3d;
-    border-color: #a23d3d;
-    color: #fff;
-}
-
-.lo-btn-confirm:hover {
-    background: #8d3030;
-    border-color: #8d3030;
-}
-
-.lo-btn:focus-visible {
-    outline: 3px solid #4f6d8c;
-    outline-offset: 3px;
-}
-
-body.lo-modal-open {
-    overflow: hidden;
-}
-
-html[data-theme="dark"] .lo-dialog {
-    background: #1e2830;
-    border-color: #33404a;
-    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.45);
-}
-
-html[data-theme="dark"] .lo-title {
-    color: #eef3f7;
-}
-
-html[data-theme="dark"] .lo-text {
-    color: #a8b4be;
-}
-
-html[data-theme="dark"] .lo-icon {
-    background: rgba(162, 61, 61, 0.2);
-    color: #f0a6a6;
-}
-
-html[data-theme="dark"] .lo-btn-cancel {
-    background: #2a3540;
-    border-color: #465663;
-    color: #d5dee6;
-}
-
-html[data-theme="dark"] .lo-btn-cancel:hover {
-    background: #34414d;
-}
-
-html[data-theme="dark"] .lo-btn:focus-visible {
-    outline-color: #a9c4d9;
-}
+/* Shared logout and form-confirmation shell. Action colors come from ui-consistency.css. */
+.lo-modal { position:fixed; inset:0; z-index:20000; display:grid; place-items:center; padding:24px 16px; }
+.lo-modal.lo-hidden { display:none!important; }
+.lo-modal-backdrop { position:absolute; inset:0; background:rgba(16,30,24,.52); }
+.lo-dialog { position:relative; width:min(460px,100%); max-height:calc(100dvh - 48px); overflow-y:auto; padding:0; }
+.lo-content { padding:24px; }
+.lo-heading { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.lo-icon { display:grid; place-items:center; }
+.lo-title { margin:0; font-size:21px; }
+.lo-text { margin:0; font-size:15px; overflow-wrap:anywhere; }
+.lo-close { display:grid; place-items:center; flex:0 0 36px; min-height:36px; margin-left:auto; padding:0; background:transparent; border:1px solid var(--confirm-line); border-radius:7px; color:var(--confirm-muted); font:inherit; font-size:24px; cursor:pointer; }
+.lo-close:focus-visible { outline:2px solid var(--confirm-text); outline-offset:3px; }
+.lo-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; padding:16px 24px; background:var(--confirm-footer); border-radius:0 0 12px 12px; }
+.lo-btn { cursor:pointer; transition:background-color .15s ease; }
+body.lo-modal-open { overflow:hidden; }
+@media(max-width:480px) { .lo-content { padding:20px; } .lo-actions { padding:16px 20px; } .lo-close { min-height:44px; flex-basis:44px; } }
+@media(prefers-reduced-motion:reduce) { .lo-btn { transition:none; } }

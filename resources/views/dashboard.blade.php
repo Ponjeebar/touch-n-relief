@@ -443,7 +443,7 @@
                         </div>
                     </div>
 
-                    <div class="profile-modal hidden-section" id="delete-receptionist-modal" role="dialog" aria-modal="true" aria-labelledby="delete-receptionist-title">
+                    <div class="profile-modal hidden-section" id="delete-receptionist-modal" data-confirmation="danger" role="dialog" aria-modal="true" aria-labelledby="delete-receptionist-title">
                         <div class="profile-modal-backdrop" data-close-delete-modal="true"></div>
                         <div class="profile-modal-content delete-confirm-content">
                             <button class="profile-modal-close" type="button" aria-label="Close" data-close-delete-modal="true">&times;</button>

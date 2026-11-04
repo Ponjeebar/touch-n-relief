@@ -210,7 +210,7 @@
                         </button>
                     @endif
                     @if (($isAdmin ?? false) && $isNoShow && $bookingId)
-                        <form method="POST" action="{{ route('appointments.no-show.reverse', $bookingId) }}" class="appt-start-form" onsubmit="return confirm('Correct this no-show record? The customer count and account restriction will be recalculated.');">
+                        <form method="POST" action="{{ route('appointments.no-show.reverse', $bookingId) }}" class="appt-start-form" data-action-confirm-title="Correct no-show record?" data-action-confirm-message="Correct the no-show record for {{ $appointment['client'] }}? The customer count and account restriction will be recalculated." data-action-confirm-label="Correct record" data-action-confirm-tone="caution">
                             @csrf
                             @method('PATCH')
                             <button class="appt-icon-btn reverse-no-show" type="submit" title="Correct no-show" aria-label="Correct no-show for {{ $appointment['client'] }}">

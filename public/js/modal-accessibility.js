@@ -31,6 +31,8 @@
         document.body.classList.toggle('has-open-dialog', Array.from(dialogs).some(isVisible));
 
         if (open && !wasOpen) {
+            dialogs.delete(dialog);
+            dialogs.add(dialog);
             var active = document.activeElement;
             var previous = active instanceof HTMLElement && !dialog.contains(active) ? active : lastControl;
             returnFocus.set(dialog, previous);

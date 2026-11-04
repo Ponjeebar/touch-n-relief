@@ -512,7 +512,7 @@
                     </div>
                 @endif
 
-                <div class="tt-modal hidden" id="ttDeleteModal" role="dialog" aria-modal="true" aria-labelledby="ttDeleteTitle">
+                <div class="tt-modal hidden" id="ttDeleteModal" data-confirmation="danger" role="dialog" aria-modal="true" aria-labelledby="ttDeleteTitle">
                     <div class="tt-modal-backdrop" data-close-tt-delete></div>
                     <div class="tt-modal-content tt-modal-content-compact" role="document">
                         <button class="tt-modal-close" type="button" aria-label="Close" data-close-tt-delete>&times;</button>

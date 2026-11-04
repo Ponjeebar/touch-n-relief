@@ -993,12 +993,18 @@
 
             serviceToggleForm?.addEventListener('submit', (event) => {
                 const isActive = serviceToggleLabel?.textContent === 'Make unavailable';
-                const prompt = isActive
-                    ? 'Make this service unavailable? It will be hidden from booking.'
-                    : 'Make this service available again for booking?';
-                if (!window.confirm(prompt)) {
-                    event.preventDefault();
-                }
+                const message = isActive
+                    ? 'This service will be hidden from booking.'
+                    : 'Customers will be able to choose this service when booking.';
+                event.preventDefault();
+                window.tnrConfirmForm(serviceToggleForm, {
+                    title: isActive ? 'Make service unavailable?' : 'Make service available?',
+                    message: message,
+                    confirmLabel: isActive ? 'Make unavailable' : 'Make available',
+                    cancelLabel: 'Keep current availability',
+                    tone: isActive ? 'caution' : 'positive',
+                    icon: isActive ? 'bi-slash-circle' : 'bi-check-circle'
+                });
             });
 
             document.querySelectorAll('[data-service-tab]').forEach((btn) => {

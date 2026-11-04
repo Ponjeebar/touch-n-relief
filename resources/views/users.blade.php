@@ -462,7 +462,7 @@
                     </div>
                 </div>
 
-                <div class="profile-modal hidden-section" id="archive-receptionist-modal" role="dialog" aria-modal="true" aria-labelledby="archive-receptionist-title">
+                <div class="profile-modal hidden-section" id="archive-receptionist-modal" data-confirmation="caution" role="dialog" aria-modal="true" aria-labelledby="archive-receptionist-title">
                     <div class="profile-modal-backdrop" data-close-archive-modal="true"></div>
                     <div class="profile-modal-content archive-confirm-content">
                         <button class="profile-modal-close" type="button" aria-label="Close" data-close-archive-modal="true">&times;</button>
@@ -491,7 +491,7 @@
                     @method('DELETE')
                 </form>
 
-                <div class="profile-modal hidden-section" id="archive-customer-modal" role="dialog" aria-modal="true" aria-labelledby="archive-customer-title">
+                <div class="profile-modal hidden-section" id="archive-customer-modal" data-confirmation="caution" role="dialog" aria-modal="true" aria-labelledby="archive-customer-title">
                     <div class="profile-modal-backdrop" data-close-archive-customer="true"></div>
                     <div class="profile-modal-content archive-confirm-content">
                         <button class="profile-modal-close" type="button" aria-label="Close" data-close-archive-customer="true">&times;</button>

@@ -2,7 +2,7 @@
     @php
         $summary = session('booking_summary', []);
     @endphp
-    <div class="bk-modal bk-success-modal" id="bkSuccessModal" role="dialog" aria-modal="true" aria-labelledby="bkSuccessTitle" aria-hidden="false">
+    <div class="bk-modal bk-success-modal" id="bkSuccessModal" data-confirmation="positive" role="dialog" aria-modal="true" aria-labelledby="bkSuccessTitle" aria-hidden="false">
         <div class="bk-backdrop" data-bk-success-close="true"></div>
         <div class="bk-dialog" role="document">
             <div class="bk-head bk-head-success">

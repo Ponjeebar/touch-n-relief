@@ -557,7 +557,7 @@ test('staff immediate walk-in shows the calculated session and enforced payment 
     }
 });
 
-test('scheduled start confirms exact balance, traps focus, and restores the trigger', async ({ page }) => {
+test('scheduled start confirms exact balance, traps focus, and restores the trigger', async ({ page }, testInfo) => {
     execFileSync('php', ['tests/Support/refresh-browser-start.php'], { stdio: 'pipe' });
     await page.setViewportSize({ width: 390, height: 844 });
     await setTheme(page, 'dark');
@@ -581,6 +581,7 @@ test('scheduled start confirms exact balance, traps focus, and restores the trig
 
     const last = dialog.locator('button:not([disabled]), input:not([disabled]):not([type="hidden"])').last();
     await last.focus();
+    await page.screenshot({ path: testInfo.outputPath('payment-start-dark-mobile.png') });
     await page.keyboard.press('Tab');
     await expect.poll(() => dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
 
@@ -589,7 +590,7 @@ test('scheduled start confirms exact balance, traps focus, and restores the trig
     await expect(trigger).toBeFocused();
 });
 
-test('staff no-show confirmation stays usable on mobile, tablet, and desktop', async ({ page }) => {
+test('staff no-show confirmation stays usable on mobile, tablet, and desktop', async ({ page }, testInfo) => {
     await login(page, accounts.receptionist);
 
     for (const setup of [
@@ -616,6 +617,7 @@ test('staff no-show confirmation stays usable on mobile, tablet, and desktop', a
         expect(box).not.toBeNull();
         expect(box.x).toBeGreaterThanOrEqual(0);
         expect(box.x + box.width).toBeLessThanOrEqual(setup.viewport.width + 1);
+        await page.screenshot({ path: testInfo.outputPath(`no-show-${setup.viewport.width}-${setup.theme}.png`) });
 
         await page.keyboard.press('Escape');
         await expect(dialog).toBeHidden();

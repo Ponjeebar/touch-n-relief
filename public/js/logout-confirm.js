@@ -21,18 +21,29 @@
         }
     }
 
-    function openModal(form) {
+    function openModal(form, options) {
         if (!modal) {
             return;
         }
 
         pendingForm = form;
+        options = options || {};
+        modal.dataset.confirmation = options.tone || 'positive';
+        modal.querySelector('.lo-title').textContent = options.title || 'Log out?';
+        modal.querySelector('.lo-text').textContent = options.message || 'You will need to sign in again to access your account.';
+        modal.querySelector('.lo-btn-confirm').textContent = options.confirmLabel || 'Yes, log out';
+        modal.querySelector('.lo-btn-cancel').textContent = options.cancelLabel || 'Stay signed in';
+        modal.querySelector('.lo-icon i').className = 'bi ' + (options.icon || 'bi-box-arrow-right');
         lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         modal.classList.remove('lo-hidden');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('lo-modal-open');
-        modal.querySelector('.lo-btn-confirm')?.focus();
+        modal.querySelector('.lo-btn-cancel')?.focus();
     }
+
+    window.tnrConfirmForm = function (form, options) {
+        if (form instanceof HTMLFormElement) openModal(form, options);
+    };
 
     function closeModal() {
         if (!modal) {
@@ -47,7 +58,7 @@
         lastFocused = null;
     }
 
-    function confirmLogout() {
+    function confirmAction() {
         if (!pendingForm) {
             closeModal();
             return;
@@ -56,7 +67,7 @@
         var form = pendingForm;
         pendingForm = null;
         closeModal();
-        form.dataset.logoutConfirmed = '1';
+        if (isLogoutForm(form)) form.dataset.logoutConfirmed = '1';
         form.submit();
     }
 
@@ -70,17 +81,31 @@
             el.addEventListener('click', closeModal);
         });
 
-        modal.querySelector('[data-lo-confirm]')?.addEventListener('click', confirmLogout);
+        modal.querySelector('[data-lo-confirm]')?.addEventListener('click', confirmAction);
 
         document.addEventListener('keydown', function (e) {
             if (e.key !== 'Escape' || modal.classList.contains('lo-hidden')) {
                 return;
             }
+            e.preventDefault();
+            e.stopImmediatePropagation();
             closeModal();
-        });
+        }, true);
 
         document.addEventListener('submit', function (e) {
             var form = e.target;
+            if (form instanceof HTMLFormElement && form.hasAttribute('data-action-confirm-title')) {
+                e.preventDefault();
+                openModal(form, {
+                    title: form.dataset.actionConfirmTitle,
+                    message: form.dataset.actionConfirmMessage,
+                    confirmLabel: form.dataset.actionConfirmLabel,
+                    cancelLabel: 'Go back',
+                    tone: form.dataset.actionConfirmTone || 'caution',
+                    icon: 'bi-arrow-counterclockwise'
+                });
+                return;
+            }
             if (!isLogoutForm(form)) {
                 return;
             }
