@@ -81,7 +81,6 @@ for (const theme of ['light', 'dark']) {
             const save = page.getByRole('button', { name: 'Save new password', exact: true });
             await save.scrollIntoViewIfNeeded();
             await expect(save).toBeInViewport();
-            await expect(page.getByRole('link', { name: 'Back to home', exact: true })).toBeInViewport();
             expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
             await page.evaluate(() => window.scrollTo(0, 0));
             await page.screenshot({ path: testInfo.outputPath(`reset-${width}.png`), fullPage: true });

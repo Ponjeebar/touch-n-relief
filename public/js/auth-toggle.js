@@ -150,6 +150,7 @@
 
         function showStep(index, moveFocus) {
             currentStep = index;
+            registerForm.dataset.registrationStep = String(index);
             steps.forEach(function (step, i) { step.hidden = i !== index; });
             progress.forEach(function (item, i) {
                 item.classList.toggle('is-complete', i < index);

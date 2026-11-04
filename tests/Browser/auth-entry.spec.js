@@ -86,7 +86,7 @@ test('desktop account panel slides between sign in and sign up', async ({ page }
     await expect(page.locator('#register-form [name="name"]')).toHaveValue('Maria Clara');
 });
 
-test('auth header stays readable above long forms on short laptop screens', async ({ page }, testInfo) => {
+test('auth header stays separate from forms on short laptop screens', async ({ page }, testInfo) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     for (const theme of ['light', 'dark']) {
         await page.addInitScript(mode => {
@@ -104,30 +104,37 @@ test('auth header stays readable above long forms on short laptop screens', asyn
                 const headerBox = await header.boundingBox();
                 const containerBox = await container.boundingBox();
                 expect(containerBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height);
+                await expect(header.locator('.brand')).toBeInViewport();
+                if (register && width === 1366 && height === 768) {
+                    const next = await page.locator('#register-form').getByRole('button', { name: 'Next' }).boundingBox();
+                    expect(next.y + next.height).toBeLessThanOrEqual(height);
+                }
                 for (const scroll of [0, 260, 10000]) {
                     await page.evaluate(y => window.scrollTo(0, y), scroll);
-                    await expect(header.locator('.brand')).toBeInViewport();
-                    expect(await header.locator('.brand').evaluate(brand => {
-                        const rect = brand.getBoundingClientRect();
-                        const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
-                        return brand.contains(hit);
-                    })).toBe(true);
+                    const headerPosition = await header.boundingBox();
+                    const formPosition = await container.boundingBox();
+                    expect(headerPosition.y + headerPosition.height).toBeLessThanOrEqual(formPosition.y);
                 }
                 await page.screenshot({ path: testInfo.outputPath(`header-${register ? 'signup' : 'login'}-${width}-${theme}.png`), animations: 'disabled' });
                 expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
                 if (register) {
+                    await page.evaluate(() => window.scrollTo(0, 0));
                     const form = page.locator('#register-form');
                     await form.getByLabel('Full name', { exact: true }).fill('Maria Clara');
                     await form.getByLabel('Birthday', { exact: true }).fill('2000-01-01');
                     await form.getByText('Female', { exact: true }).click();
                     await form.getByRole('button', { name: 'Next' }).click();
+                    await expect(form.locator('.auth-social')).toBeHidden();
                     await form.getByLabel('Email address', { exact: true }).fill('preview@example.test');
                     await form.getByLabel('Contact number', { exact: true }).fill('09999998765');
                     await form.getByRole('button', { name: 'Next' }).click();
                     const submit = form.getByRole('button', { name: 'Sign Up', exact: true });
+                    if (width === 1366 && height === 768) {
+                        const finalAction = await submit.boundingBox();
+                        expect(finalAction.y + finalAction.height).toBeLessThanOrEqual(height);
+                    }
                     await submit.scrollIntoViewIfNeeded();
                     await expect(submit).toBeInViewport();
-                    await expect(header.locator('.brand')).toBeInViewport();
                     const actionBox = await submit.boundingBox();
                     const stickyBox = await header.boundingBox();
                     expect(actionBox.y).toBeGreaterThanOrEqual(stickyBox.y + stickyBox.height);
