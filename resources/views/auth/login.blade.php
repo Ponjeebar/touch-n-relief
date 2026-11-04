@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ filemtime(public_path('css/theme.css')) }}">
 </head>
 <body class="auth-page auth-entry-page" style="--auth-bg-image: url('{{ asset('images/login/background.jpg') }}');">
-    @include('partials.landing-nav', ['navMode' => 'auth'])
+    @include('partials.landing-nav', ['navMode' => 'auth', 'authEntryHeader' => true])
     @if (session('status'))
         <div class="auth-flash" role="status">{{ session('status') }}</div>
     @endif

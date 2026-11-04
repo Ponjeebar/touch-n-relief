@@ -10,8 +10,15 @@ for (const theme of ['light', 'dark']) {
             localStorage.setItem('tnr-theme-preference-version', 'light-default-v1');
             localStorage.setItem('tnr-theme', mode);
         }, theme);
-        for (const width of [320, 390, 768, 1440]) {
+        for (const width of [320, 390, 768, 1024, 1440]) {
             await page.setViewportSize({ width, height: 900 });
+            await page.goto('/login');
+            const home = page.getByRole('link', { name: 'Back to home', exact: true });
+            await expect(home).toBeInViewport();
+            await home.focus();
+            await expect(home).toBeFocused();
+            await home.press('Enter');
+            await expect(page).not.toHaveURL(/\/login/);
             await page.goto('/login');
             const login = page.locator('.auth-login-panel');
             await expect(login.getByLabel('Username, name, or email', { exact: true })).toBeVisible();

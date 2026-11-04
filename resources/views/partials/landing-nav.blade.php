@@ -19,7 +19,7 @@
                 <img src="{{ asset('images/dashboard/logo.png') }}" alt="TouchNRelief logo" class="brand-logo" width="58" height="58">
                 <div class="brand-identity">
                     <div class="brand">TouchNRelief</div>
-                    @if ($navMode === 'full')
+                    @if ($navMode === 'full' || ($authEntryHeader ?? false))
                         <span class="brand-spa-name">Buenos Touché Spa</span>
                     @endif
                 </div>
@@ -47,6 +47,13 @@
                 </nav>
             @endif
             <div class="nav-header-actions">
+                @if ($authEntryHeader ?? false)
+                    <a href="{{ route('landing') }}" class="auth-home-link" aria-label="Back to home">
+                        <span aria-hidden="true">&larr;</span>
+                        <span class="auth-home-label">Back to home</span>
+                        <span class="auth-home-short" aria-hidden="true">Home</span>
+                    </a>
+                @endif
                 @if (in_array($navMode, ['full', 'booking', 'profile'], true))
                     @auth
                         @if ($user->isUser() && ! $user->isWalkIn())
