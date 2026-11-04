@@ -790,6 +790,11 @@
         html[data-theme="dark"] .profile-category + .profile-category,html[data-theme="dark"] .profile-head{border-color:#426251}
         html[data-theme="dark"] .profile-category-heading .btn{background:#203a2e;color:#e9f6ee;border-color:#6c927b}
         @media(max-width:600px){.profile-page{padding-top:.85rem}.profile-page-actions{margin-bottom:.7rem}.profile-back-link{min-height:40px;padding:.55rem .75rem}.profile-head{padding:1.25rem 1rem}.profile-body{padding:1.25rem 1rem}.profile-category-heading{gap:.5rem}.profile-category-heading .profile-local-actions.is-editing{grid-column:1 / -1;justify-content:flex-start}}
+        [data-profile-panel][hidden]{display:none!important}
+        .profile-body [data-profile-panel]{margin-top:0;padding-top:0;border-top:0}
+        .profile-category-nav a[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+        .profile-category-edit-note{margin:.75rem .5rem 0;font-size:.8rem;line-height:1.5;color:#526875}
+        html[data-theme="dark"] .profile-category-edit-note{color:#c0d5c9}
     </style>
     @include('partials.chatbot-assets')
 </head>
@@ -804,7 +809,7 @@
             </a>
         </div>
         <div class="container profile-layout">
-            <nav class="profile-category-nav" aria-label="Profile sections"><details open><summary>Profile categories</summary><a href="#personal-information">Personal information</a><a href="#account-details">Account details</a><a href="#password-section">Password</a><a href="#wellness-section">Wellness preferences</a><a href="#profile-appointments">My Appointments</a></details></nav>
+            <nav class="profile-category-nav" aria-label="Profile sections"><details open><summary>Personal information</summary><a href="#personal-information" aria-controls="personal-information">Personal information</a><a href="#account-details" aria-controls="account-details">Account details</a><a href="#password-section" aria-controls="password-section">Password</a><a href="#wellness-section" aria-controls="wellness-section">Wellness preferences</a><a href="#profile-appointments" aria-controls="profile-appointments">My Appointments</a></details><p class="profile-category-edit-note" id="profile-category-edit-note" hidden>Save or cancel your changes before switching sections.</p></nav>
             <div class="profile-shell">
                 <div class="profile-topbar">
                     <strong>Profile Overview</strong>
@@ -862,7 +867,7 @@
                         @csrf
                         @method('PUT')
                         <div id="basic-info-section">
-                            <section class="profile-category" id="personal-information" aria-labelledby="personal-information-title">
+                            <section class="profile-category" id="personal-information" data-profile-panel aria-labelledby="personal-information-title">
                                 <div class="profile-category-heading">
                                     <h2 id="personal-information-title">Personal information</h2>
 <div class="profile-local-actions" id="basic-info-actions">
@@ -905,7 +910,7 @@
                                 </div>
 
                             </section>
-                            <section class="profile-category" id="account-details" aria-labelledby="account-details-title">
+                            <section class="profile-category" id="account-details" data-profile-panel aria-labelledby="account-details-title">
                                 <div class="profile-category-heading">
                                     <h2 id="account-details-title">Account details</h2>
 <div class="profile-local-actions" id="account-actions">
@@ -935,7 +940,7 @@
 
 
 
-                        <div class="profile-password-block" id="password-section">
+                        <div class="profile-password-block" id="password-section" data-profile-panel>
                             <div class="profile-category-heading"><h2>Password</h2>
 <div class="profile-local-actions" id="password-actions">
                                 <button type="button" class="btn btn-light section-edit-btn" id="password-edit">Edit</button>
@@ -980,7 +985,7 @@
                             $wellnessPressure = old('pressure_preference', $user->pressure_preference);
                             $wellnessPregnant = old('is_pregnant', $user->is_pregnant === null ? '' : ($user->is_pregnant ? '1' : '0'));
                         @endphp
-                        <section class="profile-section profile-section-in-form profile-wellness" id="wellness-section" aria-labelledby="profile-wellness-title">
+                        <section class="profile-section profile-section-in-form profile-wellness" id="wellness-section" data-profile-panel aria-labelledby="profile-wellness-title">
                             <div class="profile-section-head">
                                 <h2 id="profile-wellness-title">Wellness preferences</h2>
                                 @if ($user->therapist_gender_preference && $user->pressure_preference && ($user->sex !== \App\Models\User::SEX_FEMALE || $user->is_pregnant !== null))
@@ -1061,7 +1066,7 @@
                     </form>
 
                     <div class="profile-sections">
-                        <section class="profile-section profile-section-compact" id="profile-appointments" aria-labelledby="profile-transactions-title">
+                        <section class="profile-section profile-section-compact" id="profile-appointments" data-profile-panel aria-labelledby="profile-transactions-title">
                             <div class="profile-section-head">
                                 <h2 id="profile-transactions-title">My Appointments</h2>
                                 <span>{{ count($transactions) }} record{{ count($transactions) === 1 ? '' : 's' }}</span>
@@ -1085,15 +1090,44 @@
         var compactProfile = window.matchMedia('(max-width:1599px)');
         function setCategoryMenu() { categories.open = !compactProfile.matches; }
         var categoryLinks = categories.querySelectorAll('a');
-        function markCategory() {
-            var target = window.location.hash || '#personal-information';
+        var panels = document.querySelectorAll('[data-profile-panel]');
+        var activeCategory = '#personal-information';
+        function selectCategory(target, focusHeading) {
+            var selectedLink = Array.from(categoryLinks).find(function (link) { return link.hash === target; }) || categoryLinks[0];
+            activeCategory = selectedLink.hash;
+            panels.forEach(function (panel) { panel.hidden = '#' + panel.id !== activeCategory; });
             categoryLinks.forEach(function (link) {
-                if (link.getAttribute('href') === target) link.setAttribute('aria-current', 'location');
+                if (link === selectedLink) link.setAttribute('aria-current', 'location');
                 else link.removeAttribute('aria-current');
             });
+            categories.querySelector('summary').textContent = selectedLink.textContent;
+            var formElement = document.getElementById('edit-profile-form');
+            formElement.action = formElement.action.split('#')[0] + activeCategory;
+            if (focusHeading) {
+                var heading = document.querySelector(activeCategory).querySelector('h2');
+                heading.setAttribute('tabindex', '-1');
+                heading.focus({ preventScroll: true });
+            }
         }
-        markCategory();
-        window.addEventListener('hashchange', markCategory);
+        function followCategoryLocation() {
+            if (document.querySelector('#edit-profile-form .profile-local-actions.is-editing')) {
+                window.history.replaceState(null, '', activeCategory);
+                return;
+            }
+            selectCategory(window.location.hash, false);
+        }
+        categoryLinks.forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                if (link.getAttribute('aria-disabled') === 'true') return;
+                if (window.location.hash !== link.hash) window.history.pushState(null, '', link.hash);
+                selectCategory(link.hash, true);
+                if (compactProfile.matches) categories.open = false;
+            });
+        });
+        window.addEventListener('hashchange', followCategoryLocation);
+        window.addEventListener('popstate', followCategoryLocation);
         setCategoryMenu();
         compactProfile.addEventListener('change', setCategoryMenu);
         var form = document.getElementById('edit-profile-form');
@@ -1142,6 +1176,11 @@
             form.querySelectorAll('.section-edit-btn').forEach(function (button) {
                 button.disabled = !!active && !active.contains(button);
             });
+            categoryLinks.forEach(function (link) {
+                if (active && link.hash !== activeCategory) link.setAttribute('aria-disabled', 'true');
+                else link.removeAttribute('aria-disabled');
+            });
+            document.getElementById('profile-category-edit-note').hidden = !active;
         }
         function setAccountEditing(editing) {
             accountActions.classList.toggle('is-editing', editing);
@@ -1338,6 +1377,22 @@
         setPasswordEditing(false);
         setWellnessEditing(false);
         syncPregnancyField();
+
+        var errorKeys = @json($errors->getBag('profile')->keys());
+        // Email verification can report a missing password under the shared key.
+        if (errorKeys.includes('current_password') && @json(old('email', $user->email) !== $user->email)) {
+            errorKeys.push('email_current_password');
+        }
+        var errorField = Array.from(form.elements).find(function (field) { return errorKeys.includes(field.name); });
+        var errorPanel = errorField?.closest('[data-profile-panel]');
+        selectCategory(errorPanel ? '#' + errorPanel.id : window.location.hash, false);
+        if (errorPanel) {
+            errorPanel.querySelector('.section-edit-btn')?.click();
+        }
+        form.addEventListener('invalid', function (event) {
+            var invalidPanel = event.target.closest('[data-profile-panel]');
+            if (invalidPanel) selectCategory('#' + invalidPanel.id, false);
+        }, true);
 
         var statusToast = document.getElementById('profile-status-toast');
         var statusToastClose = document.getElementById('profile-status-toast-close');

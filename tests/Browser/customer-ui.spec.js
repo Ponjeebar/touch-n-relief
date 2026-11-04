@@ -87,6 +87,7 @@ test('appointment badges count upcoming records and decrease after cancellation'
         for (const path of ['/', '/booking', '/profile']) {
             await page.goto(path);
             await dismissTour(page);
+            if (path === '/profile' && width > 1100) await page.goto('/profile#profile-appointments');
             const trigger = page.locator(width <= 1100
                 ? '.customer-mobile-shortcuts [data-tnr-open-transactions]'
                 : path === '/' ? '.nav-appointments-direct' : '.profile-txn-open');
@@ -366,6 +367,7 @@ test('customer navigation, back links, and appointments work across customer pag
                 await page.locator('.nav-appointments-direct').click();
                 appointmentsOpened = true;
             } else if (path === '/profile') {
+                await page.goto('/profile#profile-appointments');
                 await page.locator('.profile-txn-open').click();
                 appointmentsOpened = true;
             }

@@ -36,7 +36,7 @@ test('customer can skip unanswered wellness questions and provide preferences la
     await expect(page.locator('#tnr-registration-onboarding-modal')).toHaveCount(0);
     await page.reload();
     await expect(page.locator('#tnr-registration-onboarding-modal')).toHaveCount(0);
-    await page.goto('/profile');
+    await page.goto('/profile#wellness-section');
     await expect(page.locator('.profile-wellness-badge')).toHaveCount(0);
     for (const name of ['therapist_gender_preference', 'pressure_preference', 'is_pregnant']) {
         await expect(page.locator(`#wellness-section input[name="${name}"]:checked`)).toHaveCount(0);
@@ -60,7 +60,7 @@ test('customer can still complete the wellness questionnaire', async ({ page }) 
     await page.getByRole('button', { name: 'Medium pressure', exact: true }).click();
     await page.getByRole('button', { name: 'Complete', exact: true }).click();
     await expect(page.locator('#tnr-registration-onboarding-modal')).toHaveCount(0);
-    await page.goto('/profile');
+    await page.goto('/profile#wellness-section');
     await expect(page.locator('#wp-pressure-medium')).toBeChecked();
     await expect(page.locator('.profile-wellness-badge')).toContainText('Preferences provided');
 });

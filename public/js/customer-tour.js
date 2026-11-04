@@ -203,10 +203,9 @@
         return [
             introduction('Account and appointment guide', 'Manage your personal information, preferences, password, and booking history here.'),
             step(['.profile-id', '.profile-head'], 'Profile identity', 'Your name and photo help staff identify your account.'),
-            step(['.profile-section', '.profile-card'], 'Personal information', 'Keep your contact information accurate for booking updates.'),
-            step(['[data-tnr-open-transactions]', '.profile-section-compact'], 'Appointment history', withExample('Open categorized upcoming and historical records.', 'Confirmed and payment-pending bookings stay under Upcoming; completed, cancelled, and expired records stay under History.')),
-            step(['.wellness-preferences', '[data-wellness-preferences]'], 'Wellness preferences', 'Update the preferences used for therapist recommendations.'),
-            step(['.password-section', '#current_password'], 'Account security', 'Change your password when needed.'),
+            step(['.profile-category-nav'], 'Profile sections', 'Choose Personal information, Account details, Password, Wellness preferences, or My Appointments. Only the selected section is shown.'),
+            step(['[data-profile-panel]:not([hidden])'], 'Edit the selected section', 'Choose Edit to update these details. Save or cancel your changes before switching to another section.'),
+            step(['.profile-category-nav'], 'Appointment history', withExample('Choose My Appointments, then View my appointments to open your records.', 'Confirmed and payment-pending bookings stay under Upcoming; completed, cancelled, and expired records stay under History.')),
         ];
     }
 
