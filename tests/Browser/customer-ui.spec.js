@@ -245,7 +245,7 @@ test('checkout stays gray until the no-show policy is accepted', async ({ page }
 
 test('booking selections and payment amounts remain clear when choices change', async ({ page }, testInfo) => {
     await login(page);
-    for (const width of [390, 768, 1366]) {
+    for (const width of [320, 390, 768, 1366]) {
         await page.setViewportSize({ width, height: 900 });
         await page.evaluate(theme => localStorage.setItem('tnr-theme', theme), width === 390 ? 'dark' : 'light');
         await page.goto('/booking');
@@ -269,6 +269,10 @@ test('booking selections and payment amounts remain clear when choices change', 
         await expect(page.locator('#booking-selected-price')).not.toBeEmpty();
         await page.locator('.therapist-item-any').click();
         await expect(page.locator('#booking-selected-therapist')).toHaveText('Any available therapist');
+        await expect(page.getByRole('heading', { name: 'Your selections', exact: true })).toBeVisible();
+        await page.locator('#booking-selection-summary').scrollIntoViewIfNeeded();
+        expect(await page.locator('#booking-selection-summary').evaluate(summary => summary.scrollWidth <= summary.clientWidth + 1)).toBe(true);
+        await page.screenshot({ path: testInfo.outputPath(`booking-selections-${width}.png`), animations: 'disabled' });
         await page.getByRole('button', { name: 'Edit service', exact: true }).click();
         await expect(page.locator('#booking-grid')).toHaveAttribute('data-mobile-step', 'service');
         await page.locator('.service-item').nth(1).click();

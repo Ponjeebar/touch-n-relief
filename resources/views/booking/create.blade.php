@@ -113,8 +113,21 @@
                     </ol>
                 </div>
                 <section class="booking-selection-summary" id="booking-selection-summary" aria-label="Your booking selections" hidden>
-                    <div><span class="booking-selection-label">Service</span><strong id="booking-selected-service"></strong><span id="booking-selected-price"></span><button type="button" data-edit-booking-step="service">Edit service</button></div>
-                    <div id="booking-selected-therapist-row" hidden><span class="booking-selection-label">Therapist</span><strong id="booking-selected-therapist"></strong><button type="button" data-edit-booking-step="therapist">Edit therapist</button></div>
+                    <h2 class="booking-selection-heading">Your selections</h2>
+                    <div class="booking-selection-row">
+                        <div class="booking-selection-info">
+                            <span class="booking-selection-label">Service</span>
+                            <div class="booking-selection-value"><strong id="booking-selected-service"></strong><span id="booking-selected-price"></span></div>
+                        </div>
+                        <button type="button" data-edit-booking-step="service">Edit service</button>
+                    </div>
+                    <div class="booking-selection-row" id="booking-selected-therapist-row" hidden>
+                        <div class="booking-selection-info">
+                            <span class="booking-selection-label">Therapist</span>
+                            <strong id="booking-selected-therapist"></strong>
+                        </div>
+                        <button type="button" data-edit-booking-step="therapist">Edit therapist</button>
+                    </div>
                 </section>
                 <section class="booking-panel booking-panel-schedule {{ $bookingInitialStep === 'schedule' ? 'is-mobile-active' : '' }}" id="booking-panel-schedule">
                     <h2>Choose a Date and Time</h2>
