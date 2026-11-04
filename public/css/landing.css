@@ -183,7 +183,7 @@ html[data-theme="dark"] .modal-pill {
         bottom: max(8px, env(safe-area-inset-bottom));
         left: max(10px, env(safe-area-inset-left));
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, .8fr) minmax(0, 1.55fr) minmax(0, .9fr);
         gap: 2px;
         padding: 7px 6px;
         border: 1px solid #d5e1dd;
@@ -234,9 +234,9 @@ html[data-theme="dark"] .modal-pill {
     .customer-mobile-shortcut-label {
         display: block;
         max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: normal;
+        word-break: normal;
     }
 
     .customer-mobile-shortcuts [aria-current],
@@ -295,7 +295,7 @@ html[data-theme="dark"] .modal-pill {
 
     .customer-mobile-shortcuts a,
     .customer-mobile-shortcuts button {
-        font-size: 9px;
+        font-size: 10px;
     }
 
     .customer-mobile-shortcut-icon {

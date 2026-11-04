@@ -827,18 +827,22 @@
         html[data-theme="dark"] .profile-body .profile-local-actions :is(.section-save-btn,.section-cancel-btn):focus-visible{outline-color:#d3eadc}
         @media(max-width:900px){.profile-page > .profile-layout{grid-template-columns:160px minmax(0,1fr);gap:16px}.profile-category-sidebar{padding:14px 6px}}
         @media(max-width:600px){
-            .profile-page > .profile-layout{width:calc(100% - 20px);grid-template-columns:104px minmax(0,1fr);gap:10px}
+            .profile-page > .profile-layout{width:calc(100% - 20px);grid-template-columns:118px minmax(0,1fr);gap:8px}
             .profile-page-actions{width:calc(100% - 20px)}
             .profile-category-sidebar{padding:12px 4px;top:12px}
             .profile-category-sidebar h2{font-size:.72rem;margin:0 6px 10px;padding-bottom:10px}
-            .profile-category-sidebar a{font-size:.78rem;line-height:1.5;padding:10px 4px;overflow-wrap:anywhere}
+            .profile-category-sidebar a{font-size:.78rem;line-height:1.5;padding:10px 4px;overflow-wrap:normal;word-break:normal;hyphens:none}
             .profile-category-edit-note{font-size:.7rem;margin:.75rem 6px 0}
-            .profile-topbar{padding:12px 10px;font-size:.85rem}
-            .profile-topbar span{font-size:.65rem}
-            .profile-head{padding:16px 10px}
-            .profile-avatar{width:72px;height:72px}
-            .profile-title{font-size:1.1rem}
-            .profile-body{padding:16px 12px}
+            .profile-topbar{padding:10px;flex-direction:column;align-items:flex-start;gap:4px}
+            .profile-topbar strong{font-size:.8rem}
+            .profile-topbar span{font-size:.7rem}
+            .profile-head{padding:12px 8px}
+            .profile-id{gap:8px}
+            .profile-meta{min-height:0}
+            .profile-avatar{width:56px;height:56px}
+            .profile-avatar-edit{left:auto;right:-18px;bottom:0;width:44px;height:44px}
+            .profile-title{font-size:1.05rem;line-height:1.3}
+            .profile-body{padding:16px 10px}
             .profile-category-heading{grid-template-columns:minmax(0,1fr)}
             .profile-category-heading .profile-local-actions{justify-content:flex-start}
             .profile-category-heading h2,.profile-section-head h2{font-size:1.05rem}
@@ -848,6 +852,9 @@
             .profile-field input:read-only,.profile-field input#age,.profile-field input#birthday:read-only{padding:.75rem .6rem}
             .profile-grid{grid-template-columns:minmax(0,1fr)}
             .profile-grid .profile-field-span2{grid-column:auto}
+            body:has(.profile-page) .tnr-chat{left:14px;right:auto}
+            body:has(.profile-page) .tnr-chat-launcher{width:48px;min-height:48px;padding:0}
+            body:has(.profile-page) .tnr-chat-launcher > span{display:none}
         }
     </style>
     @include('partials.chatbot-assets')

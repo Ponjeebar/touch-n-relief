@@ -88,6 +88,28 @@ for (const theme of ['light', 'dark']) {
             const sidebarBox = await page.locator('.profile-category-sidebar').boundingBox();
             expect(sidebarBox.x + sidebarBox.width).toBeLessThan(panel.x);
             for (const link of await categories.getByRole('link').all()) await expect(link).toBeInViewport();
+            if (width <= 600) {
+                const launcher = page.getByRole('button', { name: 'Open help chat', exact: true });
+                const launcherBox = await launcher.boundingBox();
+                expect(launcherBox.x + launcherBox.width).toBeLessThan(panel.x);
+                await launcher.click();
+                await expect(page.locator('.tnr-chat-panel')).toBeVisible();
+                await page.getByRole('button', { name: 'Close help chat', exact: true }).click();
+                expect(await categories.getByRole('link', { name: 'My Appointments', exact: true }).evaluate(link => {
+                    const range = document.createRange();
+                    const text = link.firstChild;
+                    const start = text.textContent.indexOf('Appointments');
+                    range.setStart(text, start);
+                    range.setEnd(text, start + 'Appointments'.length);
+                    return range.getClientRects().length;
+                })).toBe(1);
+            }
+            if (width <= 1100) {
+                const labels = page.locator('.customer-mobile-shortcut-label');
+                for (const label of await labels.all()) {
+                    expect(await label.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+                }
+            }
             await page.screenshot({ path: 'test-results/profile-categories-' + width + '-' + theme + '.png' });
             await selectSection(page, 'Account details');
             await expect(page).toHaveURL(/#account-details$/);
