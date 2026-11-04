@@ -89,6 +89,18 @@
             </form>
         </div>
 
+
+        <div class="toggle-container" aria-hidden="true">
+            <div class="toggle">
+                <div class="toggle-panel toggle-right">
+                    <div class="toggle-panel-logo-wrap">
+                        <img src="{{ asset('images/dashboard/logo.png') }}" alt="" class="auth-toggle-logo" width="240" height="240">
+                    </div>
+                    <h1>Secure your<br>TouchNRelief account</h1>
+                    <p class="auth-reset-panel-copy">After saving, sign in using your new password.</p>
+                </div>
+            </div>
+        </div>
     </main>
     <script src="{{ asset('js/password-requirements.js') }}?v={{ filemtime(public_path('js/password-requirements.js')) }}"></script>
 </body>

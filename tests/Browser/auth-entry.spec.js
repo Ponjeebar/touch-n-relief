@@ -32,7 +32,7 @@ for (const theme of ['light', 'dark']) {
             expect(Math.abs(signInBox.x - identityBox.x)).toBeLessThanOrEqual(1);
             expect(Math.abs(signInBox.width - identityBox.width)).toBeLessThanOrEqual(1);
             await page.screenshot({ path: testInfo.outputPath(`login-${width}.png`), animations: 'disabled' });
-            await page.locator('[data-auth-panel="register"]').click();
+            await page.locator(width > 700 ? '#register' : '[data-auth-panel="register"]').click();
             const registration = page.locator('#register-form');
             await expect(registration.getByLabel('Full name', { exact: true })).toBeVisible();
             await registration.getByLabel('Full name', { exact: true }).fill('Maria Clara');
@@ -50,10 +50,12 @@ for (const theme of ['light', 'dark']) {
             await expect(registration.getByLabel('Full name', { exact: true })).toHaveValue('Maria Clara');
             await page.screenshot({ path: testInfo.outputPath(`signup-${width}.png`), animations: 'disabled' });
             expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-            await page.locator('.sign-up [data-auth-panel="login"]').click();
+            await page.locator(width > 700 ? '#login' : '.sign-up [data-auth-panel="login"]').click();
             await expect(login.getByLabel('Password', { exact: true })).toBeVisible();
             await login.getByRole('link', { name: 'Forgot Password?', exact: true }).click();
             await expect(page.locator('.auth-forgot-panel')).toHaveAttribute('aria-hidden', 'false');
+            await page.locator('.auth-forgot-panel').getByLabel('Email address', { exact: true }).fill('preview@example.test');
+            await page.screenshot({ path: testInfo.outputPath(`forgot-${width}.png`), animations: 'disabled' });
             await page.locator('[data-auth-forgot-close]').click();
             await expect(login).toHaveAttribute('aria-hidden', 'false');
         }
@@ -68,6 +70,21 @@ async function loginSuccessfully(page) {
     await form.getByRole('button', { name: 'Sign In', exact: true }).click({ noWaitAfter: true });
     await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
 }
+
+test('desktop account panel slides between sign in and sign up', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/login');
+    const panel = page.locator('.toggle-container');
+    const start = await panel.boundingBox();
+    await page.locator('#register').click();
+    await expect.poll(async () => Math.round((await panel.boundingBox()).x)).toBeLessThan(start.x - 400);
+    await page.locator('#register-form [name="name"]').fill('Maria Clara');
+    await page.locator('#login').click();
+    await expect.poll(async () => Math.round((await panel.boundingBox()).x)).toBe(Math.round(start.x));
+    await expect(page.locator('.auth-login-panel')).not.toHaveAttribute('inert', '');
+    await page.locator('#register').click();
+    await expect(page.locator('#register-form [name="name"]')).toHaveValue('Maria Clara');
+});
 
 test('auth header stays readable above long forms on short laptop screens', async ({ page }, testInfo) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });

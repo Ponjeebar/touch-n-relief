@@ -19,23 +19,39 @@
                 <div class="auth-reset-heading">
                     <span class="auth-reset-icon" aria-hidden="true"><i class="bi bi-envelope-check"></i></span>
                     <div>
-                        <span class="auth-reset-eyebrow">Email verification</span>
+                        <span class="auth-reset-eyebrow">{{ $verification->purpose === \App\Models\AuthVerificationCode::PURPOSE_PASSWORD_RESET ? 'Password recovery' : 'Email verification' }}</span>
                         <h1>Enter your code</h1>
                     </div>
                 </div>
                 <p class="auth-reset-copy">We sent a six digit code to <strong>{{ $verification->email }}</strong>. It expires in 10 minutes.</p>
                 @if (session('status'))<p class="field-msg auth-forgot-success">{{ session('status') }}</p>@endif
-                <label class="auth-field-label" for="verification-code">Verification code</label>
+                <label class="auth-field-label" for="verification-code" data-code-fallback-label>Verification code</label>
                 <input id="verification-code" class="auth-code-input @error('code') invalid @enderror" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autofocus required>
-                @error('code')<p class="field-msg">{{ $message }}</p>@enderror
+                <fieldset class="auth-code-digits" data-code-digits hidden aria-describedby="verification-code-help @error('code') verification-code-error @enderror">
+                    <legend>Verification code</legend>
+                    <div class="auth-code-digit-row">
+                        @for ($digit = 1; $digit <= 6; $digit++)
+                            <input type="text" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="{{ $digit === 1 ? 'one-time-code' : 'off' }}" aria-label="Digit {{ $digit }} of 6" @error('code') aria-invalid="true" @enderror>
+                        @endfor
+                    </div>
+                </fieldset>
+                <p class="auth-code-help" id="verification-code-help">Enter the six digits from your email. You can also paste the full code.</p>
+                @error('code')<p class="field-msg" id="verification-code-error" role="alert">{{ $message }}</p>@enderror
                 <button type="submit">Verify code</button>
                 <p class="auth-reset-hint">Do not share your verification code with anyone.</p>
                 <div class="auth-code-actions">
-                    <button type="submit" class="link auth-forgot-back" formaction="{{ $verificationResendUrl ?? route('verification.resend', $verification) }}">Send a new code</button>
+                    <button type="submit" class="link auth-forgot-back" formnovalidate formaction="{{ $verificationResendUrl ?? route('verification.resend', $verification) }}">Send a new code</button>
                     <a class="link" href="{{ $verificationBackUrl ?? route('login') }}">{{ $verificationBackLabel ?? 'Back to Sign In' }}</a>
                 </div>
             </form>
         </div>
+
+        <div class="toggle-container" aria-hidden="true"><div class="toggle"><div class="toggle-panel toggle-right">
+            <img src="{{ asset('images/dashboard/logo.png') }}" alt="" class="auth-toggle-logo" width="220" height="220">
+            <h1>Protecting your<br>TouchNRelief account</h1>
+            <p>Do not share your verification code with anyone.</p>
+        </div></div></div>
     </main>
+    <script src="{{ asset('js/verification-code.js') }}?v={{ filemtime(public_path('js/verification-code.js')) }}" defer></script>
 </body>
 </html>

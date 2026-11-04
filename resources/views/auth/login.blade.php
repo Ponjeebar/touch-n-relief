@@ -269,13 +269,18 @@
 
             <form method="POST" action="{{ route('password.email') }}" class="auth-forgot-panel" aria-hidden="{{ ! $showRegister && $showForgot ? 'false' : 'true' }}" @if ($showRegister || ! $showForgot) inert @endif>
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                <h1>Forgot Password</h1>
-                <p class="auth-forgot-copy">Enter your email and we will send a six digit verification code.</p>
+                <div class="auth-reset-heading">
+                    <span class="auth-reset-icon" aria-hidden="true"><i class="bi bi-key"></i></span>
+                    <div><span class="auth-reset-eyebrow">Account recovery</span><h1>Forgot password?</h1></div>
+                </div>
+                <p class="auth-forgot-copy">Enter the email address linked to your TouchNRelief account. We will send a six-digit code so you can choose a new password.</p>
                 <input type="hidden" name="_auth_mode" value="forgot">
+                <label class="auth-field-label" for="recovery-email">Email address</label>
                 <input
+                    id="recovery-email"
                     type="email"
                     name="email"
-                    placeholder="Enter E-mail"
+                    placeholder="you@example.com"
                     value="{{ old('email') }}"
                     autocomplete="email"
                     class="@error('email') invalid @enderror"
@@ -290,6 +295,42 @@
                 <button type="submit">Send verification code</button>
                 <button type="button" class="link auth-forgot-back" data-auth-forgot-close="true" data-login-url="{{ route('login') }}">Back to Sign In</button>
             </form>
+        </div>
+        <div class="toggle-container">
+            <div class="toggle">
+                <div class="toggle-panel toggle-left" aria-hidden="{{ $showRegister ? 'false' : 'true' }}" @if (! $showRegister) inert @endif>
+                    <div class="toggle-panel-logo-wrap">
+                        <img
+                            src="{{ asset('images/dashboard/logo.png') }}"
+                            alt="{{ $brandName }} logo"
+                            class="auth-toggle-logo"
+                            width="240"
+                            height="240"
+                            decoding="async"
+                        >
+                    </div>
+                    <p class="auth-spa-name">Buenos Touché Spa</p>
+                    <h1>Already have an account?</h1>
+                    <p class="auth-panel-copy">Sign in to view your appointments and payment details.</p>
+                    <button type="button" class="hidden" id="login">Sign In</button>
+                </div>
+                <div class="toggle-panel toggle-right" aria-hidden="{{ $showRegister ? 'true' : 'false' }}" @if ($showRegister) inert @endif>
+                    <div class="toggle-panel-logo-wrap">
+                        <img
+                            src="{{ asset('images/dashboard/logo.png') }}"
+                            alt="{{ $brandName }} logo"
+                            class="auth-toggle-logo"
+                            width="240"
+                            height="240"
+                            decoding="async"
+                        >
+                    </div>
+                    <p class="auth-spa-name">Buenos Touché Spa</p>
+                    <h1>Your next visit starts here.</h1>
+                    <p class="auth-panel-copy">Choose a service, find an available therapist, and book your time.</p>
+                    <button type="button" class="hidden" id="register">Sign Up</button>
+                </div>
+            </div>
         </div>
     </div>
 

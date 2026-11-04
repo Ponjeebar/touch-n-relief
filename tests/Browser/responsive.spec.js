@@ -300,14 +300,14 @@ test('authentication panels expose only the visible form to keyboard focus', asy
         await registrationName.focus();
         await expect(registrationName).not.toBeFocused();
 
-        await page.locator('.auth-login-panel [data-auth-panel="register"]').click();
+        await page.locator(viewport.width > 700 ? '#register' : '.auth-login-panel [data-auth-panel="register"]').click();
         await expect(signUp).not.toHaveAttribute('inert', '');
         await expect(signIn).toHaveAttribute('inert', '');
         await expect(registrationName).toBeFocused();
         await loginInput.focus();
         await expect(loginInput).not.toBeFocused();
 
-        await page.locator('#register-form [data-auth-panel="login"]').click();
+        await page.locator(viewport.width > 700 ? '#login' : '#register-form [data-auth-panel="login"]').click();
         await expect(loginInput).toBeFocused();
         await page.locator('[data-auth-forgot-open="true"]').click();
         await expect(page.locator('.auth-login-panel')).toHaveAttribute('inert', '');
