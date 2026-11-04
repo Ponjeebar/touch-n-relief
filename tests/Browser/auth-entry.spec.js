@@ -20,6 +20,10 @@ for (const theme of ['light', 'dark']) {
             await login.getByRole('button', { name: 'Show password', exact: true }).click();
             await expect(login.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'text');
             await login.getByRole('button', { name: 'Hide password', exact: true }).click();
+            const identityBox = await login.getByLabel('Username, name, or email', { exact: true }).boundingBox();
+            const signInBox = await login.getByRole('button', { name: 'Sign In', exact: true }).boundingBox();
+            expect(Math.abs(signInBox.x - identityBox.x)).toBeLessThanOrEqual(1);
+            expect(Math.abs(signInBox.width - identityBox.width)).toBeLessThanOrEqual(1);
             await page.screenshot({ path: testInfo.outputPath(`login-${width}.png`), animations: 'disabled' });
             await page.locator(width > 700 ? '#register' : '[data-auth-panel="register"]').click();
             const registration = page.locator('#register-form');
@@ -29,6 +33,12 @@ for (const theme of ['light', 'dark']) {
             await registration.getByText('Female', { exact: true }).click();
             await registration.getByRole('button', { name: 'Next', exact: false }).click();
             await expect(registration.getByLabel('Email address', { exact: true })).toBeVisible();
+            const actions = await registration.locator('.auth-registration-actions').boundingBox();
+            for (const button of await registration.locator('.auth-registration-actions button:visible').all()) {
+                const box = await button.boundingBox();
+                expect(box.x).toBeGreaterThanOrEqual(actions.x - 1);
+                expect(box.x + box.width).toBeLessThanOrEqual(actions.x + actions.width + 1);
+            }
             await registration.getByRole('button', { name: 'Back', exact: true }).click();
             await expect(registration.getByLabel('Full name', { exact: true })).toHaveValue('Maria Clara');
             await page.screenshot({ path: testInfo.outputPath(`signup-${width}.png`), animations: 'disabled' });

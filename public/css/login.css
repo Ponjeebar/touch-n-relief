@@ -2120,6 +2120,7 @@ body.auth-entry-page #container .auth-social-button { min-height: 48px; font-siz
 body.auth-entry-page #container .auth-login-options { gap: 12px; }
 body.auth-entry-page #container .auth-remember-option, body.auth-entry-page #container .auth-login-options a { font-size: 12px; }
 body.auth-entry-page #container button[type="submit"], body.auth-entry-page #container .auth-registration-next { min-height: 48px; border-radius: 6px; font-size: 15px; font-weight: 600; box-shadow: none; }
+body.auth-entry-page #container :is(.auth-login-panel,.auth-forgot-panel) > button[type="submit"] { width: 100%; max-width: none; align-self: stretch; margin-inline: 0; }
 body.auth-entry-page .auth-registration-progress { margin: 18px 0 24px; }
 body.auth-entry-page .auth-registration-progress li { font-size: 12px; }
 body.auth-entry-page #container .sign-up form { padding-top: 26px; padding-bottom: 26px; }
