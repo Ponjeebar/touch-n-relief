@@ -2182,6 +2182,18 @@ body.auth-entry-page.auth-reset-page #container.auth-reset-card form { height: a
 body.auth-entry-page.auth-reset-page #container.auth-reset-card form > * { flex-shrink: 0; }
 body.auth-entry-page.auth-reset-page #container.auth-reset-card form > .auth-field-label { max-width: 380px; }
 body.auth-entry-page.auth-reset-page #container.auth-reset-card form > button[type="submit"] { width: 100%; max-width: 380px; padding-inline: 16px; }
+body.auth-entry-page #container form.auth-new-password-form > :not([type="hidden"]) { width: 100%; max-width: 380px; align-self: center; text-align: left; }
+body.auth-entry-page #container .auth-new-password-form .auth-reset-heading { margin-bottom: 14px; }
+body.auth-entry-page #container .auth-new-password-form .auth-reset-heading h1 { margin-bottom: 0; }
+body.auth-entry-page #container .auth-new-password-form .auth-reset-copy { margin: 0 0 20px; font-size: 14px; line-height: 1.6; }
+body.auth-entry-page #container .auth-new-password-form > .auth-field-label { margin: 16px 0 6px; font-size: 13px; }
+body.auth-entry-page #container .auth-new-password-form > .auth-field-label:first-of-type { margin-top: 0; }
+body.auth-entry-page #container .auth-new-password-form input { margin: 0; width: 100%; max-width: none; }
+body.auth-entry-page #container .auth-new-password-form .auth-reset-hint { margin: 16px 0 0; font-size: 12px; }
+body.auth-entry-page #container .auth-new-password-form > .field-msg { margin: 6px 0 0; }
+body.auth-entry-page #container .auth-new-password-form > button[type="submit"] { margin: 20px 0 0; text-align: center; }
+body.auth-entry-page #container .auth-new-password-form .auth-reset-back { margin-top: 16px; display: flex; justify-content: center; }
+body.auth-entry-page #container .auth-new-password-form .auth-reset-back a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; margin: 0; font-size: 13px; }
 @media(max-width:700px) {
     body.auth-entry-page.auth-reset-page #container.auth-reset-card { grid-template-columns: minmax(0, 1fr); min-height: 0; }
     body.auth-entry-page.auth-reset-page #container.auth-reset-card form { padding: 28px 22px; }
@@ -2204,8 +2216,6 @@ body.auth-entry-page #container [data-code-submit][hidden] { display: none; }
 .auth-code-status.is-verified { color: var(--auth-primary); font-weight: 600; }
 body.auth-entry-page #container [data-recovery-code] .auth-code-digits.is-verified input { border-color: var(--auth-primary); background: var(--auth-input-bg); }
 html[data-theme="dark"] .auth-code-status.is-verified { color: #83c9a0; }
-.auth-recovery-verified { display:flex; align-items:center; gap:10px; width:100%; max-width:380px; margin:0 0 20px; padding:12px; border-left:3px solid var(--auth-primary); background:var(--auth-input-bg); color:var(--auth-text); font-size:13px; line-height:1.5; text-align:left; }
-.auth-recovery-verified i { font-size:24px; }
 html[data-theme="dark"] body.auth-entry-page #container [data-recovery-code] .auth-code-digit-row input:focus { outline-color:#83c9a0; border-color:#83c9a0; }
 html[data-theme="dark"] body.auth-entry-page #container [data-recovery-code] .auth-code-digit-row input[aria-invalid="true"] { border-color:#ef9494; }
 .auth-code-help { width: 100%; max-width: 380px; margin: 12px 0; color: var(--auth-muted); font-size: 12px; line-height: 1.6; text-align: left; }

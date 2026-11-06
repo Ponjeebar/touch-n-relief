@@ -154,7 +154,7 @@ test('password recovery automatically checks the code and shows success only aft
         finishVerification();
         await expect(page.locator('[data-code-status]')).toHaveText('Code verified. Opening password reset…');
         await expect(page).toHaveURL(/\/reset-password\//);
-        await expect(page.locator('.auth-recovery-verified')).toContainText('Code verified');
+        await expect(page.getByText('Code verified. Choose your new password below.', { exact: true })).toHaveCount(0);
         await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
         await page.screenshot({ path: testInfo.outputPath('recovery-verified-mobile.png') });
         expect(requests).toBe(1);
@@ -164,7 +164,6 @@ test('password recovery automatically checks the code and shows success only aft
                 await page.setViewportSize({ width, height });
                 await page.evaluate(() => window.scrollTo(0, 0));
                 for (const element of [
-                    page.locator('.auth-recovery-verified'),
                     page.getByRole('heading', { name: 'Choose a new password' }),
                     page.getByLabel('Email address', { exact: true }),
                     page.getByLabel('New password', { exact: true }),
