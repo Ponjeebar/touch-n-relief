@@ -145,6 +145,32 @@ test('password recovery automatically checks the code and shows success only aft
         await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
         await page.screenshot({ path: testInfo.outputPath('recovery-verified-mobile.png') });
         expect(requests).toBe(1);
+        for (const theme of ['light', 'dark']) {
+            await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+            for (const [width, height] of [[1920, 920], [1366, 768], [1280, 600], [800, 450], [390, 844], [320, 667]]) {
+                await page.setViewportSize({ width, height });
+                await page.evaluate(() => window.scrollTo(0, 0));
+                for (const element of [
+                    page.locator('.auth-recovery-verified'),
+                    page.getByRole('heading', { name: 'Choose a new password' }),
+                    page.getByLabel('Email address', { exact: true }),
+                    page.getByLabel('New password', { exact: true }),
+                    page.getByLabel('Confirm new password', { exact: true }),
+                    page.getByRole('button', { name: 'Save new password', exact: true }),
+                    page.getByRole('link', { name: 'Back to Sign In', exact: true }),
+                ]) {
+                    const card = await page.locator('#container').boundingBox();
+                    const bounds = await element.boundingBox();
+                    expect(bounds.y, `clipped top at ${width}/${theme}`).toBeGreaterThanOrEqual(card.y);
+                    expect(bounds.y + bounds.height, `clipped bottom at ${width}/${theme}`).toBeLessThanOrEqual(card.y + card.height);
+                    await element.scrollIntoViewIfNeeded();
+                    await expect(element).toBeInViewport();
+                }
+                await page.evaluate(() => window.scrollTo(0, 0));
+                await page.screenshot({ path: testInfo.outputPath(`verified-reset-${width}-${theme}.png`), fullPage: true });
+                expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+            }
+        }
     } finally {
         fixture(`App\\Models\\AuthVerificationCode::whereKey('${recoveryId}')->delete();`);
     }

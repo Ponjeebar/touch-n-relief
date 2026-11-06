@@ -2176,6 +2176,16 @@ body.auth-entry-page #container .auth-forgot-panel > input { max-width: none; }
 body.auth-entry-page #container .auth-forgot-panel > .auth-field-label { margin-bottom: 6px; }
 body.auth-entry-page #container .auth-forgot-panel > button[type="submit"] { padding: 12px 16px; font-size: 14px; line-height: 1.4; }
 body.auth-entry-page #container .auth-reset-copy { overflow-wrap: anywhere; }
+body.auth-entry-page.auth-reset-page #container.auth-reset-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); height: auto; }
+body.auth-entry-page.auth-reset-page #container.auth-reset-card .form-container.sign-in { position: relative; top: auto; left: auto; width: auto; height: auto; min-width: 0; overflow: visible; }
+body.auth-entry-page.auth-reset-page #container.auth-reset-card form { height: auto; min-height: 100%; justify-content: flex-start; padding: 32px 40px; }
+body.auth-entry-page.auth-reset-page #container.auth-reset-card form > * { flex-shrink: 0; }
+body.auth-entry-page.auth-reset-page #container.auth-reset-card form > .auth-field-label { max-width: 380px; }
+body.auth-entry-page.auth-reset-page #container.auth-reset-card form > button[type="submit"] { width: 100%; max-width: 380px; padding-inline: 16px; }
+@media(max-width:700px) {
+    body.auth-entry-page.auth-reset-page #container.auth-reset-card { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+    body.auth-entry-page.auth-reset-page #container.auth-reset-card form { padding: 28px 22px; }
+}
 .auth-code-digits { width: 100%; max-width: 380px; border: 0; padding: 0; margin: 12px 0 0; min-width: 0; }
 .auth-code-digits[hidden] { display: none; }
 .auth-code-digits legend { font-size: 13px; font-weight: 600; color: var(--auth-text); padding: 0; margin-bottom: 10px; }
