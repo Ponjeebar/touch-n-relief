@@ -2200,7 +2200,7 @@ body.auth-entry-page #container [data-recovery-code] .auth-code-digit-row input[
 body.auth-entry-page #container [data-recovery-code] .auth-code-digits.is-checking { opacity: .65; }
 body.auth-entry-page #container [data-code-submit][hidden] { display: none; }
 .auth-code-status { width: 100%; max-width: 380px; min-height: 40px; margin: 0 0 12px; color: var(--auth-muted); font-size: 13px; line-height: 1.5; text-align: left; }
-.auth-code-status[hidden] { display: none; }
+.auth-code-status[hidden], .auth-code-status:empty { display: none; }
 .auth-code-status.is-verified { color: var(--auth-primary); font-weight: 600; }
 body.auth-entry-page #container [data-recovery-code] .auth-code-digits.is-verified input { border-color: var(--auth-primary); background: var(--auth-input-bg); }
 html[data-theme="dark"] .auth-code-status.is-verified { color: #83c9a0; }
@@ -2209,8 +2209,16 @@ html[data-theme="dark"] .auth-code-status.is-verified { color: #83c9a0; }
 html[data-theme="dark"] body.auth-entry-page #container [data-recovery-code] .auth-code-digit-row input:focus { outline-color:#83c9a0; border-color:#83c9a0; }
 html[data-theme="dark"] body.auth-entry-page #container [data-recovery-code] .auth-code-digit-row input[aria-invalid="true"] { border-color:#ef9494; }
 .auth-code-help { width: 100%; max-width: 380px; margin: 12px 0; color: var(--auth-muted); font-size: 12px; line-height: 1.6; text-align: left; }
-body.auth-entry-page #container.auth-code-card .auth-code-actions { flex-wrap: wrap; }
-body.auth-entry-page #container.auth-code-card .auth-code-actions .link { color: var(--auth-accent-blue); min-height: 44px; }
+body.auth-entry-page #container.auth-code-card form > :is(.auth-reset-heading, .auth-reset-copy, .auth-field-label, .field-msg, .auth-reset-hint, .auth-code-actions) { width: 100%; max-width: 380px; text-align: left; }
+body.auth-entry-page #container.auth-code-card .auth-reset-heading { margin-bottom: 16px; }
+body.auth-entry-page #container.auth-code-card .auth-reset-heading h1 { margin-bottom: 0; }
+body.auth-entry-page #container.auth-code-card .auth-reset-copy { margin: 0 0 24px; line-height: 1.65; font-size: 14px; }
+.auth-code-email { display: block; color: var(--auth-text); overflow-wrap: anywhere; }
+.auth-code-expiry { display: block; margin-top: 4px; font-size: 12px; }
+body.auth-entry-page #container.auth-code-card .auth-code-digits { margin-top: 0; }
+body.auth-entry-page #container.auth-code-card .auth-reset-hint { margin: 16px 0 0; font-size: 12px; }
+body.auth-entry-page #container.auth-code-card .auth-code-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--auth-line); }
+body.auth-entry-page #container.auth-code-card .auth-code-actions .link { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; margin: 0; padding: 8px 4px; font-size: 13px; line-height: 1.5; text-align: center; color: var(--auth-accent-blue); }
 html[data-theme="dark"] body.auth-entry-page { --auth-text: #eef7f1; --auth-muted: #c0d5c9; --auth-line: #426251; --auth-surface: #193025; --auth-input-bg: #12261c; --auth-accent-blue: #b4e4ca; background: #10251e; }
 html[data-theme="dark"] body.auth-entry-page #container { box-shadow: none; }
 html[data-theme="dark"] body.auth-entry-page .auth-page-header { background: transparent; }

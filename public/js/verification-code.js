@@ -21,7 +21,7 @@
             status.textContent = 'Code complete. Checking shortly…';
             submitTimer = window.setTimeout(() => form.requestSubmit(submit), 450);
         } else if (automatic && !submitting) {
-            status.textContent = 'Enter all six digits to continue.';
+            status.textContent = '';
         }
     };
     function focusDigit(index) {
@@ -162,7 +162,7 @@
     if (automatic) {
         submit.hidden = true;
         status.hidden = false;
-        status.textContent = 'Enter all six digits to continue.';
+        status.textContent = '';
         document.getElementById('verification-code-help').textContent = 'Type or paste your code. It will be checked automatically.';
     }
     if (code.value) distribute(code.value, 0);

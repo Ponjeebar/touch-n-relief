@@ -39,6 +39,12 @@ for (const theme of ['light', 'dark']) {
             await expect(digits).toHaveCount(6);
             await page.getByLabel('Digit 1 of 6', { exact: true }).pressSequentially(width === 390 ? '000000' : '00000');
             await expect(page.getByRole('button', { name: 'Send a new code' })).toBeVisible();
+            const resendBounds = await page.getByRole('button', { name: 'Send a new code' }).boundingBox();
+            const backBounds = await page.getByRole('link', { name: 'Back to Sign In', exact: true }).boundingBox();
+            expect(Math.abs(resendBounds.y - backBounds.y), 'Recovery actions should share a row').toBeLessThan(2);
+            const emailBounds = await page.getByText('account-preview@browser.test', { exact: true }).boundingBox();
+            const codeBounds = await page.locator('[data-code-digits]').boundingBox();
+            expect(Math.abs(emailBounds.x - codeBounds.x), 'Email and code fields should share a left edge').toBeLessThan(2);
             if (width === 390) {
                 await expect(page.locator('#verification-code-error')).toContainText('Incorrect code.');
                 await expect(page.locator('.field-msg')).toContainText('Incorrect code.');

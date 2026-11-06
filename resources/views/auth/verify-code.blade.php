@@ -23,7 +23,7 @@
                         <h1>Enter your code</h1>
                     </div>
                 </div>
-                <p class="auth-reset-copy">We sent a six digit code to <strong>{{ $verification->email }}</strong>. It expires in 10 minutes.</p>
+                <p class="auth-reset-copy">We sent a six-digit code to <strong class="auth-code-email">{{ $verification->email }}</strong><span class="auth-code-expiry">The code expires in 10 minutes.</span></p>
                 @if (session('status'))<p class="field-msg auth-forgot-success">{{ session('status') }}</p>@endif
                 <label class="auth-field-label" for="verification-code" data-code-fallback-label>Verification code</label>
                 <input id="verification-code" class="auth-code-input @error('code') invalid @enderror" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autofocus required>
