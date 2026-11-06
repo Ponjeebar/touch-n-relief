@@ -782,14 +782,14 @@ body.auth-page #container.active .sign-up {
         overflow: visible;
     }
 
-    body.auth-page #container.active .sign-up .password-requirements {
+    body.auth-page #container.active .sign-up form:not(.auth-registration-wizard) .password-requirements {
         left: calc(100% + 24px);
         top: 50%;
         width: 250px;
         transform: translate(-8px, -50%);
     }
 
-    body.auth-page #container.active .sign-up .auth-password-policy-field:focus-within .password-requirements {
+    body.auth-page #container.active .sign-up form:not(.auth-registration-wizard) .auth-password-policy-field:focus-within .password-requirements {
         transform: translate(0, -50%);
     }
 }
@@ -1931,12 +1931,20 @@ body.auth-page #container .sign-up form h1 {
     color: var(--auth-primary);
 }
 
-.auth-registration-progress [aria-current="step"] .auth-step-number,
-.auth-registration-progress .is-complete .auth-step-number {
+.auth-registration-progress [aria-current="step"] .auth-step-number {
     background: var(--auth-primary);
     border-color: var(--auth-primary);
     color: #fff;
 }
+
+.auth-registration-progress .is-complete .auth-step-number {
+    background: var(--auth-input-bg);
+    border-color: var(--auth-primary);
+    color: var(--auth-primary);
+}
+
+.auth-registration-progress [aria-current="step"] { font-weight: 700; }
+html[data-theme="dark"] .auth-registration-progress [aria-current="step"] .auth-step-number { color: #06271f; }
 
 .auth-registration-step {
     width: 100%;
@@ -1956,11 +1964,14 @@ body.auth-page #container .sign-up form.auth-registration-wizard .auth-password-
     width: 100%;
     margin-top: 10px;
     padding: 12px;
+    border-radius: 6px;
+    border-color: var(--auth-line);
     background: var(--auth-input-bg);
     box-shadow: none;
     opacity: 1;
     visibility: visible;
     transform: none;
+    transition: none;
 }
 
 body.auth-page #container .sign-up form .auth-registration-step .auth-field-label {
@@ -2157,14 +2168,21 @@ body.auth-entry-page #container .sign-up .auth-entry-copy { display: none; }
 body.auth-entry-page #container .sign-up .auth-social { margin: 8px 0 0; }
 body.auth-entry-page #container .sign-up .auth-divider { margin: 8px 0; }
 body.auth-entry-page #container .sign-up .auth-registration-progress { margin: 12px 0; }
-body.auth-entry-page #container .sign-up .auth-registration-step h2 { margin-bottom: 10px; }
+body.auth-entry-page #container .sign-up .auth-registration-step h2 { margin-bottom: 12px; color: var(--auth-muted); font-size: 14px; }
 body.auth-entry-page #container .sign-up form .auth-registration-step .auth-field-label { margin: 8px 0 5px; }
 body.auth-entry-page #container .sign-up form .auth-registration-step :is(.auth-field-block,.auth-gender-field) { margin-top: 10px; }
 body.auth-entry-page #container .sign-up form .auth-registration-step input:not([type="checkbox"]):not([type="radio"]) { min-height: 44px; padding-block: 9px; }
 body.auth-entry-page #container .sign-up .password-requirements ul { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px 12px; }
 body.auth-entry-page #container .sign-up .password-requirements li { align-items: flex-start; }
+body.auth-entry-page #container .sign-up .password-requirements strong { margin-bottom: 8px; font-size: 12px; }
 body.auth-entry-page #container .sign-up .auth-gender-option span { padding-block: 10px; }
 body.auth-entry-page #container .sign-up .auth-registration-actions { margin-top: 14px; padding-top: 12px; }
+body.auth-entry-page #container .sign-up .auth-registration-actions button { border-radius: 6px; }
+body.auth-entry-page #container .sign-up .auth-registration-actions :is(.auth-registration-next, button[type="submit"]) { justify-content: center; min-width: 112px; }
+body.auth-entry-page #container .sign-up .auth-registration-back { padding: 10px 14px; border-color: var(--auth-line); color: var(--auth-text); }
+body.auth-entry-page #container .sign-up .auth-registration-next:disabled { opacity: .65; cursor: wait; }
+body.auth-entry-page #container .sign-up .auth-terms-option { margin-top: 12px; font-size: 12px; line-height: 1.5; }
+body.auth-entry-page #container .sign-up .auth-terms-option input { flex-shrink: 0; }
 body.auth-entry-page #container .sign-up form[data-registration-step]:not([data-registration-step="0"]) > .auth-social { display: none; }
 body.auth-entry-page .auth-registration-step h2 { font-size: 15px; color: var(--auth-text); font-weight: 500; }
 body.auth-entry-page #container .sign-up form .auth-registration-step .auth-field-label { font-size: 14px; font-weight: 600; }
@@ -2264,7 +2282,7 @@ html[data-theme="dark"] body.auth-entry-page #container .auth-social-button { bo
     body.auth-entry-page #container form h1 { font-size: 26px; }
     body.auth-entry-page #container .auth-login-options { grid-template-columns: 1fr; }
 }
-@media(max-width:380px) {
+@media(max-width:480px) {
     body.auth-entry-page #container .sign-up .password-requirements ul { grid-template-columns: 1fr; }
 }
 @media(prefers-reduced-motion:reduce) {

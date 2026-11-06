@@ -223,6 +223,22 @@ test('auth header stays separate from forms on short laptop screens', async ({ p
                     await form.getByLabel('Contact number', { exact: true }).fill('09999998765');
                     await form.getByRole('button', { name: 'Next' }).click();
                     const submit = form.getByRole('button', { name: 'Sign Up', exact: true });
+                    await expect(form).toHaveAttribute('data-registration-step', '2');
+                    const password = form.getByLabel('Password', { exact: true });
+                    const requirements = form.locator('[data-password-requirements]');
+                    const initialRequirements = await requirements.boundingBox();
+                    await password.focus();
+                    const focusedRequirements = await requirements.boundingBox();
+                    const passwordBounds = await password.boundingBox();
+                    expect(focusedRequirements.y).toBeGreaterThanOrEqual(passwordBounds.y + passwordBounds.height);
+                    expect(Math.abs(focusedRequirements.y - initialRequirements.y), 'Requirements must stay below the password on focus').toBeLessThanOrEqual(1);
+                    await password.fill('PreviewPassword9');
+                    await expect(requirements.locator('[data-password-rule="length"]')).toHaveClass(/passed/);
+                    await expect(requirements.locator('[data-password-rule="match"]')).not.toHaveClass(/passed/);
+                    await form.getByLabel('Confirm password', { exact: true }).fill('PreviewPassword9');
+                    await expect(requirements.locator('[data-password-rule="match"]')).toHaveClass(/passed/);
+                    await password.focus();
+                    await expect(form.getByLabel('Password', { exact: true })).toBeVisible();
                     if (width === 1366 && height === 768) {
                         const finalAction = await submit.boundingBox();
                         expect(finalAction.y + finalAction.height).toBeLessThanOrEqual(height);
