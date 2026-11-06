@@ -60,9 +60,9 @@
                                 <i class="bi bi-download" aria-hidden="true"></i>
                                 <span>Export Excel</span>
                             </a>
-                            <a href="{{ route('reporting.pdf', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null, 'date_from' => $dateFrom ?? null, 'date_to' => $dateTo ?? null, 'preview' => 1]) }}" class="rep-print-btn" id="repPdfLink" data-page-transition="off" target="_blank" rel="noopener" title="Preview PDF in a new tab, then download from the PDF viewer" aria-label="Preview PDF (opens in a new tab)">
+                            <a href="{{ route('reporting.pdf', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null, 'date_from' => $dateFrom ?? null, 'date_to' => $dateTo ?? null, 'preview' => 1]) }}" class="rep-print-btn" id="repPdfLink" data-page-transition="off" target="_blank" rel="noopener" title="Preview PDF in a new tab, then download from the PDF viewer" aria-label="Download Reports (opens in a new tab)">
                                 <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
-                                <span>Preview PDF</span>
+                                <span>Download Reports</span>
                             </a>
                         </div>
                         <form method="GET" action="{{ route('reporting.index') }}" class="rep-custom-range" id="repCustomRange" hidden>

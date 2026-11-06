@@ -11,7 +11,7 @@ test('report downloads stay grouped beside filters or wrap together on smaller s
     await page.evaluate(() => document.fonts.ready);
     const group = page.getByRole('group', { name: 'Report downloads', exact: true });
     const excel = group.getByRole('link', { name: 'Export Excel', exact: true });
-    const pdf = group.getByRole('link', { name: 'Preview PDF (opens in a new tab)', exact: true });
+    const pdf = group.getByRole('link', { name: 'Download Reports (opens in a new tab)', exact: true });
     const custom = page.locator('#repPeriod [data-period="custom"]');
     const range = page.locator('#repCustomRange');
     for (const width of [360, 390, 768, 1024, 1366, 1440, 1920]) {

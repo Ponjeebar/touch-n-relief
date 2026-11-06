@@ -292,7 +292,7 @@
                 step(['.rep-metrics'], 'Report totals', 'Read totals for the selected period. Collection and sales details below explain the amounts.'),
                 step(['.rep-sales-monitoring'], 'Collections and sales', 'Review collection and sales breakdowns. Gateway payments that are not allocated to a booking or membership require review and are excluded from sales totals.'),
                 step(['#repSystemHealth'], 'Operational checks', 'Expand these checks when reviewing overdue processing or gateway cases. These checks do not change appointments or financial records.'),
-                step(['.rep-download-actions'], 'Export or preview the report', 'Export Excel or open Preview PDF for the selected reporting period. Review the PDF in the new tab, then use the viewer download control to save it.'),
+                step(['.rep-download-actions'], 'Export or preview the report', 'Export Excel or select Download Reports for the selected reporting period. Review the PDF in the new tab, then use the viewer download control to save it.'),
             ],
             'landing-settings.edit': [
                 step(['#landingSettingsForm'], 'Contact, hours, and social accounts', 'Edit the spa&#39;s contact information, opening hours, and official social links shown on the landing page.'),
