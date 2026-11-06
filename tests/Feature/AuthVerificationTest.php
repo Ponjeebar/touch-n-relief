@@ -6,6 +6,7 @@ use App\Models\AuthVerificationCode;
 use App\Models\User;
 use App\Notifications\AuthVerificationCodeNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
@@ -13,6 +14,33 @@ use Tests\TestCase;
 class AuthVerificationTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_verification_emails_include_copyable_code_expiry_and_purpose_in_both_formats(): void
+    {
+        config()->set('mail.default', 'array');
+        foreach ([
+            AuthVerificationCode::PURPOSE_PASSWORD_RESET => 'reset your password',
+            AuthVerificationCode::PURPOSE_REGISTRATION => 'complete your registration',
+            AuthVerificationCode::PURPOSE_EMAIL_CHANGE => 'confirm your new email address',
+        ] as $purpose => $instruction) {
+            Notification::route('mail', 'customer@example.test')->notify(
+                new AuthVerificationCodeNotification('678901', $purpose, 'Customer <preview>')
+            );
+            $message = Mail::mailer('array')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+            $html = $message->getHtmlBody();
+            $text = $message->getTextBody();
+            foreach ([$html, $text] as $body) {
+                $this->assertStringContainsString('678901', $body);
+                $this->assertStringContainsString($instruction, $body);
+                $this->assertStringContainsString('10', $body);
+                $this->assertStringContainsString('Do not share this code', $body);
+                $this->assertStringContainsString('where you requested this code', $body);
+            }
+            $this->assertStringContainsString('Customer &lt;preview&gt;', $html);
+            $this->assertStringContainsString('cid:touch-n-relief-logo', $html);
+            $this->assertStringContainsString('Content-ID:', $message->toString());
+        }
+    }
 
     public function test_registration_creates_account_only_after_email_code_is_verified(): void
     {
