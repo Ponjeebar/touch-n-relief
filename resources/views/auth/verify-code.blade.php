@@ -37,7 +37,7 @@
                 </fieldset>
                 <p class="auth-code-help" id="verification-code-help">Enter the six digits from your email. You can also paste the full code.</p>
                 <p class="auth-code-status" data-code-status role="status" aria-live="polite" hidden></p>
-                @error('code')<p class="field-msg" id="verification-code-error" role="alert">{{ $message }}</p>@enderror
+                <p class="field-msg" id="verification-code-error" role="alert" @if(!$errors->has('code')) hidden @endif>{{ $errors->first('code') }}</p>
                 <button type="submit" data-code-submit>Verify code</button>
                 <p class="auth-reset-hint">Do not share your verification code with anyone.</p>
                 <div class="auth-code-actions">

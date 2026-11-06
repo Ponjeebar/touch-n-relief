@@ -2201,6 +2201,9 @@ body.auth-entry-page #container [data-recovery-code] .auth-code-digits.is-checki
 body.auth-entry-page #container [data-code-submit][hidden] { display: none; }
 .auth-code-status { width: 100%; max-width: 380px; min-height: 40px; margin: 0 0 12px; color: var(--auth-muted); font-size: 13px; line-height: 1.5; text-align: left; }
 .auth-code-status[hidden] { display: none; }
+.auth-code-status.is-verified { color: var(--auth-primary); font-weight: 600; }
+body.auth-entry-page #container [data-recovery-code] .auth-code-digits.is-verified input { border-color: var(--auth-primary); background: var(--auth-input-bg); }
+html[data-theme="dark"] .auth-code-status.is-verified { color: #83c9a0; }
 .auth-recovery-verified { display:flex; align-items:center; gap:10px; width:100%; max-width:380px; margin:0 0 20px; padding:12px; border-left:3px solid var(--auth-primary); background:var(--auth-input-bg); color:var(--auth-text); font-size:13px; line-height:1.5; text-align:left; }
 .auth-recovery-verified i { font-size:24px; }
 html[data-theme="dark"] body.auth-entry-page #container [data-recovery-code] .auth-code-digit-row input:focus { outline-color:#83c9a0; border-color:#83c9a0; }

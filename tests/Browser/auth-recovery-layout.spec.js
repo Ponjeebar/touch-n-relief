@@ -115,19 +115,24 @@ test('password recovery automatically checks the code and shows success only aft
     try {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto(`/verify-code/${recoveryId}?purpose=password_reset`);
+        await page.evaluate(() => { window.recoveryPageMarker = 'same document'; });
+        const verificationUrl = page.url();
         const digits = page.locator('[data-code-digits] input');
         await expect(page.getByRole('button', { name: 'Verify code', exact: true })).toBeHidden();
         await digits.first().pressSequentially('000000');
         await expect(page.locator('#verification-code-error')).toContainText('Incorrect code.');
+        expect(page.url()).toBe(verificationUrl);
+        expect(await page.evaluate(() => window.recoveryPageMarker)).toBe('same document');
         await expect(page.locator('.auth-recovery-verified')).toHaveCount(0);
         let requests = 0;
+        let finishVerification;
         await page.route(`**/verify-code/${recoveryId}`, async route => {
             if (route.request().method() !== 'POST') return route.continue();
             requests++;
+            expect(route.request().isNavigationRequest()).toBe(false);
+            await new Promise(resolve => { finishVerification = resolve; });
             await route.continue();
         });
-        // Hold the first native navigation so the checking UI can be inspected.
-        await page.evaluate(() => document.querySelector('[data-recovery-code]').addEventListener('submit', event => event.preventDefault(), { once: true }));
         await digits.first().evaluate(input => {
             const clipboard = new DataTransfer();
             clipboard.setData('text', '12 34-56');
@@ -138,8 +143,10 @@ test('password recovery automatically checks the code and shows success only aft
         await expect(page.locator('.auth-recovery-verified')).toHaveCount(0);
         await page.screenshot({ path: testInfo.outputPath('recovery-checking-mobile.png') });
         await digits.last().press('Enter');
-        expect(requests).toBe(0);
-        await page.evaluate(() => document.querySelector('[data-recovery-code]').submit());
+        await expect.poll(() => Boolean(finishVerification)).toBe(true);
+        expect(requests).toBe(1);
+        finishVerification();
+        await expect(page.locator('[data-code-status]')).toHaveText('Code verified. Opening password reset…');
         await expect(page).toHaveURL(/\/reset-password\//);
         await expect(page.locator('.auth-recovery-verified')).toContainText('Code verified');
         await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();

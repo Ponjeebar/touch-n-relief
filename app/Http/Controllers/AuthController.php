@@ -20,6 +20,7 @@ use App\Support\WalkInSchema;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -348,7 +349,7 @@ class AuthController extends Controller
         return view('auth.verify-code', ['verification' => $verification]);
     }
 
-    public function verifyCode(Request $request, AuthVerificationCode $verification): RedirectResponse
+    public function verifyCode(Request $request, AuthVerificationCode $verification): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'purpose' => ['required', Rule::in([AuthVerificationCode::PURPOSE_REGISTRATION, AuthVerificationCode::PURPOSE_PASSWORD_RESET])],
@@ -361,8 +362,12 @@ class AuthController extends Controller
             $token = PasswordBroker::createToken($user);
             $verification->delete();
 
-            return redirect()->route('password.reset', ['token' => $token, 'email' => $user->email])
-                ->with('recovery_code_verified', true);
+            $request->session()->flash('recovery_code_verified', true);
+            $resetUrl = route('password.reset', ['token' => $token, 'email' => $user->email]);
+
+            return $request->expectsJson()
+                ? response()->json(['redirect' => $resetUrl])
+                : redirect()->to($resetUrl);
         }
 
         return $this->completeVerifiedRegistration($request, $verification);

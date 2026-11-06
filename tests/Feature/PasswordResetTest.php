@@ -18,6 +18,28 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_background_code_check_rejects_invalid_code_and_returns_reset_url_only_after_verification(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create();
+        $this->post(route('password.email'), ['email' => $user->email])->assertRedirect();
+        $verification = AuthVerificationCode::query()->firstOrFail();
+        $code = null;
+        Notification::assertSentOnDemand(AuthVerificationCodeNotification::class, function ($notification) use (&$code): bool {
+            $code = $notification->code;
+
+            return true;
+        });
+        $wrong = $code === '000000' ? '111111' : '000000';
+        $this->postJson(route('verification.verify', $verification), ['purpose' => 'password_reset', 'code' => $wrong])
+            ->assertUnprocessable()->assertJsonValidationErrors('code')->assertJsonMissingPath('redirect');
+        $this->assertSame(1, $verification->fresh()->failed_attempts);
+        $response = $this->postJson(route('verification.verify', $verification), ['purpose' => 'password_reset', 'code' => $code])
+            ->assertOk()->assertJsonStructure(['redirect'])->assertSessionHas('recovery_code_verified', true);
+        $this->assertStringStartsWith(url('/reset-password/').'/', $response->json('redirect'));
+        $this->assertDatabaseMissing('auth_verification_codes', ['id' => $verification->id]);
+    }
+
     public function test_sign_in_errors_return_to_login_after_visiting_forgot_password(): void
     {
         $user = User::factory()->create(['username' => 'spa_guest', 'password' => 'CorrectPassword123!']);

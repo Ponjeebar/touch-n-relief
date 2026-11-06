@@ -10,6 +10,8 @@
     const status = form.querySelector('[data-code-status]');
     let submitTimer;
     let submitting = false;
+    const errorMessage = document.getElementById('verification-code-error');
+    group.setAttribute('aria-describedby', 'verification-code-help verification-code-error');
     const normalize = value => value.replace(/[^0-9]/g, '');
     const sync = () => {
         code.value = digits.map(input => input.value).join('');
@@ -75,26 +77,81 @@
         });
     });
 
+    function unlock() {
+        submitting = false;
+        form.removeAttribute('aria-busy');
+        group.classList.remove('is-checking');
+        digits.forEach(input => { input.readOnly = false; });
+        form.querySelectorAll('button').forEach(button => button.removeAttribute('aria-disabled'));
+    }
+
+    async function checkCode() {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 20000);
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(form),
+                signal: controller.signal,
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const error = new Error(payload.errors?.code?.[0]
+                    || (response.status === 429 ? 'Too many requests. Wait a minute before trying again.'
+                        : response.status === 419 ? 'Your session expired. Request a new recovery code.'
+                        : response.status === 404 ? 'This recovery request is no longer available. Request a new code.'
+                        : 'The code could not be checked. Please try again.'));
+                error.invalidCode = response.status === 422;
+                throw error;
+            }
+            const destination = new URL(payload.redirect, window.location.origin);
+            if (destination.origin !== window.location.origin || !destination.pathname.startsWith('/reset-password/')) {
+                throw new Error('The next step could not be opened. Request a new recovery code.');
+            }
+            group.classList.remove('is-checking');
+            group.classList.add('is-verified');
+            status.classList.add('is-verified');
+            status.textContent = 'Code verified. Opening password reset…';
+            window.setTimeout(() => window.location.assign(destination.href), 650);
+        } catch (error) {
+            unlock();
+            errorMessage.textContent = error.name === 'AbortError'
+                ? 'Checking took too long. Check your connection and try again.'
+                : error instanceof TypeError ? 'Could not connect. Check your connection and try again.' : error.message;
+            errorMessage.hidden = false;
+            digits.forEach(input => {
+                if (error.invalidCode) input.setAttribute('aria-invalid', 'true');
+            });
+            status.textContent = error.invalidCode ? 'Check the code in your email and try again.' : 'Edit a digit to retry, or request a new code.';
+            focusDigit(0);
+        } finally {
+            window.clearTimeout(timeout);
+        }
+    }
+
     form.addEventListener('submit', event => {
         window.clearTimeout(submitTimer);
         if (!automatic) return;
         if (submitting) { event.preventDefault(); return; }
         const resend = event.submitter?.hasAttribute('formaction');
+        if (!resend) event.preventDefault();
         submitting = true;
         form.setAttribute('aria-busy', 'true');
         status.textContent = resend ? 'Sending a new code…' : 'Checking code…';
         group.classList.add('is-checking');
         digits.forEach(input => { input.readOnly = true; });
         form.querySelectorAll('button').forEach(button => { button.setAttribute('aria-disabled', 'true'); });
+        errorMessage.hidden = true;
+        if (!resend) checkCode();
     });
 
     window.addEventListener('pageshow', event => {
         if (!event.persisted || !automatic) return;
-        submitting = false;
-        form.removeAttribute('aria-busy');
-        group.classList.remove('is-checking');
-        digits.forEach(input => { input.readOnly = false; });
-        form.querySelectorAll('button').forEach(button => button.removeAttribute('aria-disabled'));
+        unlock();
+        group.classList.remove('is-verified');
+        status.classList.remove('is-verified');
         status.textContent = 'Enter a code or request a new one if it has expired.';
     });
 
