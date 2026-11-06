@@ -75,6 +75,51 @@ async function loginSuccessfully(page) {
     await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
 }
 
+test('signup step transitions preserve validation, focus and values with reduced-motion support', async ({ page }) => {
+    for (const width of [390, 1440]) {
+        for (const motion of ['no-preference', 'reduce']) {
+            await page.setViewportSize({ width, height: 900 });
+            await page.emulateMedia({ reducedMotion: motion });
+            await page.goto('/login?register=1');
+            const form = page.locator('#register-form');
+            await form.getByRole('button', { name: 'Next' }).click();
+            await expect(form).toHaveAttribute('data-registration-step', '0');
+            await form.getByLabel('Full name', { exact: true }).fill('Maria Clara');
+            await form.getByLabel('Birthday', { exact: true }).fill('2000-01-01');
+            await form.getByText('Female', { exact: true }).click();
+            await page.evaluate(() => {
+                window.signupTransitions = [];
+                const form = document.querySelector('#register-form');
+                for (const step of form.querySelectorAll('[data-register-step]')) {
+                    const animate = step.animate.bind(step);
+                    step.animate = (frames, options) => {
+                        window.signupTransitions.push(frames[0].transform);
+                        return animate(frames, options);
+                    };
+                }
+            });
+            await form.getByRole('button', { name: 'Next' }).click();
+            await expect(form).toHaveAttribute('data-registration-step', '1');
+            await expect(form.locator('[data-register-step="1"] h2')).toBeFocused();
+            await expect(form.locator('[data-register-step="0"]')).toBeHidden();
+            await form.getByLabel('Email address', { exact: true }).fill('preview@example.test');
+            await form.getByLabel('Contact number', { exact: true }).fill('09999998765');
+            await form.getByRole('button', { name: 'Next' }).click();
+            await expect(form).toHaveAttribute('data-registration-step', '2');
+            await expect(form.locator('[data-register-step="2"] h2')).toBeFocused();
+            await form.getByRole('button', { name: 'Back', exact: true }).click();
+            await expect(form.getByLabel('Email address', { exact: true })).toHaveValue('preview@example.test');
+            await form.getByRole('button', { name: 'Back', exact: true }).click();
+            await expect(form.getByLabel('Full name', { exact: true })).toHaveValue('Maria Clara');
+            expect(await page.evaluate(() => window.signupTransitions)).toEqual(motion === 'reduce' ? [] : [
+                'translateX(20px)', 'translateX(20px)', 'translateX(-20px)', 'translateX(-20px)',
+            ]);
+            await expect.poll(() => form.locator('[data-register-step="0"]').evaluate(step => step.getAnimations().length)).toBe(0);
+            expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+        }
+    }
+});
+
 test('desktop account panel slides between sign in and sign up', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/login');

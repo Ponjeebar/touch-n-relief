@@ -163,8 +163,11 @@
         const next = registerForm.querySelector('[data-register-next]');
         const submit = registerForm.querySelector('[data-register-submit]');
         let currentStep = 0;
+        let stepAnimation;
 
         function showStep(index, moveFocus) {
+            const previousStep = currentStep;
+            stepAnimation?.cancel();
             currentStep = index;
             registerForm.dataset.registrationStep = String(index);
             steps.forEach(function (step, i) { step.hidden = i !== index; });
@@ -176,6 +179,14 @@
             back.hidden = index === 0;
             next.hidden = index === steps.length - 1;
             submit.hidden = index !== steps.length - 1;
+            if (moveFocus && index !== previousStep && steps[index].animate
+                && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                const direction = index > previousStep ? 1 : -1;
+                stepAnimation = steps[index].animate([
+                    { opacity: 0, transform: `translateX(${direction * 20}px)` },
+                    { opacity: 1, transform: 'translateX(0)' },
+                ], { duration: 240, easing: 'cubic-bezier(.2,.75,.2,1)' });
+            }
             if (moveFocus) steps[index].querySelector('h2').focus({ preventScroll: true });
         }
 
