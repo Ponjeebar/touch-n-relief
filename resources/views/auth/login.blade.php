@@ -270,10 +270,9 @@
             <form method="POST" action="{{ route('password.email') }}" class="auth-forgot-panel" aria-hidden="{{ ! $showRegister && $showForgot ? 'false' : 'true' }}" @if ($showRegister || ! $showForgot) inert @endif>
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <div class="auth-reset-heading">
-                    <span class="auth-reset-icon" aria-hidden="true"><i class="bi bi-key"></i></span>
                     <div><span class="auth-reset-eyebrow">Account recovery</span><h1>Forgot password?</h1></div>
                 </div>
-                <p class="auth-forgot-copy">Enter the email address linked to your TouchNRelief account. We will send a six-digit code so you can choose a new password.</p>
+                <p class="auth-forgot-copy">Enter your account email. We will send a six-digit code to reset your password.</p>
                 <input type="hidden" name="_auth_mode" value="forgot">
                 <label class="auth-field-label" for="recovery-email">Email address</label>
                 <input

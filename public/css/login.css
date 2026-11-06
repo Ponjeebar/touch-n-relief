@@ -2149,7 +2149,7 @@ body.auth-entry-page #container .auth-social-button { min-height: 48px; font-siz
 body.auth-entry-page #container .auth-login-options { gap: 12px; }
 body.auth-entry-page #container .auth-remember-option, body.auth-entry-page #container .auth-login-options a { font-size: 12px; }
 body.auth-entry-page #container button[type="submit"], body.auth-entry-page #container .auth-registration-next { min-height: 48px; border-radius: 6px; font-size: 15px; font-weight: 600; box-shadow: none; }
-body.auth-entry-page #container :is(.auth-login-panel,.auth-forgot-panel) > button[type="submit"] { width: 100%; max-width: none; align-self: stretch; margin-inline: 0; }
+body.auth-entry-page #container .auth-login-panel > button[type="submit"] { width: 100%; max-width: none; align-self: stretch; margin-inline: 0; }
 body.auth-entry-page .auth-registration-progress { margin: 18px 0 24px; }
 body.auth-entry-page .auth-registration-progress li { font-size: 12px; }
 body.auth-entry-page #container .sign-up form { padding-top: 18px; padding-bottom: 18px; }
@@ -2169,12 +2169,17 @@ body.auth-entry-page #container .sign-up form[data-registration-step]:not([data-
 body.auth-entry-page .auth-registration-step h2 { font-size: 15px; color: var(--auth-text); font-weight: 500; }
 body.auth-entry-page #container .sign-up form .auth-registration-step .auth-field-label { font-size: 14px; font-weight: 600; }
 body.auth-entry-page .auth-gender-option { border-radius: 6px; }
-body.auth-entry-page #container .auth-forgot-panel { align-items: stretch; padding: 32px 40px; }
-body.auth-entry-page #container .auth-forgot-panel .auth-reset-heading { max-width: none; }
-body.auth-entry-page #container .auth-forgot-copy { max-width: none; text-align: left; font-size: 14px; line-height: 1.65; margin: 16px 0 20px; color: var(--auth-muted); }
-body.auth-entry-page #container .auth-forgot-panel > input { max-width: none; }
-body.auth-entry-page #container .auth-forgot-panel > .auth-field-label { margin-bottom: 6px; }
-body.auth-entry-page #container .auth-forgot-panel > button[type="submit"] { padding: 12px 16px; font-size: 14px; line-height: 1.4; }
+body.auth-entry-page #container .auth-forgot-panel { align-items: center; padding: 32px 40px; }
+body.auth-entry-page #container .auth-forgot-panel > :not([type="hidden"]) { width: 100%; max-width: 380px; align-self: center; }
+body.auth-entry-page #container .auth-forgot-panel .auth-reset-heading { margin: 0; }
+body.auth-entry-page #container .auth-forgot-panel .auth-reset-heading h1 { margin-bottom: 0; }
+body.auth-entry-page #container .auth-forgot-copy { text-align: left; font-size: 14px; line-height: 1.65; margin: 16px 0 24px; color: var(--auth-muted); }
+body.auth-entry-page #container .auth-forgot-panel > input { margin: 0; }
+body.auth-entry-page #container .auth-forgot-panel > .auth-field-label { margin: 0 0 6px; text-align: left; font-size: 13px; }
+body.auth-entry-page #container .auth-forgot-panel > .field-msg { margin: 8px 0 0; text-align: left; }
+body.auth-entry-page #container .auth-forgot-panel > button[type="submit"] { margin: 20px 0 0; padding: 12px 16px; font-size: 14px; line-height: 1.4; box-shadow: none; }
+body.auth-entry-page #container .auth-forgot-panel > button.auth-forgot-back { min-height: 44px; margin: 12px 0 0; padding: 10px 16px; border: 1px solid var(--auth-line); border-radius: 6px; background: transparent; color: var(--auth-text); font-size: 13px; font-weight: 500; text-decoration: none; }
+body.auth-entry-page #container .auth-forgot-panel > button.auth-forgot-back:hover { background: var(--auth-input-bg); border-color: var(--auth-accent-blue); color: var(--auth-text); }
 body.auth-entry-page #container .auth-reset-copy { overflow-wrap: anywhere; }
 body.auth-entry-page.auth-reset-page #container.auth-reset-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); height: auto; }
 body.auth-entry-page.auth-reset-page #container.auth-reset-card .form-container.sign-in { position: relative; top: auto; left: auto; width: auto; height: auto; min-width: 0; overflow: visible; }

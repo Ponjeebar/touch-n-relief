@@ -55,6 +55,10 @@ for (const theme of ['light', 'dark']) {
             await login.getByRole('link', { name: 'Forgot Password?', exact: true }).click();
             await expect(page.locator('.auth-forgot-panel')).toHaveAttribute('aria-hidden', 'false');
             await page.locator('.auth-forgot-panel').getByLabel('Email address', { exact: true }).fill('preview@example.test');
+            const recoveryEmail = await page.locator('#recovery-email').boundingBox();
+            const sendCode = await page.locator('.auth-forgot-panel').getByRole('button', { name: 'Send verification code', exact: true }).boundingBox();
+            expect(Math.abs(recoveryEmail.x - sendCode.x)).toBeLessThanOrEqual(1);
+            expect(Math.abs(recoveryEmail.width - sendCode.width)).toBeLessThanOrEqual(1);
             await page.screenshot({ path: testInfo.outputPath(`forgot-${width}.png`), animations: 'disabled' });
             await page.locator('[data-auth-forgot-close]').click();
             await expect(login).toHaveAttribute('aria-hidden', 'false');
