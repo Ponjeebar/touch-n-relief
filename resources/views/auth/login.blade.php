@@ -23,7 +23,7 @@
 
     <div class="container {{ $showRegister ? 'active' : '' }} {{ $showForgot ? 'sign-in-forgot-active' : '' }}" id="container">
         <div class="form-container sign-up" aria-hidden="{{ $showRegister ? 'false' : 'true' }}" @if (! $showRegister) inert @endif>
-            <form method="POST" action="{{ route('register') }}" id="register-form" data-auth-register-form="true" aria-hidden="{{ $showRegister ? 'false' : 'true' }}" @if (! $showRegister) inert @endif>
+            <form method="POST" action="{{ route('register') }}" id="register-form" data-auth-register-form="true" data-contact-check-url="{{ route('register.contact-check') }}" aria-hidden="{{ $showRegister ? 'false' : 'true' }}" @if (! $showRegister) inert @endif>
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <h1 tabindex="-1">Create Account</h1>
@@ -104,6 +104,7 @@
                     @error('email', 'register')
                         <p class="field-msg">{{ $message }}</p>
                     @enderror
+                    <p class="field-msg" id="register-email-check-error" data-contact-error="email" role="alert" hidden></p>
                     <label class="auth-field-label" for="register-contact_number">Contact number</label>
                     <input
                         type="tel"
@@ -122,6 +123,8 @@
                     @error('contact_number', 'register')
                         <p class="field-msg">{{ $message }}</p>
                     @enderror
+                    <p class="field-msg" id="register-phone-check-error" data-contact-error="contact_number" role="alert" hidden></p>
+                    <p class="field-msg" data-contact-check-status role="status" hidden></p>
                 </section>
                 <section class="auth-registration-step" data-register-step="2" aria-labelledby="register-account-heading">
                     <h2 id="register-account-heading" tabindex="-1">Set up your account.</h2>

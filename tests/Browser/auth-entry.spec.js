@@ -135,6 +135,51 @@ test('desktop account panel slides between sign in and sign up', async ({ page }
     await expect(page.locator('#register-form [name="name"]')).toHaveValue('Maria Clara');
 });
 
+test('Contact blocks duplicate details and connection failures before Account', async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/login?register=1');
+    const form = page.locator('#register-form');
+    await form.getByLabel('Full name', { exact: true }).fill('New Customer');
+    await form.getByLabel('Birthday', { exact: true }).fill('2000-01-01');
+    await form.getByText('Female', { exact: true }).click();
+    const next = form.getByRole('button', { name: 'Next' });
+    await next.click();
+    await form.getByLabel('Email address', { exact: true }).fill('CUSTOMER@browser.test');
+    await form.getByLabel('Contact number', { exact: true }).fill('09170000001');
+    await next.click();
+    await expect(form.locator('[data-contact-error="email"]')).toContainText('already registered');
+    await expect(form.locator('[data-contact-error="contact_number"]')).toContainText('already been taken');
+    await expect(form).toHaveAttribute('data-registration-step', '1');
+    await expect(form.getByLabel('Email address', { exact: true })).toBeFocused();
+    await page.screenshot({ path: testInfo.outputPath('contact-duplicate-mobile.png'), fullPage: true });
+    await form.getByLabel('Email address', { exact: true }).fill('available@example.test');
+    await next.click();
+    await expect(form.locator('[data-contact-error="contact_number"]')).toBeVisible();
+    await expect(form.locator('[data-contact-error="email"]')).toBeHidden();
+    await form.getByLabel('Contact number', { exact: true }).fill('09999998765');
+    await page.route('**/register/contact-check', route => route.abort());
+    await next.click();
+    await expect(form.locator('[data-contact-check-status]')).toContainText('could not connect');
+    await expect(form).toHaveAttribute('data-registration-step', '1');
+    await page.unroute('**/register/contact-check');
+    let release;
+    let checks = 0;
+    await page.route('**/register/contact-check', async route => {
+        checks++;
+        await new Promise(resolve => { release = resolve; });
+        await route.continue();
+    });
+    await next.click();
+    await expect(form.locator('[data-register-next]')).toBeDisabled();
+    await form.getByLabel('Contact number', { exact: true }).press('Enter');
+    await expect.poll(() => Boolean(release)).toBe(true);
+    expect(checks).toBe(1);
+    release();
+    await expect(form).toHaveAttribute('data-registration-step', '2');
+    await expect(form.locator('[data-register-step="2"] h2')).toBeFocused();
+});
+
 test('auth header stays separate from forms on short laptop screens', async ({ page }, testInfo) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     for (const theme of ['light', 'dark']) {

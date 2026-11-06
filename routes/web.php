@@ -36,6 +36,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login.attempt');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,10')->name('register');
+    Route::post('/register/contact-check', [AuthController::class, 'checkRegistrationContact'])->middleware('throttle:20,1')->name('register.contact-check');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middleware('throttle:5,10')->name('password.email');
     Route::get('/verify-code/{verification}', [AuthController::class, 'showVerification'])->name('verification.show');

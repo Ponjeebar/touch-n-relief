@@ -15,6 +15,54 @@ class AuthVerificationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_registration_contact_check_rejects_taken_details_without_creating_records(): void
+    {
+        Notification::fake();
+        User::factory()->create(['email' => 'existing@example.test', 'contact_number' => '09123456789']);
+        $this->postJson(route('register.contact-check'), [
+            'name' => 'New Customer', 'email' => 'EXISTING@example.test', 'contact_number' => '09123456789',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['email', 'contact_number']);
+        $this->postJson(route('register.contact-check'), [
+            'name' => 'New Customer', 'email' => 'available@example.test', 'contact_number' => '09987654321',
+        ])->assertOk()->assertExactJson(['valid' => true]);
+        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('auth_verification_codes', 0);
+        Notification::assertNothingSent();
+    }
+
+    public function test_contact_check_preserves_existing_walk_in_registration_matching(): void
+    {
+        $walkIn = app(\App\Services\WalkInClientService::class)->resolveUser('Walk In Customer', 'walkin@example.test', '09123456789');
+        $this->assertTrue($walkIn->isWalkIn());
+        $this->postJson(route('register.contact-check'), [
+            'name' => $walkIn->name, 'email' => $walkIn->email, 'contact_number' => $walkIn->contact_number,
+        ])->assertOk()->assertJson(['valid' => true]);
+        $this->assertTrue($walkIn->fresh()->isWalkIn());
+    }
+
+    public function test_duplicate_phone_is_rechecked_at_signup_and_after_email_verification(): void
+    {
+        Notification::fake();
+        $registration = [
+            'name' => 'New Customer', 'username' => 'new_customer', 'email' => 'new@example.test',
+            'contact_number' => '09123456789', 'birthday' => '2000-01-01', 'sex' => User::SEX_MALE,
+            'password' => 'SecurePass1', 'password_confirmation' => 'SecurePass1', 'terms_accepted' => '1',
+        ];
+        $this->post(route('register'), $registration)->assertRedirect();
+        $verification = AuthVerificationCode::query()->firstOrFail();
+        $code = '';
+        Notification::assertSentOnDemand(AuthVerificationCodeNotification::class, function ($notification) use (&$code) {
+            $code = $notification->code;
+            return true;
+        });
+        User::factory()->create(['contact_number' => $registration['contact_number']]);
+        $this->post(route('register'), $registration)->assertSessionHasErrors(['contact_number'], null, 'register');
+        $this->postJson(route('verification.verify', $verification), [
+            'purpose' => AuthVerificationCode::PURPOSE_REGISTRATION, 'code' => $code,
+        ])->assertUnprocessable()->assertJsonValidationErrors('contact_number');
+        $this->assertDatabaseMissing('users', ['email' => $registration['email']]);
+    }
+
     public function test_verification_emails_include_copyable_code_expiry_and_purpose_in_both_formats(): void
     {
         config()->set('mail.default', 'array');

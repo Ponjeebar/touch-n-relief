@@ -263,6 +263,34 @@ class AuthController extends Controller
         return redirect()->route('landing');
     }
 
+    public function checkRegistrationContact(Request $request): JsonResponse
+    {
+        $lookup = $request->validate([
+            'name' => ['required', 'string', 'max:255', new PersonName],
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'contact_number' => ['required', 'regex:/^09\d{9}$/'],
+        ]);
+        $matchedWalkIn = $this->walkInClients->findWalkInForRegistration(
+            $lookup['email'], $lookup['contact_number'], $lookup['name'],
+        );
+        $request->validate($this->registrationContactRules($matchedWalkIn));
+
+        return response()->json(['valid' => true]);
+    }
+
+    private function registrationContactRules(?User $matchedWalkIn): array
+    {
+        return [
+            'email' => ['bail', 'required', 'string', 'email', 'max:255', function ($attribute, $value, $fail) use ($matchedWalkIn) {
+                if (User::query()->whereRaw('LOWER(email) = ?', [Str::lower($value)])
+                    ->when($matchedWalkIn, fn ($query) => $query->whereKeyNot($matchedWalkIn->id))->exists()) {
+                    $fail('This email address is already registered. Sign in or use another email.');
+                }
+            }],
+            'contact_number' => ['bail', 'required', 'regex:/^09\d{9}$/', Rule::unique('users', 'contact_number')->ignore($matchedWalkIn?->id)],
+        ];
+    }
+
     public function register(Request $request): RedirectResponse
     {
         if (! Schema::hasTable('users')) {
@@ -298,14 +326,7 @@ class AuthController extends Controller
                 Rule::unique('users', 'username')->ignore($matchedWalkIn?->id),
                 'alpha_dash:ascii',
             ],
-            'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($matchedWalkIn?->id),
-            ],
-            'contact_number' => ['required', 'regex:/^09\d{9}$/'],
+            ...$this->registrationContactRules($matchedWalkIn),
             'birthday' => ['required', 'date', CustomerEligibility::birthdayRule()],
             'sex' => ['required', Rule::in(User::sexOptions())],
             'password' => ['required', 'confirmed', StrongPassword::rule()],
@@ -408,7 +429,7 @@ class AuthController extends Controller
 
         Validator::make($validated, [
             'username' => ['required', Rule::unique('users', 'username')->ignore($matchedWalkIn?->id)],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($matchedWalkIn?->id)],
+            ...$this->registrationContactRules($matchedWalkIn),
         ])->validate();
 
         try {

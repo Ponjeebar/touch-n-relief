@@ -164,9 +164,24 @@
         const submit = registerForm.querySelector('[data-register-submit]');
         let currentStep = 0;
         let stepAnimation;
+        let contactCheck;
+        const contactFields = ['email', 'contact_number'];
+        const contactStatus = registerForm.querySelector('[data-contact-check-status]');
+        contactFields.forEach(function (name) {
+            const input = registerForm.elements.namedItem(name);
+            const error = registerForm.querySelector(`[data-contact-error="${name}"]`);
+            input.setAttribute('aria-describedby', error.id);
+            input.addEventListener('input', function () {
+                input.classList.remove('invalid');
+                input.removeAttribute('aria-invalid');
+                error.hidden = true;
+                contactStatus.hidden = true;
+            });
+        });
 
         function showStep(index, moveFocus) {
             const previousStep = currentStep;
+            if (index !== currentStep) contactCheck?.abort();
             stepAnimation?.cancel();
             currentStep = index;
             registerForm.dataset.registrationStep = String(index);
@@ -195,9 +210,72 @@
                 .find(function (field) { return !field.checkValidity(); });
         }
 
-        function advanceStep() {
+        async function advanceStep() {
+            if (contactCheck) return;
             const invalid = firstInvalidField(steps[currentStep]);
             if (invalid) { invalid.reportValidity(); return; }
+            if (currentStep === 1) {
+                const controller = new AbortController();
+                const nextLabel = next.innerHTML;
+                contactCheck = controller;
+                const snapshot = ['name', ...contactFields].map(name => registerForm.elements.namedItem(name).value);
+                const timeout = window.setTimeout(() => controller.abort(), 15000);
+                next.disabled = true;
+                next.textContent = 'Checking contact details...';
+                steps[1].setAttribute('aria-busy', 'true');
+                contactStatus.hidden = true;
+                contactFields.forEach(function (name) {
+                    registerForm.querySelector(`[data-contact-error="${name}"]`).hidden = true;
+                });
+                try {
+                    const body = new FormData();
+                    body.set('_token', registerForm.elements.namedItem('_token').value);
+                    ['name', ...contactFields].forEach((name, index) => body.set(name, snapshot[index]));
+                    const response = await fetch(registerForm.dataset.contactCheckUrl, {
+                        method: 'POST', body, signal: controller.signal, credentials: 'same-origin',
+                        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    });
+                    const result = await response.json().catch(() => ({}));
+                    if (currentStep !== 1) return;
+                    if (snapshot.some((value, index) => value !== registerForm.elements.namedItem(['name', ...contactFields][index]).value)) {
+                        throw new Error('Your contact details changed. Select Next to check them again.');
+                    }
+                    if (response.status === 422 && result.errors) {
+                        let firstError;
+                        contactFields.forEach(function (name) {
+                            if (!result.errors[name]?.[0]) return;
+                            const input = registerForm.elements.namedItem(name);
+                            const error = registerForm.querySelector(`[data-contact-error="${name}"]`);
+                            error.textContent = result.errors[name][0];
+                            error.hidden = false;
+                            input.classList.add('invalid');
+                            input.setAttribute('aria-invalid', 'true');
+                            firstError ||= input;
+                        });
+                        if (firstError) { firstError.focus(); return; }
+                        throw new Error('Review your name in Personal, then check your contact details again.');
+                    }
+                    if (!response.ok || result.valid !== true) {
+                        throw new Error(response.status === 429 ? 'Too many checks. Wait a minute, then select Next again.'
+                            : response.status === 419 ? 'Your session expired. Reload the page, then try again.'
+                            : 'We could not check your contact details. Select Next to try again.');
+                    }
+                    showStep(2, true);
+                } catch (error) {
+                    if (currentStep === 1) {
+                        contactStatus.textContent = error.name === 'AbortError' ? 'The check timed out. Select Next to try again.'
+                            : error instanceof TypeError ? 'We could not connect. Check your connection, then select Next again.' : error.message;
+                        contactStatus.hidden = false;
+                    }
+                } finally {
+                    window.clearTimeout(timeout);
+                    contactCheck = null;
+                    next.disabled = false;
+                    next.innerHTML = nextLabel;
+                    steps[1].removeAttribute('aria-busy');
+                }
+                return;
+            }
             if (currentStep < steps.length - 1) showStep(currentStep + 1, true);
         }
 
