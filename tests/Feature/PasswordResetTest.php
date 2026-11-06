@@ -53,7 +53,7 @@ class PasswordResetTest extends TestCase
         $this->post(route('verification.verify', $verification), [
             'purpose' => AuthVerificationCode::PURPOSE_PASSWORD_RESET,
             'code' => $code,
-        ])->assertRedirect();
+        ])->assertRedirect()->assertSessionHas('recovery_code_verified', true);
 
         $token = PasswordBroker::createToken($user);
 

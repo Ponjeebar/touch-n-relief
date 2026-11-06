@@ -361,7 +361,8 @@ class AuthController extends Controller
             $token = PasswordBroker::createToken($user);
             $verification->delete();
 
-            return redirect()->route('password.reset', ['token' => $token, 'email' => $user->email]);
+            return redirect()->route('password.reset', ['token' => $token, 'email' => $user->email])
+                ->with('recovery_code_verified', true);
         }
 
         return $this->completeVerifiedRegistration($request, $verification);

@@ -138,6 +138,22 @@
         window.location.assign(forgotCloseBtn.getAttribute('data-login-url') || '/login');
     });
 
+    forgotPanel?.addEventListener('submit', function (event) {
+        if (forgotPanel.getAttribute('aria-busy') === 'true') { event.preventDefault(); return; }
+        forgotPanel.setAttribute('aria-busy', 'true');
+        const send = forgotPanel.querySelector('button[type="submit"]');
+        send.textContent = 'Sending code…';
+        send.setAttribute('aria-disabled', 'true');
+    });
+
+    window.addEventListener('pageshow', function (event) {
+        if (!event.persisted || !forgotPanel) return;
+        forgotPanel.removeAttribute('aria-busy');
+        const send = forgotPanel.querySelector('button[type="submit"]');
+        send.textContent = 'Send verification code';
+        send.removeAttribute('aria-disabled');
+    });
+
     if (registerForm) {
         var passwordInput = registerForm.querySelector('input[name="password"]');
         var confirmInput = registerForm.querySelector('input[name="password_confirmation"]');

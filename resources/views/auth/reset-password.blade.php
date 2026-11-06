@@ -17,6 +17,9 @@
             <form method="POST" action="{{ route('password.update') }}">
                 @csrf
                 <input type="hidden" name="token" value="{{ $token }}">
+                @if (session('recovery_code_verified'))
+                    <p class="auth-recovery-verified" role="status"><i class="bi bi-check2" aria-hidden="true"></i> Code verified. Choose your new password below.</p>
+                @endif
                 <div class="auth-reset-heading">
                     <span class="auth-reset-icon" aria-hidden="true"><i class="bi bi-shield-lock"></i></span>
                     <div>

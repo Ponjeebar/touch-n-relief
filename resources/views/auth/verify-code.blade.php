@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Verify Email — TouchNRelief</title>
+    <title>{{ $verification->purpose === \App\Models\AuthVerificationCode::PURPOSE_PASSWORD_RESET ? 'Verify recovery code' : 'Verify email' }} — TouchNRelief</title>
     @include('partials.theme-head')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
@@ -13,7 +13,7 @@
     @include('partials.landing-nav', ['navMode' => 'auth', 'authEntryHeader' => true])
     <main class="container auth-reset-card auth-code-card" id="container">
         <div class="form-container sign-in">
-            <form method="POST" action="{{ $verificationSubmitUrl ?? route('verification.verify', $verification) }}">
+            <form method="POST" action="{{ $verificationSubmitUrl ?? route('verification.verify', $verification) }}" @if($verification->purpose === \App\Models\AuthVerificationCode::PURPOSE_PASSWORD_RESET) data-recovery-code @endif>
                 @csrf
                 <input type="hidden" name="purpose" value="{{ $verification->purpose }}">
                 <div class="auth-reset-heading">
@@ -36,8 +36,9 @@
                     </div>
                 </fieldset>
                 <p class="auth-code-help" id="verification-code-help">Enter the six digits from your email. You can also paste the full code.</p>
+                <p class="auth-code-status" data-code-status role="status" aria-live="polite" hidden></p>
                 @error('code')<p class="field-msg" id="verification-code-error" role="alert">{{ $message }}</p>@enderror
-                <button type="submit">Verify code</button>
+                <button type="submit" data-code-submit>Verify code</button>
                 <p class="auth-reset-hint">Do not share your verification code with anyone.</p>
                 <div class="auth-code-actions">
                     <button type="submit" class="link auth-forgot-back" formnovalidate formaction="{{ $verificationResendUrl ?? route('verification.resend', $verification) }}">Send a new code</button>
