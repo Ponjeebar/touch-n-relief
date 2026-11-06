@@ -2394,9 +2394,9 @@ class DashboardController extends Controller
             request: $request,
         );
 
-        return Pdf::loadView('reporting.pdf', $payload)
-            ->setPaper('a4', 'landscape')
-            ->download($filename);
+        $pdf = Pdf::loadView('reporting.pdf', $payload)->setPaper('a4', 'landscape');
+
+        return $request->boolean('preview') ? $pdf->stream($filename) : $pdf->download($filename);
     }
 
     public function reportingBackup(BackupRecoveryService $recovery): StreamedResponse|RedirectResponse

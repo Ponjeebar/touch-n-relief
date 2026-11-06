@@ -60,9 +60,9 @@
                                 <i class="bi bi-download" aria-hidden="true"></i>
                                 <span>Export Excel</span>
                             </a>
-                            <a href="{{ route('reporting.pdf', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null]) }}" class="rep-print-btn" id="repPdfLink" data-page-transition="off">
+                            <a href="{{ route('reporting.pdf', ['period' => $period ?? 'monthly', 'period_value' => $periodValue ?? null, 'date_from' => $dateFrom ?? null, 'date_to' => $dateTo ?? null, 'preview' => 1]) }}" class="rep-print-btn" id="repPdfLink" data-page-transition="off" target="_blank" rel="noopener" title="Preview PDF in a new tab, then download from the PDF viewer" aria-label="Preview PDF (opens in a new tab)">
                                 <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
-                                <span>Generate PDF</span>
+                                <span>Preview PDF</span>
                             </a>
                         </div>
                         <form method="GET" action="{{ route('reporting.index') }}" class="rep-custom-range" id="repCustomRange" hidden>
@@ -685,6 +685,7 @@
             ].forEach(([link, baseUrl]) => {
                 if (!link || !baseUrl) return;
                 const url = new URL(baseUrl, window.location.origin);
+                if (link.id === 'repPdfLink') url.searchParams.set('preview', '1');
                 url.searchParams.set('period', period || 'monthly');
                 if (periodValue) {
                     url.searchParams.set('period_value', periodValue);

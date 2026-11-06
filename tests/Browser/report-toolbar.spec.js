@@ -11,7 +11,7 @@ test('report downloads stay grouped beside filters or wrap together on smaller s
     await page.evaluate(() => document.fonts.ready);
     const group = page.getByRole('group', { name: 'Report downloads', exact: true });
     const excel = group.getByRole('link', { name: 'Export Excel', exact: true });
-    const pdf = group.getByRole('link', { name: 'Generate PDF', exact: true });
+    const pdf = group.getByRole('link', { name: 'Preview PDF (opens in a new tab)', exact: true });
     const custom = page.locator('#repPeriod [data-period="custom"]');
     const range = page.locator('#repCustomRange');
     for (const width of [360, 390, 768, 1024, 1366, 1440, 1920]) {
@@ -46,4 +46,26 @@ test('report downloads stay grouped beside filters or wrap together on smaller s
             expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
         }
     }
+    await page.goto('/reporting?period=custom&date_from=2026-09-01&date_to=2026-09-07', { waitUntil: 'networkidle' });
+    const preview = page.locator('#repPdfLink');
+    const href = new URL(await preview.getAttribute('href'));
+    expect(href.searchParams.get('preview')).toBe('1');
+    expect(href.searchParams.get('period')).toBe('custom');
+    expect(href.searchParams.get('date_from')).toBe('2026-09-01');
+    expect(href.searchParams.get('date_to')).toBe('2026-09-07');
+    await expect(preview).toHaveAttribute('target', '_blank');
+    const downloads = [];
+    page.on('download', download => downloads.push(download));
+    const responsePromise = page.context().waitForEvent('response', response => response.url().includes('/reporting/pdf?'));
+    const popupPromise = page.waitForEvent('popup');
+    await preview.click();
+    const response = await responsePromise;
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toContain('application/pdf');
+    expect(response.headers()['content-disposition']).toMatch(/^inline;/);
+    const popup = await popupPromise;
+    await expect(popup).toHaveURL(/\/reporting\/pdf\?/);
+    expect(downloads).toHaveLength(0);
+    await popup.close();
+    await expect(page).toHaveURL(/\/reporting\?period=custom/);
 });

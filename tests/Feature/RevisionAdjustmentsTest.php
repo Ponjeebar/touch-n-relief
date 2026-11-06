@@ -272,6 +272,21 @@ class RevisionAdjustmentsTest extends TestCase
             (string) $response->headers->get('content-disposition'),
         );
         $this->assertStringStartsWith('%PDF-', (string) $response->getContent());
+        $this->assertStringStartsWith('attachment;', (string) $response->headers->get('content-disposition'));
+    }
+
+    public function test_reporting_pdf_can_be_previewed_inline_by_admin_only(): void
+    {
+        Carbon::setTestNow('2026-09-25 10:00:00');
+        $url = route('reporting.pdf', ['period' => 'weekly', 'period_value' => '2026-09-14', 'preview' => 1]);
+        $this->get($url)->assertRedirect(route('login'));
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_USER]))->get($url)->assertForbidden();
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_RECEPTIONIST]))->get($url)->assertRedirect(route('receptionist.dashboard'));
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $response = $this->actingAs($admin)->get($url)->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('inline;', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('touchnrelief-report-weekly-2026-09-14.pdf', (string) $response->headers->get('content-disposition'));
+        $this->assertStringStartsWith('%PDF-', (string) $response->getContent());
     }
 
     public function test_reporting_downloads_do_not_leave_the_page_transition_skeleton_open(): void
